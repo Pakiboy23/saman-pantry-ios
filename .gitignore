@@ -61,6 +61,6 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# Secrets — copy Secrets.xcconfig.example → Secrets.xcconfig and fill in values
-Secrets.xcconfig
-**/Secrets.xcconfig
+# Secrets — Saman/Secrets.xcconfig is committed with placeholders so Xcode Cloud can parse the project.
+# Real values are injected by ci_scripts/ci_post_clone.sh.
+/Secrets.xcconfig
