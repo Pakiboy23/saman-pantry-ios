@@ -60,3 +60,7 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Secrets — copy Secrets.xcconfig.example → Secrets.xcconfig and fill in values
+Secrets.xcconfig
+**/Secrets.xcconfig
