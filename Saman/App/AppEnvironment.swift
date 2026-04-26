@@ -8,6 +8,7 @@ final class AppEnvironment {
     let supabase: SupabaseClient
     let syncManager: SyncManager
     let auth: AuthService
+    let purchases: PurchaseService
 
     init(
         modelContainer: ModelContainer = .shared,
@@ -17,6 +18,7 @@ final class AppEnvironment {
         self.supabase = supabase
         self.syncManager = SyncManager(supabase: supabase)
         self.auth = AuthService(supabase: supabase)
+        self.purchases = PurchaseService()
     }
 
     func syncNow() {

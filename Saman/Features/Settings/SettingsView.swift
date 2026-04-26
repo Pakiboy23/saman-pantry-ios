@@ -3,11 +3,48 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.appEnv) private var appEnv
     @State private var showSignOutConfirm = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
+                    // Subscription card
+                    settingsCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            cardLabel("SUBSCRIPTION")
+                            if appEnv.purchases.isPro {
+                                HStack {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundStyle(Color.samanAccent)
+                                    Text("Saman Pro — active")
+                                        .foregroundStyle(Color.samanPrimary)
+                                    Spacer()
+                                }
+                                .font(.system(size: 15))
+                            } else {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Free plan")
+                                            .font(.system(size: 15))
+                                            .foregroundStyle(Color.samanPrimary)
+                                        Text("Upgrade to Pro to support development")
+                                            .font(.system(size: 12, weight: .light))
+                                            .foregroundStyle(Color.samanMuted)
+                                    }
+                                    Spacer()
+                                    Button("Upgrade") { showPaywall = true }
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Color.samanBg)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 7)
+                                        .background(Color.samanAccent)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+
                     // Sync card
                     settingsCard {
                         VStack(alignment: .leading, spacing: 0) {
@@ -93,6 +130,9 @@ struct SettingsView: View {
                 Button("Sign Out", role: .destructive) {
                     Task { await appEnv.auth.signOut() }
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
         }
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import CoreText
+import RevenueCat
 
 @main
 struct SamanApp: App {
@@ -9,14 +10,27 @@ struct SamanApp: App {
     init() {
         registerFonts()
         configureTabBarAppearance()
+        configureRevenueCat()
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(\.appEnv, appEnv)
+                .onChange(of: appEnv.auth.currentUserID) { _, userID in
+                    if let userID {
+                        appEnv.purchases.setAppUserID(userID)
+                    }
+                }
         }
         .modelContainer(appEnv.modelContainer)
+    }
+
+    // MARK: - RevenueCat
+
+    private func configureRevenueCat() {
+        Purchases.logLevel = .error
+        Purchases.configure(withAPIKey: Config.revenueCatAPIKey)
     }
 
     // MARK: - Font registration

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F4460CE32F84207100949A76 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE22F84207100949A76 /* Supabase */; };
+		F4460CE62F84207100949A76 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE52F84207100949A76 /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F4460CE32F84207100949A76 /* Supabase in Frameworks */,
+				F4460CE62F84207100949A76 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = Saman;
 			packageProductDependencies = (
 				F4460CE22F84207100949A76 /* Supabase */,
+				F4460CE52F84207100949A76 /* RevenueCat */,
 			);
 			productName = Saman;
 			productReference = F4460CB72F841F5600949A76 /* Saman.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				F4460CE12F84207100949A76 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F4460CB82F841F5600949A76 /* Products */;
@@ -678,6 +682,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -685,6 +697,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F4460CE12F84207100949A76 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		F4460CE52F84207100949A76 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

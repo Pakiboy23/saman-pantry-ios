@@ -5,6 +5,7 @@ import Supabase
 final class AuthService {
     private(set) var isSignedIn = false
     private(set) var hasCheckedInitialSession = false
+    private(set) var currentUserID: String? = nil
     var errorMessage: String?
     var isLoading = false
 
@@ -20,11 +21,14 @@ final class AuthService {
             switch event {
             case .initialSession:
                 isSignedIn = session != nil
+                currentUserID = session?.user.id.uuidString
                 hasCheckedInitialSession = true
             case .signedIn, .tokenRefreshed, .userUpdated:
                 isSignedIn = session != nil
+                currentUserID = session?.user.id.uuidString
             case .signedOut, .passwordRecovery, .userDeleted:
                 isSignedIn = false
+                currentUserID = nil
             default:
                 break
             }
