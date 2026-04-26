@@ -10,5 +10,5 @@ enum Config {
 
     // RevenueCat iOS public SDK key — safe to embed.
     // Get this from: RevenueCat dashboard → Project → Apps → iOS → Public SDK key
-    static let revenueCatAPIKey = "REVENUECAT_IOS_API_KEY"
+    static let revenueCatAPIKey = "test_QyVnWtmSxDDLigIsWitMWXGYkvF"
 }
