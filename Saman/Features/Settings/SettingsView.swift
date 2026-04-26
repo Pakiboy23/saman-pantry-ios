@@ -1,9 +1,11 @@
 import SwiftUI
+import RevenueCatUI
 
 struct SettingsView: View {
     @Environment(\.appEnv) private var appEnv
     @State private var showSignOutConfirm = false
     @State private var showPaywall = false
+    @State private var showCustomerCenter = false
 
     var body: some View {
         NavigationStack {
@@ -17,11 +19,14 @@ struct SettingsView: View {
                                 HStack {
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundStyle(Color.samanAccent)
-                                    Text("Saman Pro — active")
+                                    Text("Saman Pro")
+                                        .font(.system(size: 15))
                                         .foregroundStyle(Color.samanPrimary)
                                     Spacer()
+                                    Button("Manage") { showCustomerCenter = true }
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Color.samanMuted)
                                 }
-                                .font(.system(size: 15))
                             } else {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -132,7 +137,10 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                SamanPaywallView()
+            }
+            .sheet(isPresented: $showCustomerCenter) {
+                CustomerCenterView()
             }
         }
     }

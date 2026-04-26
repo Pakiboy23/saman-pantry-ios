@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		F4460CE32F84207100949A76 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE22F84207100949A76 /* Supabase */; };
 		F4460CE62F84207100949A76 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE52F84207100949A76 /* RevenueCat */; };
+		F4460CE72F84207100949A76 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE82F84207100949A76 /* RevenueCatUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +60,7 @@
 			files = (
 				F4460CE32F84207100949A76 /* Supabase in Frameworks */,
 				F4460CE62F84207100949A76 /* RevenueCat in Frameworks */,
+				F4460CE72F84207100949A76 /* RevenueCatUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,6 +123,7 @@
 			packageProductDependencies = (
 				F4460CE22F84207100949A76 /* Supabase */,
 				F4460CE52F84207100949A76 /* RevenueCat */,
+				F4460CE82F84207100949A76 /* RevenueCatUI */,
 			);
 			productName = Saman;
 			productReference = F4460CB72F841F5600949A76 /* Saman.app */;
@@ -682,9 +685,9 @@
 				minimumVersion = 2.0.0;
 			};
 		};
-		F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+		F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
@@ -700,8 +703,13 @@
 		};
 		F4460CE52F84207100949A76 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			package = F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCat;
+		};
+		F4460CE82F84207100949A76 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
