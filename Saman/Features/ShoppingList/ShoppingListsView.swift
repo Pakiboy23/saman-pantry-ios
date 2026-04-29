@@ -6,6 +6,7 @@ struct ShoppingListsView: View {
     @Environment(\.appEnv) private var appEnv
     @Query(sort: \ShoppingList.createdAt, order: .reverse) private var lists: [ShoppingList]
     @State private var showAdd = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -34,13 +35,20 @@ struct ShoppingListsView: View {
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SamanHeader(subtitle: listSubtitle) { showAdd = true }
+                    SamanHeader(subtitle: listSubtitle) {
+                        if lists.count >= 1 && !appEnv.purchases.isPro {
+                            showPaywall = true
+                        } else {
+                            showAdd = true
+                        }
+                    }
                     Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
                 }
                 .background(Color.samanBg)
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
+            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
         }
     }
 

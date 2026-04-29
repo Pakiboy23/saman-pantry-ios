@@ -3,9 +3,13 @@ import SwiftData
 
 struct InventoryView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.appEnv) private var appEnv
     @Query(sort: \Item.name) private var items: [Item]
     @Query(sort: \Pantry.name) private var pantries: [Pantry]
     @State private var showAdd = false
+    @State private var showPaywall = false
+    @State private var showScanner = false
+    @State private var showSettings = false
     @State private var selectedTab = "all"
 
     // MARK: - Derived
@@ -30,7 +34,6 @@ struct InventoryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                    // Running low section
                     if !lowItems.isEmpty {
                         SamanSectionHeader(title: "Running low", color: .samanRed)
                         ForEach(lowItems) { item in
@@ -43,7 +46,6 @@ struct InventoryView: View {
                         }
                     }
 
-                    // Well stocked section
                     if !stockedItems.isEmpty {
                         SamanSectionHeader(title: "Well stocked", color: .samanGreen)
                         ForEach(stockedItems) { item in
@@ -56,7 +58,6 @@ struct InventoryView: View {
                         }
                     }
 
-                    // Empty state
                     if filteredItems.isEmpty {
                         SamanEmptyState(
                             emoji: "🛒",
@@ -75,6 +76,9 @@ struct InventoryView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
+            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showScanner) { ScannerView() }
+            .sheet(isPresented: $showSettings) { SettingsView() }
         }
     }
 
@@ -82,7 +86,47 @@ struct InventoryView: View {
 
     private var topHeader: some View {
         VStack(spacing: 0) {
-            SamanHeader(subtitle: greetingSubtitle) { showAdd = true }
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Saman")
+                        .font(.cormorant(28))
+                        .foregroundStyle(Color.samanPrimary)
+                    Text(greetingSubtitle)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.samanMuted)
+                }
+                Spacer()
+                // Settings
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.samanMuted)
+                        .frame(width: 36, height: 36)
+                }
+                // Scanner
+                Button { showScanner = true } label: {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.samanPrimary)
+                        .frame(width: 36, height: 36)
+                }
+                // Add item
+                Button {
+                    if items.count >= 30 && !appEnv.purchases.isPro {
+                        showPaywall = true
+                    } else {
+                        showAdd = true
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.samanPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            .padding(.horizontal, Saman.Space.md)
+            .padding(.vertical, 12)
 
             if allLowCount > 0 {
                 LowStockBanner(count: allLowCount)

@@ -40,14 +40,8 @@ struct RootView: View {
             Tab("Reorder", systemImage: "arrow.trianglehead.clockwise") {
                 ReorderView()
             }
-            Tab("Scan", systemImage: "barcode.viewfinder") {
-                ScannerView()
-            }
             Tab("Lists", systemImage: "list.bullet.rectangle.fill") {
                 ShoppingListsView()
-            }
-            Tab("Settings", systemImage: "gearshape.fill") {
-                SettingsView()
             }
         }
         .tint(Color.samanAccent)

@@ -64,3 +64,6 @@ fastlane/test_output
 # Secrets — Saman/Secrets.xcconfig is committed with placeholders so Xcode Cloud can parse the project.
 # Real values are injected by ci_scripts/ci_post_clone.sh.
 /Secrets.xcconfig
+
+# Claude Code local config
+.claude/

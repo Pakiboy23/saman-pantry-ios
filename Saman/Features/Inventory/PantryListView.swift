@@ -8,7 +8,10 @@ struct PantryListView: View {
     @Query(sort: \Pantry.name) private var pantries: [Pantry]
     @State private var selectedLocation = "pantry"
     @State private var showAdd = false
+    @State private var showPaywall = false
     @State private var showManage = false
+    @State private var showAddPantry = false
+    @State private var showPantryPaywall = false
 
     private let locationTabs: [(id: String, label: String)] = [
         ("pantry",  "Pantry"),
@@ -82,6 +85,9 @@ struct PantryListView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
+            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showAddPantry) { AddPantryView() }
+            .sheet(isPresented: $showPantryPaywall) { SamanPaywallView() }
             .sheet(isPresented: $showManage) { managePantriesSheet }
         }
     }
@@ -101,7 +107,13 @@ struct PantryListView: View {
                         .foregroundStyle(Color.samanMuted)
                 }
                 Spacer()
-                Button { showAdd = true } label: {
+                Button {
+                    if allItems.count >= 30 && !appEnv.purchases.isPro {
+                        showPaywall = true
+                    } else {
+                        showAdd = true
+                    }
+                } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.samanPrimary)
@@ -159,6 +171,21 @@ struct PantryListView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     EditButton().foregroundStyle(Color.samanAccent)
                 }
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        showManage = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            if pantries.count >= 1 && !appEnv.purchases.isPro {
+                                showPantryPaywall = true
+                            } else {
+                                showAddPantry = true
+                            }
+                        }
+                    } label: {
+                        Label("New Pantry", systemImage: "plus")
+                            .foregroundStyle(Color.samanAccent)
+                    }
+                }
             }
         }
     }
@@ -186,8 +213,10 @@ struct PantryDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \Item.name) private var allItems: [Item]
     @Bindable var pantry: Pantry
     @State private var showAdd = false
+    @State private var showPaywall = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -246,7 +275,13 @@ struct PantryDetailView: View {
                         .font(.cormorant(22))
                         .foregroundStyle(Color.samanPrimary)
                     Spacer()
-                    Button { showAdd = true } label: {
+                    Button {
+                        if allItems.count >= 30 && !appEnv.purchases.isPro {
+                            showPaywall = true
+                        } else {
+                            showAdd = true
+                        }
+                    } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.samanPrimary)
@@ -263,5 +298,6 @@ struct PantryDetailView: View {
         .sheet(isPresented: $showAdd) {
             AddItemView(defaultPantry: pantry)
         }
+        .sheet(isPresented: $showPaywall) { SamanPaywallView() }
     }
 }

@@ -4,12 +4,15 @@ import SwiftData
 
 struct ScannerView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.appEnv) private var appEnv
     @Query private var products: [Product]
+    @Query private var allItems: [Item]
 
     @State private var scannedBarcode: String?
     @State private var foundProduct: FoundProduct?
     @State private var isLooking = false
     @State private var showAddItem = false
+    @State private var showPaywall = false
     @State private var resultName = ""
     @State private var scannerActive = true
 
@@ -75,6 +78,7 @@ struct ScannerView: View {
             .sheet(isPresented: $showAddItem, onDismiss: resetScanner) {
                 AddItemView(prefillBarcode: scannedBarcode, prefillName: resultName)
             }
+            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
         }
     }
 
@@ -127,8 +131,14 @@ struct ScannerView: View {
                 HStack(spacing: 10) {
                     Button("Scan Again") { resetScanner() }
                         .buttonStyle(SamanSecondaryButtonStyle())
-                    Button("Add to Pantry") { showAddItem = true }
-                        .buttonStyle(SamanPrimaryButtonStyle())
+                    Button("Add to Pantry") {
+                        if allItems.count >= 30 && !appEnv.purchases.isPro {
+                            showPaywall = true
+                        } else {
+                            showAddItem = true
+                        }
+                    }
+                    .buttonStyle(SamanPrimaryButtonStyle())
                 }
             }
             .padding(16)
