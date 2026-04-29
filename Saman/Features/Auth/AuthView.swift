@@ -9,6 +9,80 @@ struct AuthView: View {
     private var auth: AuthService { appEnv.auth }
 
     var body: some View {
+        if auth.pendingEmailConfirmation {
+            confirmationView
+        } else {
+            formView
+        }
+    }
+
+    private var confirmationView: some View {
+        ZStack {
+            Color.samanBg.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Spacer()
+                VStack(spacing: 6) {
+                    Text("Saman")
+                        .font(.cormorant(52))
+                        .foregroundStyle(Color.samanPrimary)
+                    Text("سامان")
+                        .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
+                        .foregroundStyle(Color.samanAccent)
+                }
+                Spacer().frame(height: 48)
+                Image(systemName: "envelope.circle.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(Color.samanAccent)
+                Spacer().frame(height: 24)
+                Text("Check your email")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color.samanPrimary)
+                Spacer().frame(height: 10)
+                Text("We sent a confirmation link to\n\(auth.pendingEmail)")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.samanMuted)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Saman.Space.md)
+                Spacer().frame(height: 40)
+                Button {
+                    Task { await auth.resendConfirmation() }
+                } label: {
+                    Group {
+                        if auth.isLoading {
+                            ProgressView().tint(Color.samanAccent)
+                        } else {
+                            Text("Resend email")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Color.samanBg)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                }
+                .disabled(auth.isLoading)
+                .padding(.horizontal, Saman.Space.md)
+                if let error = auth.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.samanRed)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Saman.Space.md)
+                }
+                Spacer().frame(height: 16)
+                Button {
+                    auth.cancelConfirmation()
+                } label: {
+                    Text("Back to Sign In")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.samanAccent)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private var formView: some View {
         ZStack {
             Color.samanBg.ignoresSafeArea()
 

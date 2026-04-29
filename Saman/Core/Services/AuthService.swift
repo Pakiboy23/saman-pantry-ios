@@ -6,6 +6,8 @@ final class AuthService {
     private(set) var isSignedIn = false
     private(set) var hasCheckedInitialSession = false
     private(set) var currentUserID: String? = nil
+    private(set) var pendingEmailConfirmation = false
+    private(set) var pendingEmail = ""
     var errorMessage: String?
     var isLoading = false
 
@@ -26,6 +28,7 @@ final class AuthService {
             case .signedIn, .tokenRefreshed, .userUpdated:
                 isSignedIn = session != nil
                 currentUserID = session?.user.id.uuidString
+                pendingEmailConfirmation = false
             case .signedOut, .passwordRecovery, .userDeleted:
                 isSignedIn = false
                 currentUserID = nil
@@ -40,7 +43,34 @@ final class AuthService {
     }
 
     func signUp(email: String, password: String) async {
-        await run { try await self.supabase.auth.signUp(email: email, password: password) }
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await supabase.auth.signUp(email: email, password: password)
+            pendingEmail = email
+            pendingEmailConfirmation = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    func cancelConfirmation() {
+        pendingEmailConfirmation = false
+        pendingEmail = ""
+        errorMessage = nil
+    }
+
+    func resendConfirmation() async {
+        guard !pendingEmail.isEmpty else { return }
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await supabase.auth.resend(email: pendingEmail, type: .signup)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 
     func signOut() async {
