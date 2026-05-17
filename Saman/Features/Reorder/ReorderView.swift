@@ -24,7 +24,7 @@ struct ReorderView: View {
                             .padding(.horizontal, Saman.Space.md)
                             .padding(.top, 8)
 
-                        SamanSectionHeader(title: "To reorder", color: .samanRed)
+                        SamanSectionHeader(title: "To reorder", color: .accentAnaar)
                         ForEach(lowItems) { item in
                             ReorderItemRow(item: item) {
                                 restockingItem = item
@@ -38,14 +38,14 @@ struct ReorderView: View {
                 }
                 .padding(.bottom, 24)
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamanHeader(subtitle: "\(lowItems.count) item\(lowItems.count == 1 ? "" : "s") to restock")
-                    Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                    Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $restockingItem) { item in
@@ -62,18 +62,18 @@ struct ReorderView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundStyle(Color.samanRed)
+                    .foregroundStyle(Color.accentAnaar)
                 Text("\(lowItems.count) item\(lowItems.count == 1 ? "" : "s") need restocking.")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
             }
             Text("Tap an item to record how much you added.")
                 .font(.system(size: 13))
-                .foregroundStyle(Color.samanMuted)
+                .foregroundStyle(Color.inkKohlSoft)
         }
         .padding(14)
-        .background(Color.samanRed.opacity(0.06))
-        .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.samanRed.opacity(0.3), lineWidth: 1))
+        .background(Color.accentAnaar.opacity(0.06))
+        .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.accentAnaar.opacity(0.3), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: Saman.Radius.md))
     }
 
@@ -110,23 +110,23 @@ private struct RestockSheet: View {
                     Text(item.emoji)
                         .font(.system(size: 44))
                     Text(item.name)
-                        .font(.cormorant(26))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantrySectionHead)
+                        .foregroundStyle(Color.inkKohl)
                     Text("Have \(item.quantity) · Need at least \(item.minimumQuantity)")
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 32)
                 .padding(.bottom, 28)
 
-                Divider().overlay(Color.samanBorder)
+                Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
 
                 // Stepper card
                 VStack(alignment: .leading, spacing: 16) {
                     Text("HOW MANY DID YOU ADD?")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .kerning(0.8)
 
                     Stepper(
@@ -135,13 +135,13 @@ private struct RestockSheet: View {
                         label: {
                             Text("\(amount) \(item.unit)")
                                 .font(.samanMono(28).weight(.semibold))
-                                .foregroundStyle(Color.samanAccent)
+                                .foregroundStyle(Color.brandSaag)
                         }
                     )
 
                     Text("New total: \(item.quantity + amount) \(item.unit)")
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanSecondary)
+                        .foregroundStyle(Color.inkKohl)
                 }
                 .padding(Saman.Space.md)
                 .samanCard()
@@ -158,13 +158,13 @@ private struct RestockSheet: View {
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.bottom, 32)
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .navigationTitle("Restock")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(Color.samanAccent)
+                        .foregroundStyle(Color.brandSaag)
                 }
             }
         }

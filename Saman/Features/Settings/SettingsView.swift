@@ -18,32 +18,32 @@ struct SettingsView: View {
                             if appEnv.purchases.isPro {
                                 HStack {
                                     Image(systemName: "checkmark.seal.fill")
-                                        .foregroundStyle(Color.samanAccent)
+                                        .foregroundStyle(Color.brandSaag)
                                     Text("Saman Pro")
                                         .font(.system(size: 15))
-                                        .foregroundStyle(Color.samanPrimary)
+                                        .foregroundStyle(Color.inkKohl)
                                     Spacer()
                                     Button("Manage") { showCustomerCenter = true }
                                         .font(.system(size: 13))
-                                        .foregroundStyle(Color.samanMuted)
+                                        .foregroundStyle(Color.inkKohlSoft)
                                 }
                             } else {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Free plan")
                                             .font(.system(size: 15))
-                                            .foregroundStyle(Color.samanPrimary)
+                                            .foregroundStyle(Color.inkKohl)
                                         Text("Upgrade to Pro to support development")
                                             .font(.system(size: 12, weight: .light))
-                                            .foregroundStyle(Color.samanMuted)
+                                            .foregroundStyle(Color.inkKohlSoft)
                                     }
                                     Spacer()
                                     Button("Upgrade") { showPaywall = true }
                                         .font(.system(size: 13, weight: .medium))
-                                        .foregroundStyle(Color.samanBg)
+                                        .foregroundStyle(Color.surfaceDoodh)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 7)
-                                        .background(Color.samanAccent)
+                                        .background(Color.brandSaag)
                                         .clipShape(Capsule())
                                 }
                             }
@@ -59,9 +59,9 @@ struct SettingsView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.trianglehead.clockwise")
-                                        .foregroundStyle(Color.samanAccent)
+                                        .foregroundStyle(Color.brandSaag)
                                     Text("Sync now")
-                                        .foregroundStyle(Color.samanPrimary)
+                                        .foregroundStyle(Color.inkKohl)
                                     Spacer()
                                 }
                                 .font(.system(size: 15))
@@ -79,9 +79,9 @@ struct SettingsView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")
-                                        .foregroundStyle(Color.samanRed)
+                                        .foregroundStyle(Color.accentAnaar)
                                     Text("Sign out")
-                                        .foregroundStyle(Color.samanRed)
+                                        .foregroundStyle(Color.accentAnaar)
                                     Spacer()
                                 }
                                 .font(.system(size: 15))
@@ -95,7 +95,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             cardLabel("ABOUT")
                             metaRow("Version", value: Bundle.main.appVersion)
-                            Divider().overlay(Color.samanBorder)
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
                             metaRow("Build", value: Bundle.main.buildNumber)
                         }
                     }
@@ -103,15 +103,15 @@ struct SettingsView: View {
                     // Wordmark footer
                     VStack(spacing: 6) {
                         Text("Saman")
-                            .font(.cormorant(22))
-                            .foregroundStyle(Color.samanMuted)
+                            .font(.pantrySectionHead)
+                            .foregroundStyle(Color.inkKohlSoft)
                         HStack(spacing: 4) {
                             Text("سامان")
                                 .font(.custom("NotoNastaliqUrdu-Regular", size: 16))
-                                .foregroundStyle(Color.samanMuted.opacity(0.8))
+                                .foregroundStyle(Color.inkKohlSoft.opacity(0.8))
                             Text("· Made with care")
                                 .font(.system(size: 12))
-                                .foregroundStyle(Color.samanMuted.opacity(0.6))
+                                .foregroundStyle(Color.inkKohlSoft.opacity(0.6))
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -121,14 +121,14 @@ struct SettingsView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamanHeader(subtitle: "Preferences & account")
-                    Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                    Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
             .confirmationDialog("Sign out of Saman?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
@@ -157,16 +157,16 @@ struct SettingsView: View {
     private func cardLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.samanMuted)
+            .foregroundStyle(Color.inkKohlSoft)
             .kerning(0.8)
             .padding(.bottom, 4)
     }
 
     private func metaRow(_ label: String, value: String) -> some View {
         HStack {
-            Text(label).font(.system(size: 14)).foregroundStyle(Color.samanSecondary)
+            Text(label).font(.system(size: 14)).foregroundStyle(Color.inkKohl)
             Spacer()
-            Text(value).font(.samanMono(13)).foregroundStyle(Color.samanMuted)
+            Text(value).font(.samanMono(13)).foregroundStyle(Color.inkKohlSoft)
         }
     }
 }

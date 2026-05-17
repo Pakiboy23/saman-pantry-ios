@@ -9,6 +9,7 @@ struct SamanApp: App {
 
     init() {
         registerFonts()
+        configureNavigationBarAppearance()
         configureTabBarAppearance()
         configureRevenueCat()
     }
@@ -17,6 +18,7 @@ struct SamanApp: App {
         WindowGroup {
             RootView()
                 .environment(\.appEnv, appEnv)
+                .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.currentUserID) { _, userID in
                     if let userID {
                         appEnv.purchases.setAppUserID(userID)
@@ -52,19 +54,44 @@ struct SamanApp: App {
         }
     }
 
+    // MARK: - Navigation bar appearance
+
+    private func configureNavigationBarAppearance() {
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = UIColor(Color.surfaceDoodh)
+        navAppearance.shadowColor = UIColor(Color.borderAkhrotSoft.opacity(0.5))
+
+        // Standard title — Cormorant SemiBold
+        navAppearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.inkKohl),
+            .font: UIFont(name: "CormorantGaramond-SemiBold", size: 17) ?? UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+
+        // Large title — Cormorant Bold
+        navAppearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.inkKohl),
+            .font: UIFont(name: "CormorantGaramond-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
+        ]
+
+        UINavigationBar.appearance().standardAppearance = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        UINavigationBar.appearance().compactAppearance = navAppearance
+        UINavigationBar.appearance().tintColor = UIColor(Color.brandSaag)
+    }
+
     // MARK: - Tab bar appearance
 
     private func configureTabBarAppearance() {
-        // #FAF6EF — spec cream background
-        let cream  = UIColor(red: 0.980, green: 0.965, blue: 0.937, alpha: 1)
-        let muted  = UIColor(red: 0.604, green: 0.518, blue: 0.447, alpha: 1) // #9A8472
-        let accent = UIColor(red: 0.776, green: 0.494, blue: 0.165, alpha: 1) // #C67E2A
-        // rgba(28,15,0,0.1) top border
-        let border = UIColor(red: 28/255, green: 15/255, blue: 0, alpha: 0.10)
+        // Saag palette colors
+        let doodh = UIColor(Color.surfaceDoodh)          // #FCF8EE light
+        let kohlSoft = UIColor(Color.inkKohlSoft)        // #5C5448 light
+        let saag = UIColor(Color.brandSaag)              // #3F6B47 light
+        let border = UIColor(Color.borderAkhrotSoft.opacity(0.5))
 
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = cream
+        appearance.backgroundColor = doodh
         appearance.shadowColor = border      // produces the 1pt top hairline
         appearance.backgroundEffect = nil   // no blur / glass
 
@@ -72,8 +99,8 @@ struct SamanApp: App {
         appearance.selectionIndicatorImage = UIImage()
         appearance.selectionIndicatorTintColor = .clear
 
-        let normal:   [NSAttributedString.Key: Any] = [.foregroundColor: muted]
-        let selected: [NSAttributedString.Key: Any] = [.foregroundColor: accent]
+        let normal:   [NSAttributedString.Key: Any] = [.foregroundColor: kohlSoft]
+        let selected: [NSAttributedString.Key: Any] = [.foregroundColor: saag]
 
         for layout in [
             appearance.stackedLayoutAppearance,
@@ -82,8 +109,8 @@ struct SamanApp: App {
         ] {
             layout.normal.titleTextAttributes  = normal
             layout.selected.titleTextAttributes = selected
-            layout.normal.iconColor  = muted
-            layout.selected.iconColor = accent
+            layout.normal.iconColor  = kohlSoft
+            layout.selected.iconColor = saag
         }
 
         UITabBar.appearance().standardAppearance   = appearance

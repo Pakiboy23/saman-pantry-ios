@@ -32,17 +32,17 @@ struct AddShoppingListItemView: View {
                             Spacer()
                             Button("Change") { selectedProduct = nil }
                                 .font(.caption)
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(Color.brandSaag)
                         }
                     } else {
                         TextField("Search products…", text: $searchText)
                         ForEach(filteredProducts.prefix(5)) { product in
                             Button(product.name) { selectedProduct = product; searchText = "" }
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(Color.inkKohl)
                         }
                         if !searchText.isEmpty && filteredProducts.isEmpty {
                             Button("Create \"\(searchText)\"") { createAndSelect() }
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(Color.brandSaag)
                         }
                     }
                 }

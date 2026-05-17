@@ -11,20 +11,20 @@ struct SamanHeader: View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Saman")
-                    .font(.cormorant(28))
-                    .foregroundStyle(Color.samanPrimary)
+                    .font(.pantryDisplay)
+                    .foregroundStyle(Color.inkKohl)
                 Text(subtitle)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
             if let action = trailingAction {
                 Button(action: action) {
                     Image(systemName: trailingIcon)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.surfaceDoodh)
                         .frame(width: 36, height: 36)
-                        .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                        .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
         }
@@ -45,20 +45,20 @@ struct LowStockBanner: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color.samanRed)
+                    .foregroundStyle(Color.accentAnaar)
                     .font(.system(size: 14))
                 Text("\(count) item\(count == 1 ? "" : "s") \(count == 1 ? "needs" : "need") restocking. Tap to see what to order.")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.samanRed)
+                    .foregroundStyle(Color.accentAnaar)
                     .multilineTextAlignment(.leading)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.samanRed.opacity(0.6))
+                    .foregroundStyle(Color.accentAnaar.opacity(0.6))
             }
             .padding(12)
-            .background(Color.samanRed.opacity(0.08), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.samanRed.opacity(0.25), lineWidth: 1))
+            .background(Color.accentAnaar.opacity(0.08), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.accentAnaar.opacity(0.25), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, Saman.Space.md)
@@ -81,16 +81,16 @@ struct PillTabBar: View {
                         let isActive = selection == tab.id
                         Text(tab.label)
                             .font(.system(size: 13, weight: isActive ? .semibold : .regular))
-                            .foregroundStyle(isActive ? Color.samanAccent : Color.samanMuted)
+                            .foregroundStyle(isActive ? Color.brandSaag : Color.inkKohlSoft)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
                             .background(
-                                isActive ? Color.samanAccent.opacity(0.10) : Color.clear,
+                                isActive ? Color.brandSaag.opacity(0.10) : Color.clear,
                                 in: Capsule()
                             )
                             .overlay(
                                 Capsule().stroke(
-                                    isActive ? Color.samanAccent : Color.clear,
+                                    isActive ? Color.brandSaag : Color.clear,
                                     lineWidth: 1
                                 )
                             )
@@ -138,28 +138,28 @@ struct ItemCard: View {
             Text(item.emoji)
                 .font(.system(size: 22))
                 .frame(width: 46, height: 46)
-                .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 10))
 
             // Name + detail
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                     .lineLimit(1)
                 HStack(spacing: 4) {
                     if let pantry = item.pantry {
                         Text(pantry.name)
                             .font(.system(size: 12))
-                            .foregroundStyle(Color.samanMuted)
+                            .foregroundStyle(Color.inkKohlSoft)
                     }
                     if item.isExpired {
                         Text("· Expired")
                             .font(.system(size: 12))
-                            .foregroundStyle(Color.samanRed)
+                            .foregroundStyle(Color.accentAnaar)
                     } else if item.isExpiringSoon {
                         Text("· Expires soon")
                             .font(.system(size: 12))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.accentMasala)
                     }
                 }
             }
@@ -170,10 +170,10 @@ struct ItemCard: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(item.quantity)")
                     .font(.samanMono(18).weight(.semibold))
-                    .foregroundStyle(item.isLow ? Color.samanRed : Color.samanGreen)
+                    .foregroundStyle(item.isLow ? Color.accentAnaar : Color.brandSaag)
                 Text(item.unit)
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
         }
         .padding(12)
@@ -192,33 +192,33 @@ struct ReorderItemRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundStyle(Color.samanAccent)
+                    .foregroundStyle(Color.brandSaag)
 
                 Text(item.emoji)
                     .font(.system(size: 18))
                     .frame(width: 36, height: 36)
-                    .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: 8))
+                    .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.inkKohl)
                     Text("Have \(item.quantity), need ≥ \(item.minimumQuantity)")
                         .font(.system(size: 12))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
 
                 Spacer()
 
                 Text("\(item.quantity)/\(item.minimumQuantity)")
                     .font(.samanMono(13))
-                    .foregroundStyle(Color.samanRed)
+                    .foregroundStyle(Color.accentAnaar)
             }
             .padding(12)
-            .background(Color.samanCard, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
             .overlay(
                 RoundedRectangle(cornerRadius: Saman.Radius.md)
-                    .stroke(Color.samanRed.opacity(0.2), lineWidth: 1)
+                    .stroke(Color.accentAnaar.opacity(0.2), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -228,7 +228,7 @@ struct ReorderItemRow: View {
 // MARK: - Scanner Corner Brackets
 
 struct ScannerCornerBrackets: View {
-    var color: Color = .samanAccent
+    var color: Color = .brandSaag
     var bracketSize: CGFloat = 28
     var strokeWidth: CGFloat = 3
     var inset: CGFloat = 72
@@ -281,11 +281,11 @@ struct SamanEmptyState: View {
         VStack(spacing: 12) {
             Text(emoji).font(.system(size: 48))
             Text(title)
-                .font(.cormorant(24))
-                .foregroundStyle(Color.samanPrimary)
+                .font(.pantrySectionHead)
+                .foregroundStyle(Color.inkKohl)
             Text(message)
                 .font(.system(size: 14))
-                .foregroundStyle(Color.samanMuted)
+                .foregroundStyle(Color.inkKohlSoft)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

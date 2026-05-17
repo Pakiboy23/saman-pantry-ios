@@ -41,7 +41,7 @@ struct PantryListView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     // Running low
                     if !lowFiltered.isEmpty {
-                        SamanSectionHeader(title: "Running low", color: .samanRed)
+                        SamanSectionHeader(title: "Running low", color: .accentAnaar)
                         ForEach(lowFiltered) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
@@ -54,7 +54,7 @@ struct PantryListView: View {
 
                     // Well stocked
                     if !stockedFiltered.isEmpty {
-                        SamanSectionHeader(title: "Well stocked", color: .samanGreen)
+                        SamanSectionHeader(title: "Well stocked", color: .brandSaag)
                         ForEach(stockedFiltered) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
@@ -78,7 +78,7 @@ struct PantryListView: View {
                     Spacer(minLength: 32)
                 }
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 topHeader
@@ -100,11 +100,11 @@ struct PantryListView: View {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Saman")
-                        .font(.cormorant(28))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantryDisplay)
+                        .foregroundStyle(Color.inkKohl)
                     Text("Storage locations")
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
                 Spacer()
                 Button {
@@ -116,9 +116,9 @@ struct PantryListView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.surfaceDoodh)
                         .frame(width: 36, height: 36)
-                        .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                        .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
             .padding(.horizontal, Saman.Space.md)
@@ -135,10 +135,10 @@ struct PantryListView: View {
 
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(Color.samanBorder)
+                .foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 .padding(.top, 4)
         }
-        .background(Color.samanBg)
+        .background(Color.surfaceDoodh)
     }
 
     // MARK: - Manage pantries sheet
@@ -149,14 +149,14 @@ struct PantryListView: View {
                 ForEach(pantries) { pantry in
                     HStack(spacing: 10) {
                         Image(systemName: "cabinet")
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(pantry.name)
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.samanPrimary)
+                                .foregroundStyle(Color.inkKohl)
                             Text("\(pantry.items.count) item\(pantry.items.count == 1 ? "" : "s")")
                                 .font(.system(size: 12))
-                                .foregroundStyle(Color.samanMuted)
+                                .foregroundStyle(Color.inkKohlSoft)
                         }
                     }
                 }
@@ -166,10 +166,10 @@ struct PantryListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Done") { showManage = false }
-                        .foregroundStyle(Color.samanAccent)
+                        .foregroundStyle(Color.brandSaag)
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton().foregroundStyle(Color.samanAccent)
+                    EditButton().foregroundStyle(Color.brandSaag)
                 }
                 ToolbarItem(placement: .bottomBar) {
                     Button {
@@ -183,7 +183,7 @@ struct PantryListView: View {
                         }
                     } label: {
                         Label("New Pantry", systemImage: "plus")
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                     }
                 }
             }
@@ -226,7 +226,7 @@ struct PantryDetailView: View {
                 let stockedItems = sorted.filter { !$0.isLow }
 
                 if !lowItems.isEmpty {
-                    SamanSectionHeader(title: "Running low", color: .samanRed)
+                    SamanSectionHeader(title: "Running low", color: .accentAnaar)
                     ForEach(lowItems) { item in
                         NavigationLink(destination: ItemDetailView(item: item)) {
                             ItemCard(item: item)
@@ -238,7 +238,7 @@ struct PantryDetailView: View {
                 }
 
                 if !stockedItems.isEmpty {
-                    SamanSectionHeader(title: "Well stocked", color: .samanGreen)
+                    SamanSectionHeader(title: "Well stocked", color: .brandSaag)
                     ForEach(stockedItems) { item in
                         NavigationLink(destination: ItemDetailView(item: item)) {
                             ItemCard(item: item)
@@ -260,7 +260,7 @@ struct PantryDetailView: View {
                 Spacer(minLength: 32)
             }
         }
-        .background(Color.samanBg)
+        .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -269,11 +269,11 @@ struct PantryDetailView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                     }
                     Text(pantry.name)
-                        .font(.cormorant(22))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantrySectionHead)
+                        .foregroundStyle(Color.inkKohl)
                     Spacer()
                     Button {
                         if allItems.count >= 30 && !appEnv.purchases.isPro {
@@ -284,16 +284,16 @@ struct PantryDetailView: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color.samanPrimary)
+                            .foregroundStyle(Color.surfaceDoodh)
                             .frame(width: 32, height: 32)
-                            .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 8))
+                            .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 8))
                     }
                 }
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.vertical, 12)
-                Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
         }
         .sheet(isPresented: $showAdd) {
             AddItemView(defaultPantry: pantry)
