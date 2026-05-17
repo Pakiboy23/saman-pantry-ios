@@ -10,14 +10,14 @@ struct RootView: View {
                 // Splash — wait for Supabase to resolve the cached session
                 // before committing to either screen (prevents tab-bar flash)
                 ZStack {
-                    Color.samanBg.ignoresSafeArea()
+                    Color.surfaceDoodh.ignoresSafeArea()
                     VStack(spacing: 8) {
                         Text("Saman")
-                            .font(.cormorant(42))
-                            .foregroundStyle(Color.samanPrimary)
+                            .font(.pantryWordmark)
+                            .foregroundStyle(Color.brandSaag)
                         Text("سامان")
                             .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.inkKohlSoft)
                     }
                 }
             } else if appEnv.auth.isSignedIn {
@@ -44,7 +44,7 @@ struct RootView: View {
                 ShoppingListsView()
             }
         }
-        .tint(Color.samanAccent)
+        .tint(Color.brandSaag)
     }
 }
 

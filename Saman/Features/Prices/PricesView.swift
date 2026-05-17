@@ -12,9 +12,9 @@ struct PricesView: View {
                     Spacer()
                     if let price = item.estimatedPrice {
                         Text(price, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.inkKohlSoft)
                     } else {
-                        Text("—").foregroundStyle(.tertiary)
+                        Text("—").foregroundStyle(Color.inkKohlSoft.opacity(0.5))
                     }
                 }
             }

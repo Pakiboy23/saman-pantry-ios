@@ -75,7 +75,7 @@ private struct ShoppingItemRow: View {
         HStack(spacing: 12) {
             Button(action: onToggle) {
                 Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(item.isPurchased ? .green : .secondary)
+                    .foregroundStyle(item.isPurchased ? Color.brandSaag : Color.inkKohlSoft)
                     .font(.title3)
             }
             .buttonStyle(.plain)
@@ -83,7 +83,7 @@ private struct ShoppingItemRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.product?.name ?? "Unknown")
                     .strikethrough(item.isPurchased)
-                    .foregroundStyle(item.isPurchased ? .secondary : .primary)
+                    .foregroundStyle(item.isPurchased ? Color.inkKohlSoft : Color.inkKohl)
                 HStack {
                     Text("\(item.quantity) \(item.unit)").font(.caption)
                     if let price = item.estimatedPrice {
@@ -92,7 +92,7 @@ private struct ShoppingItemRow: View {
                             .font(.caption)
                     }
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.inkKohlSoft)
             }
         }
     }

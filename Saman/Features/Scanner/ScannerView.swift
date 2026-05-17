@@ -31,8 +31,8 @@ struct ScannerView: View {
                         .ignoresSafeArea()
                     }
 
-                    // Amber corner brackets
-                    ScannerCornerBrackets(color: .samanAccent)
+                    // Saag corner brackets
+                    ScannerCornerBrackets(color: .brandSaag)
                         .ignoresSafeArea()
 
                     // Dim overlay when not scanning
@@ -45,7 +45,7 @@ struct ScannerView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Saman")
-                                    .font(.cormorant(24))
+                                    .font(.pantryDisplay)
                                     .foregroundStyle(.white)
                                 Text("Tap a barcode to scan")
                                     .font(.system(size: 12))
@@ -88,14 +88,14 @@ struct ScannerView: View {
     private var resultCard: some View {
         if isLooking {
             HStack(spacing: 12) {
-                ProgressView().tint(Color.samanAccent)
+                ProgressView().tint(Color.brandSaag)
                 Text("Looking up product…")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                 Spacer()
             }
             .padding(16)
-            .background(Color.samanCard, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
         } else if let barcode = scannedBarcode {
             VStack(spacing: 14) {
                 // Product info
@@ -103,25 +103,25 @@ struct ScannerView: View {
                     Text(foundProduct != nil ? "🛍️" : "❓")
                         .font(.system(size: 28))
                         .frame(width: 52, height: 52)
-                        .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: 10))
+                        .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 10))
 
                     VStack(alignment: .leading, spacing: 3) {
                         if let product = foundProduct {
                             Text(product.name)
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.samanPrimary)
+                                .foregroundStyle(Color.inkKohl)
                             if let brand = product.brand {
                                 Text(brand)
                                     .font(.system(size: 13))
-                                    .foregroundStyle(Color.samanMuted)
+                                    .foregroundStyle(Color.inkKohlSoft)
                             }
                         } else {
                             Text("Unknown product")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.samanPrimary)
+                                .foregroundStyle(Color.inkKohl)
                             Text(barcode)
                                 .font(.samanMono(12))
-                                .foregroundStyle(Color.samanMuted)
+                                .foregroundStyle(Color.inkKohlSoft)
                         }
                     }
                     Spacer()
@@ -142,19 +142,19 @@ struct ScannerView: View {
                 }
             }
             .padding(16)
-            .background(Color.samanCard, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.lg).stroke(Color.samanBorder, lineWidth: 1))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
+            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.lg).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
         } else {
             // Hint
             HStack(spacing: 8) {
                 Image(systemName: "viewfinder")
-                    .foregroundStyle(Color.samanAccent)
+                    .foregroundStyle(Color.brandSaag)
                 Text("Point at a barcode and tap to scan")
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.samanSecondary)
+                    .foregroundStyle(Color.inkKohl)
             }
             .padding(14)
-            .background(Color.samanCard.opacity(0.92), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.surfaceMalai.opacity(0.92), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
         }
     }
 

@@ -35,7 +35,7 @@ struct InventoryView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
                     if !lowItems.isEmpty {
-                        SamanSectionHeader(title: "Running low", color: .samanRed)
+                        SamanSectionHeader(title: "Running low", color: .accentAnaar)
                         ForEach(lowItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
@@ -47,7 +47,7 @@ struct InventoryView: View {
                     }
 
                     if !stockedItems.isEmpty {
-                        SamanSectionHeader(title: "Well stocked", color: .samanGreen)
+                        SamanSectionHeader(title: "Well stocked", color: .brandSaag)
                         ForEach(stockedItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
@@ -69,7 +69,7 @@ struct InventoryView: View {
                     Spacer(minLength: 32)
                 }
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 topHeader
@@ -89,25 +89,25 @@ struct InventoryView: View {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Saman")
-                        .font(.cormorant(28))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantryDisplay)
+                        .foregroundStyle(Color.inkKohl)
                     Text(greetingSubtitle)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
                 Spacer()
                 // Settings
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
                         .font(.system(size: 16))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .frame(width: 36, height: 36)
                 }
                 // Scanner
                 Button { showScanner = true } label: {
                     Image(systemName: "barcode.viewfinder")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.inkKohl)
                         .frame(width: 36, height: 36)
                 }
                 // Add item
@@ -120,9 +120,9 @@ struct InventoryView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.surfaceDoodh)
                         .frame(width: 36, height: 36)
-                        .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                        .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
             .padding(.horizontal, Saman.Space.md)
@@ -139,10 +139,10 @@ struct InventoryView: View {
 
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(Color.samanBorder)
+                .foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 .padding(.top, 4)
         }
-        .background(Color.samanBg)
+        .background(Color.surfaceDoodh)
     }
 
     private var greetingSubtitle: String {

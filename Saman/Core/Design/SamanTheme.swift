@@ -1,20 +1,44 @@
 import SwiftUI
 
-// MARK: - Colors
+// MARK: - Legacy Color Aliases (for gradual migration)
+// These map old token names to new Saag palette tokens.
+// Remove after all views are migrated.
 
 extension Color {
-    static let samanBg           = Color(hex: "FAF6EF")
-    static let samanCard         = Color(hex: "F2EBE0")
-    static let samanDeep         = Color(hex: "E8DDD0")
-    static let samanPrimary      = Color(hex: "1C0F00")
-    static let samanSecondary    = Color(hex: "5C4A35")
-    static let samanMuted        = Color(hex: "9A8472")
-    static let samanAccent       = Color(hex: "C67E2A")
-    static let samanAccentLight  = Color(hex: "F5E6CC")
-    static let samanBorder       = Color(red: 28/255, green: 15/255, blue: 0, opacity: 0.12)
-    static let samanRed          = Color(hex: "C0392B")
-    static let samanGreen        = Color(hex: "27795A")
+    @available(*, deprecated, renamed: "surfaceDoodh")
+    static let samanBg = Color.surfaceDoodh
 
+    @available(*, deprecated, renamed: "surfaceMalai")
+    static let samanCard = Color.surfaceMalai
+
+    @available(*, deprecated, renamed: "surfaceAtta")
+    static let samanDeep = Color.surfaceAtta
+
+    @available(*, deprecated, renamed: "inkKohl")
+    static let samanPrimary = Color.inkKohl
+
+    @available(*, deprecated, renamed: "inkKohl")
+    static let samanSecondary = Color.inkKohl
+
+    @available(*, deprecated, renamed: "inkKohlSoft")
+    static let samanMuted = Color.inkKohlSoft
+
+    @available(*, deprecated, renamed: "brandSaag")
+    static let samanAccent = Color.brandSaag
+
+    @available(*, deprecated, renamed: "brandSaagSoft")
+    static let samanAccentLight = Color.brandSaagSoft.opacity(0.3)
+
+    @available(*, deprecated, renamed: "borderAkhrotSoft")
+    static let samanBorder = Color.borderAkhrotSoft.opacity(0.5)
+
+    @available(*, deprecated, renamed: "accentAnaar")
+    static let samanRed = Color.accentAnaar
+
+    @available(*, deprecated, renamed: "brandSaag")
+    static let samanGreen = Color.brandSaag
+
+    /// Hex initializer for backward compatibility
     init(hex: String) {
         var value: UInt64 = 0
         Scanner(string: hex.trimmingCharacters(in: .alphanumerics.inverted)).scanHexInt64(&value)
@@ -30,10 +54,12 @@ extension Color {
 
 extension Font {
     /// Cormorant Garamond Bold — wordmark & display headings
+    @available(*, deprecated, message: "Use Font.cormorant(size:weight:) or presets like .pantryWordmark")
     static func cormorant(_ size: CGFloat) -> Font {
         .custom("CormorantGaramond-Bold", size: size, relativeTo: .title)
     }
     /// Cormorant Garamond SemiBold — secondary display
+    @available(*, deprecated, message: "Use Font.cormorant(size:weight:) with .semibold")
     static func cormorantSemiBold(_ size: CGFloat) -> Font {
         .custom("CormorantGaramond-SemiBold", size: size, relativeTo: .body)
     }
@@ -67,11 +93,11 @@ struct SamanPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Color.samanPrimary)
+            .foregroundStyle(Color.surfaceDoodh)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .background(
-                configuration.isPressed ? Color.samanAccent.opacity(0.75) : Color.samanAccent,
+                configuration.isPressed ? Color.brandSaagDeep : Color.brandSaag,
                 in: RoundedRectangle(cornerRadius: Saman.Radius.md)
             )
     }
@@ -81,13 +107,13 @@ struct SamanSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(Color.samanAccent)
+            .foregroundStyle(Color.brandSaag)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
-            .background(Color.samanAccentLight, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.brandSaagSoft.opacity(0.2), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
             .overlay(
                 RoundedRectangle(cornerRadius: Saman.Radius.md)
-                    .stroke(Color.samanAccent.opacity(0.4), lineWidth: 1)
+                    .stroke(Color.brandSaag.opacity(0.4), lineWidth: 1)
             )
     }
 }
@@ -107,7 +133,7 @@ extension View {
     /// Standard warm card background
     func samanCard(radius: CGFloat = Saman.Radius.md) -> some View {
         self
-            .background(Color.samanCard, in: RoundedRectangle(cornerRadius: radius))
-            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Color.samanBorder, lineWidth: 1))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
     }
 }

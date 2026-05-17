@@ -18,29 +18,29 @@ struct AuthView: View {
 
     private var confirmationView: some View {
         ZStack {
-            Color.samanBg.ignoresSafeArea()
+            Color.surfaceDoodh.ignoresSafeArea()
             VStack(spacing: 0) {
                 Spacer()
                 VStack(spacing: 6) {
                     Text("Saman")
-                        .font(.cormorant(52))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 52, weight: .bold))
+                        .foregroundStyle(Color.brandSaag)
                     Text("سامان")
                         .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
-                        .foregroundStyle(Color.samanAccent)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
                 Spacer().frame(height: 48)
                 Image(systemName: "envelope.circle.fill")
                     .font(.system(size: 56))
-                    .foregroundStyle(Color.samanAccent)
+                    .foregroundStyle(Color.brandSaag)
                 Spacer().frame(height: 24)
                 Text("Check your email")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                 Spacer().frame(height: 10)
                 Text("We sent a confirmation link to\n\(auth.pendingEmail)")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Saman.Space.md)
                 Spacer().frame(height: 40)
@@ -49,23 +49,23 @@ struct AuthView: View {
                 } label: {
                     Group {
                         if auth.isLoading {
-                            ProgressView().tint(Color.samanAccent)
+                            ProgressView().tint(Color.surfaceDoodh)
                         } else {
                             Text("Resend email")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.samanBg)
+                                .foregroundStyle(Color.surfaceDoodh)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
                 }
                 .disabled(auth.isLoading)
                 .padding(.horizontal, Saman.Space.md)
                 if let error = auth.errorMessage {
                     Text(error)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanRed)
+                        .foregroundStyle(Color.accentAnaar)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Saman.Space.md)
                 }
@@ -75,7 +75,7 @@ struct AuthView: View {
                 } label: {
                     Text("Back to Sign In")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color.samanAccent)
+                        .foregroundStyle(Color.brandSaag)
                 }
                 Spacer()
             }
@@ -84,7 +84,7 @@ struct AuthView: View {
 
     private var formView: some View {
         ZStack {
-            Color.samanBg.ignoresSafeArea()
+            Color.surfaceDoodh.ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
@@ -93,11 +93,11 @@ struct AuthView: View {
                     // Wordmark
                     VStack(spacing: 6) {
                         Text("Saman")
-                            .font(.cormorant(52))
-                            .foregroundStyle(Color.samanPrimary)
+                            .font(.cormorant(size: 52, weight: .bold))
+                            .foregroundStyle(Color.brandSaag)
                         Text("سامان")
                             .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.inkKohlSoft)
                     }
                     .frame(maxWidth: .infinity)
 
@@ -109,13 +109,13 @@ struct AuthView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("EMAIL")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.samanMuted)
+                                .foregroundStyle(Color.inkKohlSoft)
                                 .kerning(0.8)
                             ZStack(alignment: .leading) {
                                 if email.isEmpty {
                                     Text("you@example.com")
                                         .font(.system(size: 16))
-                                        .foregroundColor(Color(hex: "9A8472"))
+                                        .foregroundColor(Color.inkKohlSoft)
                                         .padding(.horizontal, 14)
                                         .allowsHitTesting(false)
                                 }
@@ -125,14 +125,14 @@ struct AuthView: View {
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
                                     .font(.system(size: 16))
-                                    .foregroundStyle(Color.samanPrimary)
+                                    .foregroundStyle(Color.inkKohl)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 13)
                             }
-                            .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                            .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
                             .overlay(
                                 RoundedRectangle(cornerRadius: Saman.Radius.md)
-                                    .stroke(Color.samanBorder, lineWidth: 1)
+                                    .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
                             )
                         }
 
@@ -140,18 +140,18 @@ struct AuthView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("PASSWORD")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.samanMuted)
+                                .foregroundStyle(Color.inkKohlSoft)
                                 .kerning(0.8)
                             SecureField("••••••••", text: $password)
                                 .textContentType(isSignUp ? .newPassword : .password)
                                 .font(.system(size: 16))
-                                .foregroundStyle(Color.samanPrimary)
+                                .foregroundStyle(Color.inkKohl)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 13)
-                                .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: Saman.Radius.md)
-                                        .stroke(Color.samanBorder, lineWidth: 1)
+                                        .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
                                 )
                         }
 
@@ -159,11 +159,11 @@ struct AuthView: View {
                         if let error = auth.errorMessage {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.circle.fill")
-                                    .foregroundStyle(Color.samanRed)
+                                    .foregroundStyle(Color.accentAnaar)
                                     .font(.system(size: 13))
                                 Text(error)
                                     .font(.system(size: 13))
-                                    .foregroundStyle(Color.samanRed)
+                                    .foregroundStyle(Color.accentAnaar)
                                     .multilineTextAlignment(.leading)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,7 +186,7 @@ struct AuthView: View {
                     } label: {
                         Group {
                             if auth.isLoading {
-                                ProgressView().tint(.white)
+                                ProgressView().tint(Color.surfaceDoodh)
                             } else {
                                 Text(isSignUp ? "Create Account" : "Sign In")
                                     .font(.system(size: 16, weight: .semibold))
@@ -194,11 +194,11 @@ struct AuthView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.surfaceDoodh)
                         .background(
                             email.isEmpty || password.isEmpty
-                                ? Color(hex: "C67E2A").opacity(0.45)
-                                : Color(hex: "C67E2A"),
+                                ? Color.brandSaag.opacity(0.45)
+                                : Color.brandSaag,
                             in: RoundedRectangle(cornerRadius: Saman.Radius.md)
                         )
                     }
@@ -215,7 +215,7 @@ struct AuthView: View {
                         }
                     } label: {
                         Text(
-                            "\(Text(isSignUp ? "Already have an account? " : "Don't have an account? ").foregroundStyle(Color.samanMuted))\(Text(isSignUp ? "Sign In" : "Create account").foregroundStyle(Color.samanAccent))"
+                            "\(Text(isSignUp ? "Already have an account? " : "Don't have an account? ").foregroundStyle(Color.inkKohlSoft))\(Text(isSignUp ? "Sign In" : "Create account").foregroundStyle(Color.brandSaag))"
                         )
                     }
                     .font(.system(size: 14))

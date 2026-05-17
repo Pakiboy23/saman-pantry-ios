@@ -20,12 +20,12 @@ struct ItemDetailView: View {
                     Text(item.emoji)
                         .font(.system(size: 52))
                     Text(item.name)
-                        .font(.cormorant(26))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantrySectionHead)
+                        .foregroundStyle(Color.inkKohl)
                     if let pantry = item.pantry {
                         Text(pantry.name)
                             .font(.system(size: 13))
-                            .foregroundStyle(Color.samanMuted)
+                            .foregroundStyle(Color.inkKohlSoft)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -42,49 +42,49 @@ struct ItemDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("How many do you have?")
                                     .font(.system(size: 14))
-                                    .foregroundStyle(Color.samanSecondary)
+                                    .foregroundStyle(Color.inkKohl)
                                 Stepper(
                                     value: $item.quantity, in: 0...9999,
                                     label: {
                                         Text("\(item.quantity) \(item.unit)")
                                             .font(.samanMono(22).weight(.semibold))
-                                            .foregroundStyle(item.isLow ? Color.samanRed : Color.samanGreen)
+                                            .foregroundStyle(item.isLow ? Color.accentAnaar : Color.brandSaag)
                                     }
                                 )
                                 .onChange(of: item.quantity) { _, _ in persist() }
                             }
                         }
 
-                        Divider().overlay(Color.samanBorder)
+                        Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Alert me when below")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.samanSecondary)
+                                .foregroundStyle(Color.inkKohl)
                             Stepper(
                                 value: $item.minimumQuantity, in: 0...9999,
                                 label: {
                                     Text("\(item.minimumQuantity) \(item.unit)")
                                         .font(.samanMono(18))
-                                        .foregroundStyle(Color.samanPrimary)
+                                        .foregroundStyle(Color.inkKohl)
                                 }
                             )
                             .onChange(of: item.minimumQuantity) { _, _ in persist() }
                         }
 
-                        Divider().overlay(Color.samanBorder)
+                        Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
 
                         // Unit
                         HStack {
                             Text("Unit")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.samanSecondary)
+                                .foregroundStyle(Color.inkKohl)
                             Spacer()
                             Picker("Unit", selection: $item.unit) {
                                 ForEach(units, id: \.self) { Text($0) }
                             }
                             .pickerStyle(.menu)
-                            .tint(Color.samanAccent)
+                            .tint(Color.brandSaag)
                             .onChange(of: item.unit) { _, _ in persist() }
                         }
                     }
@@ -95,16 +95,16 @@ struct ItemDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         sectionLabel("EXPIRY")
                         Toggle("Track expiry date", isOn: $hasExpiry)
-                            .tint(Color.samanAccent)
+                            .tint(Color.brandSaag)
                             .font(.system(size: 14))
-                            .foregroundStyle(Color.samanPrimary)
+                            .foregroundStyle(Color.inkKohl)
                             .onChange(of: hasExpiry) { _, on in
                                 item.expiryDate = on ? (item.expiryDate ?? Date()) : nil
                                 persist()
                             }
 
                         if hasExpiry {
-                            Divider().overlay(Color.samanBorder)
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
                             DatePicker(
                                 "Expiry date",
                                 selection: Binding(
@@ -113,17 +113,17 @@ struct ItemDetailView: View {
                                 ),
                                 displayedComponents: .date
                             )
-                            .tint(Color.samanAccent)
+                            .tint(Color.brandSaag)
                             .font(.system(size: 14))
 
                             if item.isExpired {
                                 Label("This item has expired", systemImage: "exclamationmark.circle.fill")
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Color.samanRed)
+                                    .foregroundStyle(Color.accentAnaar)
                             } else if item.isExpiringSoon {
                                 Label("Expires within 7 days", systemImage: "clock.fill")
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Color.samanAccent)
+                                    .foregroundStyle(Color.accentMasala)
                             }
                         }
                     }
@@ -142,7 +142,7 @@ struct ItemDetailView: View {
                             axis: .vertical
                         )
                         .font(.system(size: 14))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.inkKohl)
                         .lineLimit(3...8)
                     }
                 }
@@ -157,7 +157,7 @@ struct ItemDetailView: View {
                                 ForEach(pantries) { p in Text(p.name).tag(Optional(p)) }
                             }
                             .pickerStyle(.menu)
-                            .tint(Color.samanAccent)
+                            .tint(Color.brandSaag)
                             .onChange(of: item.pantry?.id) { _, _ in persist() }
                         }
                     }
@@ -168,10 +168,10 @@ struct ItemDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         sectionLabel("INFO")
                         metaRow("Last updated", value: item.updatedAt.formatted(date: .abbreviated, time: .shortened))
-                        Divider().overlay(Color.samanBorder)
+                        Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
                         metaRow("Added", value: item.createdAt.formatted(date: .abbreviated, time: .omitted))
                         if let barcode = item.barcode {
-                            Divider().overlay(Color.samanBorder)
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
                             metaRow("Barcode", value: barcode)
                         }
                     }
@@ -179,7 +179,7 @@ struct ItemDetailView: View {
             }
             .padding(.bottom, 32)
         }
-        .background(Color.samanBg)
+        .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -188,19 +188,19 @@ struct ItemDetailView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                     }
                     Text(item.name)
-                        .font(.cormorant(22))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.pantrySectionHead)
+                        .foregroundStyle(Color.inkKohl)
                         .lineLimit(1)
                     Spacer()
                 }
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.vertical, 12)
-                Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
         }
         .onAppear { hasExpiry = item.expiryDate != nil }
         .onChange(of: item.name) { _, _ in persist() }
@@ -219,15 +219,15 @@ struct ItemDetailView: View {
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.samanMuted)
+            .foregroundStyle(Color.inkKohlSoft)
             .kerning(0.8)
     }
 
     private func metaRow(_ label: String, value: String) -> some View {
         HStack {
-            Text(label).font(.system(size: 13)).foregroundStyle(Color.samanMuted)
+            Text(label).font(.system(size: 13)).foregroundStyle(Color.inkKohlSoft)
             Spacer()
-            Text(value).font(.samanMono(12)).foregroundStyle(Color.samanSecondary)
+            Text(value).font(.samanMono(12)).foregroundStyle(Color.inkKohl)
         }
     }
 

@@ -31,7 +31,7 @@ struct ShoppingListsView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
@@ -42,9 +42,9 @@ struct ShoppingListsView: View {
                             showAdd = true
                         }
                     }
-                    Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                    Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
@@ -67,17 +67,17 @@ private struct ShoppingListCard: View {
             // Status icon
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(list.isCompleted ? Color.samanGreen.opacity(0.15) : Color.samanAccentLight)
+                    .fill(list.isCompleted ? Color.brandSaag.opacity(0.15) : Color.brandSaagSoft.opacity(0.2))
                     .frame(width: 46, height: 46)
                 Image(systemName: list.isCompleted ? "checkmark.circle.fill" : "cart")
                     .font(.system(size: 20))
-                    .foregroundStyle(list.isCompleted ? Color.samanGreen : Color.samanAccent)
+                    .foregroundStyle(list.isCompleted ? Color.brandSaag : Color.brandSaag)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(list.name)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(list.isCompleted ? Color.samanMuted : Color.samanPrimary)
+                    .foregroundStyle(list.isCompleted ? Color.inkKohlSoft : Color.inkKohl)
                     .strikethrough(list.isCompleted)
                 HStack(spacing: 4) {
                     if let store = list.store {
@@ -87,14 +87,14 @@ private struct ShoppingListCard: View {
                     Text(list.isCompleted ? "Completed" : "\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
                 }
                 .font(.system(size: 12))
-                .foregroundStyle(Color.samanMuted)
+                .foregroundStyle(Color.inkKohlSoft)
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.samanMuted.opacity(0.6))
+                .foregroundStyle(Color.inkKohlSoft.opacity(0.6))
         }
         .padding(14)
         .samanCard()
