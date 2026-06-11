@@ -209,7 +209,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				F4460CE12F84207100949A76 /* XCRemoteSwiftPackageReference "supabase-swift" */,
-				F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F4460CB82F841F5600949A76 /* Products */;

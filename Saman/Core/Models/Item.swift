@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class Item {
@@ -61,11 +62,42 @@ final class Item {
 
     var isExpiringSoon: Bool {
         guard let expiry = expiryDate else { return false }
-        return expiry.timeIntervalSinceNow < 7 * 24 * 60 * 60 // within 7 days
+        return expiry.timeIntervalSinceNow < 7 * 24 * 60 * 60
     }
 
     var isExpired: Bool {
         guard let expiry = expiryDate else { return false }
         return expiry < Date()
     }
+
+    var stockStatus: StockStatus {
+        if quantity == 0            { return .out      }
+        if isExpired || isExpiringSoon { return .expiring }
+        if isLow                    { return .low      }
+        return .inStock
+    }
+}
+
+enum StockStatus {
+    case inStock, low, expiring, out
+
+    var dot: String {
+        switch self {
+        case .inStock:  return "●"
+        case .low:      return "◐"
+        case .expiring: return "◑"
+        case .out:      return "○"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .inStock:  return .samanGreen
+        case .low:      return .samanBrass
+        case .expiring: return .samanRed
+        case .out:      return .samanMuted
+        }
+    }
+
+    var isAttention: Bool { self != .inStock }
 }

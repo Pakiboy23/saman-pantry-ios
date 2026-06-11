@@ -24,9 +24,9 @@ struct InventoryView: View {
         return items.filter { $0.pantry?.id == id }
     }
 
-    private var lowItems:     [Item] { filteredItems.filter(\.isLow) }
-    private var stockedItems: [Item] { filteredItems.filter { !$0.isLow } }
-    private var allLowCount:  Int    { items.filter(\.isLow).count }
+    private var lowItems:     [Item] { filteredItems.filter { $0.stockStatus.isAttention } }
+    private var stockedItems: [Item] { filteredItems.filter { !$0.stockStatus.isAttention } }
+    private var allLowCount:  Int    { items.filter { $0.stockStatus.isAttention }.count }
 
     // MARK: - Body
 

@@ -7,7 +7,7 @@ struct ReorderView: View {
     @Query(sort: \Item.name) private var allItems: [Item]
     @State private var restockingItem: Item?
 
-    private var lowItems: [Item] { allItems.filter(\.isLow) }
+    private var lowItems: [Item] { allItems.filter { $0.stockStatus.isAttention } }
 
     var body: some View {
         NavigationStack {

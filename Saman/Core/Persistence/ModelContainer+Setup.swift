@@ -10,6 +10,7 @@ extension ModelContainer {
             Store.self,
             ShoppingList.self,
             ShoppingListItem.self,
+            Recipe.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -28,6 +29,7 @@ extension ModelContainer {
             Store.self,
             ShoppingList.self,
             ShoppingListItem.self,
+            Recipe.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         do {

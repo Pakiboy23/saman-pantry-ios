@@ -37,8 +37,8 @@ struct RootView: View {
             Tab("Home", systemImage: "house.fill") {
                 InventoryView()
             }
-            Tab("Reorder", systemImage: "arrow.trianglehead.clockwise") {
-                ReorderView()
+            Tab("Recipes", systemImage: "fork.knife") {
+                RecipesView()
             }
             Tab("Lists", systemImage: "list.bullet.rectangle.fill") {
                 ShoppingListsView()

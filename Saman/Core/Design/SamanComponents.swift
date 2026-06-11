@@ -157,7 +157,7 @@ struct ItemCard: View {
                             .font(.system(size: 12))
                             .foregroundStyle(Color.accentAnaar)
                     } else if item.isExpiringSoon {
-                        Text("· Expires soon")
+                        Text("· Expiring soon")
                             .font(.system(size: 12))
                             .foregroundStyle(Color.accentMasala)
                     }
@@ -166,11 +166,16 @@ struct ItemCard: View {
 
             Spacer()
 
-            // Quantity
+            // Quantity + status dot
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(item.quantity)")
-                    .font(.samanMono(18).weight(.semibold))
-                    .foregroundStyle(item.isLow ? Color.accentAnaar : Color.brandSaag)
+                HStack(spacing: 4) {
+                    Text(item.stockStatus.dot)
+                        .font(.system(size: 10))
+                        .foregroundStyle(item.stockStatus.color)
+                    Text("\(item.quantity)")
+                        .font(.samanMono(18).weight(.semibold))
+                        .foregroundStyle(item.stockStatus.color)
+                }
                 Text(item.unit)
                     .font(.system(size: 11))
                     .foregroundStyle(Color.inkKohlSoft)

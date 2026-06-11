@@ -38,6 +38,9 @@ extension Color {
     @available(*, deprecated, renamed: "brandSaag")
     static let samanGreen = Color.brandSaag
 
+    /// Low-stock status color (brass / masala). Maps to accentMasala asset.
+    static let samanBrass = Color.accentMasala
+
     /// Hex initializer for backward compatibility
     init(hex: String) {
         var value: UInt64 = 0
