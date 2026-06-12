@@ -35,7 +35,7 @@ struct RootView: View {
     private var tabShell: some View {
         TabView {
             Tab("Home", systemImage: "house.fill") {
-                InventoryView()
+                HomeView()
             }
             Tab("Recipes", systemImage: "fork.knife") {
                 RecipesView()
