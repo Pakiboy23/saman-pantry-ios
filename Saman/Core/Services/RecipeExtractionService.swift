@@ -41,6 +41,11 @@ struct ExtractedRecipe: Decodable {
 
 // MARK: - Service
 
+struct ExtractionResult {
+    let recipe: ExtractedRecipe
+    let rawJSON: String
+}
+
 final class RecipeExtractionService {
     static let shared = RecipeExtractionService()
     private init() {}
@@ -48,7 +53,7 @@ final class RecipeExtractionService {
     private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     private let model    = "claude-sonnet-4-6"
 
-    func extract(transcript: String) async throws -> ExtractedRecipe {
+    func extract(transcript: String) async throws -> ExtractionResult {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue(Config.anthropicAPIKey,  forHTTPHeaderField: "x-api-key")
@@ -72,7 +77,8 @@ final class RecipeExtractionService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let jsonData = cleaned.data(using: .utf8) else { throw ExtractionError.parseError }
-        return try JSONDecoder().decode(ExtractedRecipe.self, from: jsonData)
+        let recipe = try JSONDecoder().decode(ExtractedRecipe.self, from: jsonData)
+        return ExtractionResult(recipe: recipe, rawJSON: cleaned)
     }
 
     enum ExtractionError: LocalizedError {

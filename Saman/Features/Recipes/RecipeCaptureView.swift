@@ -6,12 +6,13 @@ struct RecipeCaptureView: View {
     @Environment(\.appEnv)       private var appEnv
     @Environment(\.dismiss)      private var dismiss
 
-    @State private var transcript   = ""
-    @State private var recipeTitle  = ""
-    @State private var selections:  [IngredientSelection] = []
-    @State private var phase:       Phase = .idle
-    @State private var showError    = false
-    @State private var errorMessage = ""
+    @State private var transcript    = ""
+    @State private var recipeTitle   = ""
+    @State private var selections:   [IngredientSelection] = []
+    @State private var extractedJSON = ""
+    @State private var phase:        Phase = .idle
+    @State private var showError     = false
+    @State private var errorMessage  = ""
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -193,11 +194,11 @@ struct RecipeCaptureView: View {
             VStack(spacing: 20) {
                 ZStack {
                     Circle()
-                        .fill(Color.samanGreen.opacity(0.12))
+                        .fill(Color.brandSaag.opacity(0.12))
                         .frame(width: 80, height: 80)
                     Image(systemName: "checkmark")
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(Color.samanGreen)
+                        .foregroundStyle(Color.brandSaag)
                 }
                 VStack(spacing: 6) {
                     Text("Ingredients saved")
@@ -226,8 +227,9 @@ struct RecipeCaptureView: View {
         phase = .extracting
         do {
             let result = try await RecipeExtractionService.shared.extract(transcript: text)
-            recipeTitle = result.title
-            selections  = result.ingredients.map { IngredientSelection(ingredient: $0) }
+            recipeTitle  = result.recipe.title
+            selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
+            extractedJSON = result.rawJSON
             phase = .reviewing
         } catch {
             errorMessage = error.localizedDescription
@@ -254,7 +256,7 @@ struct RecipeCaptureView: View {
             context.insert(item)
         }
 
-        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript)
+        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: extractedJSON)
         context.insert(recipe)
 
         try? context.save()

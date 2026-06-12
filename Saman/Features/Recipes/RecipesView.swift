@@ -64,8 +64,11 @@ struct RecipesView: View {
         ScrollView {
             LazyVStack(spacing: 10) {
                 ForEach(recipes) { recipe in
-                    RecipeRow(recipe: recipe)
-                        .padding(.horizontal, Saman.Space.md)
+                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                        RecipeRow(recipe: recipe)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, Saman.Space.md)
                 }
             }
             .padding(.top, 8)
