@@ -30,7 +30,7 @@ struct RecipeDetailView: View {
             .padding(.horizontal, Saman.Space.md)
             .padding(.top, 12)
         }
-        .background(Color.samanBg)
+        .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -51,7 +51,7 @@ struct RecipeDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             TextField("Recipe title", text: $recipe.title, axis: .vertical)
                 .font(.custom("CormorantGaramond-Bold", size: 36))
-                .foregroundStyle(Color.samanPrimary)
+                .foregroundStyle(Color.inkKohl)
                 .textFieldStyle(.plain)
                 .lineLimit(3)
 
@@ -59,16 +59,16 @@ struct RecipeDetailView: View {
                 if let attr = extracted?.attribution {
                     Text(attr)
                         .font(.system(size: 13).italic())
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
                 Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
 
             Rectangle()
                 .frame(height: 1)
-                .foregroundStyle(Color.samanBorder)
+                .foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 .padding(.top, 8)
         }
     }
@@ -82,7 +82,7 @@ struct RecipeDetailView: View {
                 ForEach(Array(ingredients.enumerated()), id: \.offset) { _, ing in
                     IngredientDetailRow(ingredient: ing)
                     if ing.ingredient != ingredients.last?.ingredient {
-                        Divider().overlay(Color.samanBorder.opacity(0.6))
+                        Divider().overlay(Color.borderAkhrotSoft.opacity(0.3))
                     }
                 }
             }
@@ -100,12 +100,12 @@ struct RecipeDetailView: View {
                     HStack(alignment: .top, spacing: 14) {
                         Text("\(i + 1)")
                             .font(.samanMono(12))
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                             .frame(width: 20, alignment: .trailing)
                             .padding(.top, 2)
                         Text(step)
                             .font(.system(size: 15))
-                            .foregroundStyle(Color.samanPrimary)
+                            .foregroundStyle(Color.inkKohl)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -121,7 +121,7 @@ struct RecipeDetailView: View {
             sectionLabel("Notes")
             Text(notes)
                 .font(.system(size: 14).italic())
-                .foregroundStyle(Color.samanSecondary)
+                .foregroundStyle(Color.inkKohl)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 24)
         }
@@ -134,7 +134,7 @@ struct RecipeDetailView: View {
             sectionLabel("Original transcript")
             Text(recipe.rawTranscript)
                 .font(.system(size: 14))
-                .foregroundStyle(Color.samanSecondary)
+                .foregroundStyle(Color.inkKohl)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 24)
         }
@@ -154,12 +154,12 @@ struct RecipeDetailView: View {
                 .foregroundStyle(Color.brandSaag)
             Text("Added to shopping list")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.samanPrimary)
+                .foregroundStyle(Color.inkKohl)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.samanCard, in: Capsule())
-        .overlay(Capsule().stroke(Color.samanBorder, lineWidth: 1))
+        .background(Color.surfaceMalai, in: Capsule())
+        .overlay(Capsule().stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
     }
 
     // MARK: - Helpers
@@ -167,7 +167,7 @@ struct RecipeDetailView: View {
     private func sectionLabel(_ text: String) -> some View {
         Text(text.uppercased())
             .font(.samanMono(10))
-            .foregroundStyle(Color.samanMuted)
+            .foregroundStyle(Color.inkKohlSoft)
             .kerning(0.8)
             .padding(.bottom, 10)
             .padding(.top, 4)
@@ -211,15 +211,15 @@ private struct IngredientDetailRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(ingredient.ingredient)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                 Spacer()
                 Text(ingredient.amountLabel)
                     .font(.samanMono(13))
-                    .foregroundStyle(ingredient.vague ? Color.samanMuted : Color.samanAccent)
+                    .foregroundStyle(ingredient.vague ? Color.inkKohlSoft : Color.brandSaag)
             }
             Text(ingredient.originalPhrase)
                 .font(.system(size: 12).italic())
-                .foregroundStyle(Color.samanMuted)
+                .foregroundStyle(Color.inkKohlSoft)
         }
         .padding(.vertical, 10)
     }

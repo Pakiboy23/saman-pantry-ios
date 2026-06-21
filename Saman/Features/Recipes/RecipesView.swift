@@ -14,7 +14,7 @@ struct RecipesView: View {
                     recipeList
                 }
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamanHeader(
@@ -22,9 +22,9 @@ struct RecipesView: View {
                             ? "Capture a family recipe"
                             : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
                     ) { showCapture = true }
-                    Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                    Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture) { RecipeCaptureView() }
@@ -39,14 +39,14 @@ struct RecipesView: View {
             VStack(spacing: 16) {
                 Text("نسخہ")
                     .font(.custom("NotoNastaliqUrdu-Regular", size: 52))
-                    .foregroundStyle(Color.samanAccent)
+                    .foregroundStyle(Color.brandSaag)
                 VStack(spacing: 8) {
                     Text("Capture a recipe")
-                        .font(.cormorant(30))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 30))
+                        .foregroundStyle(Color.inkKohl)
                     Text("Paste a spoken recipe — code-switched,\nandaza and all.")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -86,7 +86,7 @@ private struct RecipeRow: View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.samanAccentLight)
+                    .fill(Color.brandSaagSoft.opacity(0.3))
                     .frame(width: 46, height: 46)
                 Text("🍲")
                     .font(.system(size: 22))
@@ -94,10 +94,10 @@ private struct RecipeRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(recipe.title)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                 Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
         }
