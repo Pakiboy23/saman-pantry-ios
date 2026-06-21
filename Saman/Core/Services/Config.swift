@@ -12,8 +12,7 @@ enum Config {
     // Get this from: RevenueCat dashboard → Project → Apps → iOS → Public SDK key
     static let revenueCatAPIKey = "appl_tlykRhNVPkioVexPGIFSyJyzRMD"
 
-    // Anthropic API key — NOT safe to embed long-term.
-    // Move this behind a Supabase Edge Function before scaling to real users.
-    // For now: acceptable for solo-founder submission; key has billing risk if extracted.
-    static let anthropicAPIKey = "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"
+    // Recipe extraction is proxied through a Supabase Edge Function so private AI
+    // provider keys never ship in the iOS app binary.
+    static let recipeExtractionEndpoint = "\(supabaseURL)/functions/v1/extract-recipe"
 }

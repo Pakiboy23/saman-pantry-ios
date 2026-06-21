@@ -45,12 +45,12 @@ struct SamanApp: App {
         ]
         for name in names {
             guard let url = Bundle.main.url(forResource: name, withExtension: "ttf") else {
-                print("[Fonts] \(name).ttf not found in bundle")
+                AppLogger.debug("[Fonts] \(name).ttf not found in bundle")
                 continue
             }
             var error: Unmanaged<CFError>?
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
-            if let e = error { print("[Fonts] \(name): \(e.takeRetainedValue())") }
+            if let e = error { AppLogger.debug("[Fonts] \(name): \(e.takeRetainedValue())") }
         }
     }
 
