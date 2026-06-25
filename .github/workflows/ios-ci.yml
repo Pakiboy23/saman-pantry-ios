@@ -35,7 +35,7 @@ jobs:
           xcrun simctl list devices available | grep -E 'iPhone|iPad' || true
           # Runner images vary on which simulators exist, so pick one dynamically
           # instead of hard-pinning a device name.
-          DEVICE=$(xcrun simctl list devices available | grep -oE 'iPhone [0-9]+( Pro( Max)?| Plus)?' | head -1)
+          DEVICE=$(xcrun simctl list devices available | grep -oE 'iPhone [0-9]+( Pro( Max)?| Plus)?' | head -1 || true)
           if [ -z "$DEVICE" ]; then
             echo "::warning::No iPhone simulator available; compiling only (build-for-testing)."
             xcodebuild build-for-testing \
