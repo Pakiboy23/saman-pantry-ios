@@ -5,6 +5,25 @@
 **Build reviewed:** branch `claude/optimistic-clarke-wdc16x`, marketing version `1.0 (1)`, bundle `com.samanpantry.Saman`
 **Method:** Direct code read of every service, model, and feature view + a 34-agent parallel audit with adversarial verification (53 findings, 28 Critical/High each independently re-verified against the source — 0 refuted).
 
+---
+
+> ### ⏱ Status update (post-review work on this branch)
+> This review was written against the branch as originally forked. `main` had since advanced, and this branch now merges it. Net state:
+>
+> **Already fixed on `main` (verified):** AI-01 Anthropic key moved to a Supabase Edge Function (`extract-recipe`); secret-scanning CI; StoreKit config; deployment target normalized to iOS 17; readiness docs.
+>
+> **Fixed on this branch (this PR):**
+> - Build breaks that existed on `main` but were never compiled there (`AppEnvironment`/`SyncManager` main-actor isolation; `mainContext` test).
+> - **Core loop (P3-02/03/04/07):** Pantry tab, pantry-first onboarding, "Add desi staples" seed, delete affordances, and **mark-bought → pantry restock**.
+> - **AUTH-001 + P2-LEGALURLS:** in-app account deletion (`delete-account` Edge Function + Settings UI) and Privacy/Terms/Support links; plus local-store wipe on sign-out/delete (**AUTH-002**).
+> - Hardened the (never-run) CI workflow: dynamic simulator selection + unit-tests-only (the template UI tests hang on the network-gated splash in CI).
+>
+> **Still owner-only (cannot be done from the repo):** revoke the old Anthropic key; deploy both Edge Functions + set secrets; RevenueCat/ASC IAP verification; publish the Privacy/Support pages and point `Config` at them; reviewer demo account; screenshots/metadata (drafts in `docs/launch/`).
+>
+> **Deliberately deferred (launch risks, not blockers):** notifications (P3-05), pull-sync/multi-device (DATA-01), recipe sync. Per "ship clean, not bloated."
+
+---
+
 > The three goals — clean App Store approval, organic activation/retention, defensible revenue — are in tension. Where they conflict this doc surfaces the trade-off and makes a call. The single most important call is at the top of Phase 5: **the shipped app contradicts its own thesis, and that incoherence is the root cause of half the findings below.**
 
 ---
