@@ -7,6 +7,7 @@ struct ShoppingListsView: View {
     @Query(sort: \ShoppingList.createdAt, order: .reverse) private var lists: [ShoppingList]
     @State private var showAdd = false
     @State private var showPaywall = false
+    @State private var pendingDeleteList: ShoppingList?
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,11 @@ struct ShoppingListsView: View {
                             ShoppingListCard(list: list)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) { pendingDeleteList = list } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
 
                     if lists.isEmpty {
@@ -49,6 +55,23 @@ struct ShoppingListsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
             .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .confirmationDialog(
+                "Delete \(pendingDeleteList?.name ?? "list")?",
+                isPresented: Binding(
+                    get: { pendingDeleteList != nil },
+                    set: { if !$0 { pendingDeleteList = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingDeleteList
+            ) { list in
+                Button("Delete", role: .destructive) {
+                    context.delete(list)
+                    try? context.save()
+                    appEnv.syncNow()
+                    pendingDeleteList = nil
+                }
+                Button("Cancel", role: .cancel) { pendingDeleteList = nil }
+            }
         }
     }
 

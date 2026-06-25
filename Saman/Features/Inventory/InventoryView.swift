@@ -11,6 +11,7 @@ struct InventoryView: View {
     @State private var showScanner = false
     @State private var showSettings = false
     @State private var selectedTab = "all"
+    @State private var pendingDeleteItem: Item?
 
     // MARK: - Derived
 
@@ -43,6 +44,11 @@ struct InventoryView: View {
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) { pendingDeleteItem = item } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
 
@@ -55,15 +61,29 @@ struct InventoryView: View {
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) { pendingDeleteItem = item } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
 
                     if filteredItems.isEmpty {
-                        SamanEmptyState(
-                            emoji: "🛒",
-                            title: "Nothing here yet",
-                            message: "Tap + to add your first item, or scan a barcode."
-                        )
+                        VStack(spacing: 16) {
+                            SamanEmptyState(
+                                emoji: "🛒",
+                                title: "Nothing here yet",
+                                message: "Tap + to add your first item, or scan a barcode."
+                            )
+                            if items.isEmpty {
+                                Button("Add desi staples") {
+                                    DesiStaples.seed(into: context) { appEnv.syncNow() }
+                                }
+                                .buttonStyle(SamanSecondaryButtonStyle())
+                                .padding(.horizontal, Saman.Space.md)
+                            }
+                        }
                     }
 
                     Spacer(minLength: 32)
@@ -79,6 +99,23 @@ struct InventoryView: View {
             .sheet(isPresented: $showPaywall) { SamanPaywallView() }
             .sheet(isPresented: $showScanner) { ScannerView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
+            .confirmationDialog(
+                "Delete \(pendingDeleteItem?.name ?? "item")?",
+                isPresented: Binding(
+                    get: { pendingDeleteItem != nil },
+                    set: { if !$0 { pendingDeleteItem = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingDeleteItem
+            ) { item in
+                Button("Delete", role: .destructive) {
+                    context.delete(item)
+                    try? context.save()
+                    appEnv.syncNow()
+                    pendingDeleteItem = nil
+                }
+                Button("Cancel", role: .cancel) { pendingDeleteItem = nil }
+            }
         }
     }
 

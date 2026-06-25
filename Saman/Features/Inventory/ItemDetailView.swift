@@ -9,6 +9,7 @@ struct ItemDetailView: View {
 
     @Bindable var item: Item
     @State private var hasExpiry: Bool = false
+    @State private var showDeleteConfirm = false
 
     private let units = ["unit", "g", "kg", "ml", "L", "oz", "lb", "pack", "can", "bottle", "box"]
 
@@ -195,6 +196,11 @@ struct ItemDetailView: View {
                         .foregroundStyle(Color.inkKohl)
                         .lineLimit(1)
                     Spacer()
+                    Button { showDeleteConfirm = true } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.accentAnaar)
+                    }
                 }
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.vertical, 12)
@@ -204,6 +210,19 @@ struct ItemDetailView: View {
         }
         .onAppear { hasExpiry = item.expiryDate != nil }
         .onChange(of: item.name) { _, _ in persist() }
+        .confirmationDialog(
+            "Delete \(item.name)?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                context.delete(item)
+                try? context.save()
+                appEnv.syncNow()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        }
     }
 
     // MARK: - Helpers
