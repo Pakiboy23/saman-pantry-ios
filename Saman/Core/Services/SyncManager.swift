@@ -7,11 +7,11 @@ final class SyncManager {
 
     private let supabase: SupabaseClient
 
-    init() {
+    nonisolated init() {
         self.supabase = .shared
     }
 
-    init(supabase: SupabaseClient) {
+    nonisolated init(supabase: SupabaseClient) {
         self.supabase = supabase
     }
 

@@ -22,9 +22,10 @@ final class AppEnvironment {
     }
 
     func syncNow() {
-        let context = modelContainer.mainContext
-        Task {
-            await syncManager.syncAll(context: context)
+        let container = modelContainer
+        let manager = syncManager
+        Task { @MainActor in
+            await manager.syncAll(context: container.mainContext)
         }
     }
 }
