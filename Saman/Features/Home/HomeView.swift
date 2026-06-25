@@ -95,23 +95,30 @@ struct HomeView: View {
         VStack(spacing: 0) {
             Spacer()
             VStack(spacing: 16) {
-                Text("نسخہ")
-                    .font(.custom("NotoNastaliqUrdu-Regular", size: 56))
+                Text("سامان")
+                    .font(.custom("NotoNastaliqUrdu-Regular", size: 52))
                     .foregroundStyle(Color.brandSaag)
                 VStack(spacing: 8) {
                     Text("Your kitchen starts here.")
                         .font(.cormorant(size: 28))
                         .foregroundStyle(Color.inkKohl)
-                    Text("Capture a parent's recipe — code-switched,\nandaza and all.")
+                    Text("Add what you have, and keep a running\nlist of what you need.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
                 }
             }
             .padding(.bottom, 32)
-            Button("Capture a Recipe") { showCapture = true }
-                .buttonStyle(SamanPrimaryButtonStyle())
-                .padding(.horizontal, Saman.Space.md)
+            Button("Add your first item") {
+                if allItems.count >= 30 && !appEnv.purchases.isPro { showPaywall = true }
+                else { showAdd = true }
+            }
+            .buttonStyle(SamanPrimaryButtonStyle())
+            .padding(.horizontal, Saman.Space.md)
+            Button("or capture a recipe") { showCapture = true }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.brandSaag)
+                .padding(.top, 12)
             Spacer()
         }
     }

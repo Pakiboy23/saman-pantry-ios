@@ -39,14 +39,19 @@ struct RootView: View {
                     Label("Home", systemImage: "house.fill")
                 }
 
-            RecipesView()
+            InventoryView()
                 .tabItem {
-                    Label("Recipes", systemImage: "fork.knife")
+                    Label("Pantry", systemImage: "cabinet.fill")
                 }
 
             ShoppingListsView()
                 .tabItem {
                     Label("Lists", systemImage: "list.bullet.rectangle.fill")
+                }
+
+            RecipesView()
+                .tabItem {
+                    Label("Recipes", systemImage: "fork.knife")
                 }
         }
         .tint(Color.brandSaag)

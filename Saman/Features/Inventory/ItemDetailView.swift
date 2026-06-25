@@ -6,9 +6,12 @@ struct ItemDetailView: View {
     @Environment(\.appEnv) private var appEnv
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Pantry.name) private var pantries: [Pantry]
+    @Query(sort: \ShoppingList.createdAt, order: .reverse) private var lists: [ShoppingList]
 
     @Bindable var item: Item
     @State private var hasExpiry: Bool = false
+    @State private var showDeleteConfirm = false
+    @State private var addedToList = false
 
     private let units = ["unit", "g", "kg", "ml", "L", "oz", "lb", "pack", "can", "bottle", "box"]
 
@@ -88,6 +91,20 @@ struct ItemDetailView: View {
                             .onChange(of: item.unit) { _, _ in persist() }
                         }
                     }
+                }
+
+                // Reorder action — originates a shopping-list entry for a low item,
+                // which (on "mark bought") writes back here. Closes the loop.
+                if item.isLow {
+                    Button {
+                        addToShoppingList()
+                    } label: {
+                        Label(addedToList ? "Added to your list" : "Add to shopping list",
+                              systemImage: addedToList ? "checkmark" : "cart.badge.plus")
+                    }
+                    .buttonStyle(SamanPrimaryButtonStyle())
+                    .disabled(addedToList)
+                    .padding(.horizontal, Saman.Space.md)
                 }
 
                 // Expiry card
@@ -195,6 +212,11 @@ struct ItemDetailView: View {
                         .foregroundStyle(Color.inkKohl)
                         .lineLimit(1)
                     Spacer()
+                    Button { showDeleteConfirm = true } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.accentAnaar)
+                    }
                 }
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.vertical, 12)
@@ -204,6 +226,19 @@ struct ItemDetailView: View {
         }
         .onAppear { hasExpiry = item.expiryDate != nil }
         .onChange(of: item.name) { _, _ in persist() }
+        .confirmationDialog(
+            "Delete \(item.name)?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                context.delete(item)
+                try? context.save()
+                appEnv.syncNow()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        }
     }
 
     // MARK: - Helpers
@@ -235,5 +270,37 @@ struct ItemDetailView: View {
         item.markDirty()
         try? context.save()
         appEnv.syncNow()
+    }
+
+    /// Add this low item to an active shopping list (or start one). The list item
+    /// shares the item's name so "mark bought" can match it back to the pantry.
+    private func addToShoppingList() {
+        let targetList: ShoppingList
+        if let active = lists.first(where: { !$0.isCompleted }) {
+            targetList = active
+        } else {
+            let created = ShoppingList(name: "Shopping")
+            context.insert(created)
+            targetList = created
+        }
+
+        let product: Product
+        if let existing = item.product {
+            product = existing
+        } else {
+            let created = Product(name: item.name)
+            context.insert(created)
+            item.product = created
+            product = created
+        }
+
+        let needed = max(1, item.minimumQuantity - item.quantity)
+        let listItem = ShoppingListItem(quantity: needed, unit: item.unit, product: product, shoppingList: targetList)
+        context.insert(listItem)
+
+        item.markDirty()
+        try? context.save()
+        appEnv.syncNow()
+        withAnimation { addedToList = true }
     }
 }

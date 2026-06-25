@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Saman — App privacy manifest (PrivacyInfo.xcprivacy)
+
+  HOW TO USE
+  1. Drag this file into the Saman app target in Xcode (File > Add Files…),
+     ensure "Target Membership: Saman" is checked. It must sit in the app
+     bundle, not loose in the repo.
+  2. Verify every entry below against the FINAL shipping code before you
+     submit. This manifest reflects behavior as of 2026-06-25:
+       - Email + Supabase user UUID collected via Supabase Auth.
+       - Pantry/list/product content uploaded to Supabase.
+       - Recipe transcripts sent to Anthropic (move this server-side; the
+         data type collected does not change, only the network path).
+       - User UUID passed to RevenueCat as appUserID.
+  3. RevenueCat and supabase-swift ship their OWN PrivacyInfo.xcprivacy inside
+     their SwiftPM packages — you do NOT redeclare their APIs here. This file
+     covers the APP TARGET's first-party data collection + required-reason APIs.
+  4. NSPrivacyTracking = false: nothing here is used for cross-app tracking.
+     No tracking domains.
+
+  REQUIRED-REASON APIS
+  - UserDefaults (CA92.1): declared because the recommended lastSyncedAt /
+    first-run-flag fixes (DATA-04, P3-04) use UserDefaults. If your final
+    build genuinely never calls UserDefaults from first-party code, REMOVE
+    that entry. Do not over-declare.
+-->
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <!-- Email address — account creation via Supabase Auth -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- User ID — Supabase auth UUID, also sent to RevenueCat as appUserID -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeUserID</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Other user content: pantry items, shopping lists, and recipe
+             transcripts the user enters. Recipe transcripts are sent to
+             Anthropic for structuring. -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Purchase history — RevenueCat / StoreKit subscription state -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePurchaseHistory</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposePurchaseHistory</string>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <!-- UserDefaults — see header note; remove if unused in final build -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

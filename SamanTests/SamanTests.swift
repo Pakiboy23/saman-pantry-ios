@@ -3,6 +3,9 @@ import SwiftData
 import Testing
 @testable import Saman
 
+// Main-actor isolated: previewModelContainerCanCreateAllPrimaryModels touches
+// ModelContainer.mainContext, which is @MainActor.
+@MainActor
 struct SamanTests {
 
     @Test func configDoesNotExposePrivateAnthropicKey() {
