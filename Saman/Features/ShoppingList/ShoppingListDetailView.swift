@@ -4,6 +4,7 @@ import SwiftData
 struct ShoppingListDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
+    @Query(sort: \Item.name) private var allItems: [Item]
     @Bindable var list: ShoppingList
     @State private var showAddItem = false
 
@@ -50,12 +51,33 @@ struct ShoppingListDetailView: View {
     }
 
     private func toggle(_ item: ShoppingListItem) {
+        let wasPurchased = item.isPurchased
         item.isPurchased.toggle()
         item.markDirty()
+        // Close the core loop: buying an item restocks the matching pantry item;
+        // un-checking reverses it so the count can't drift.
+        if !wasPurchased && item.isPurchased {
+            restockPantry(for: item, by: item.quantity)
+        } else if wasPurchased && !item.isPurchased {
+            restockPantry(for: item, by: -item.quantity)
+        }
         // Auto-complete list when all items are purchased
         if list.items.allSatisfy(\.isPurchased) { list.isCompleted = true; list.markDirty() }
         try? context.save()
         appEnv.syncNow()
+    }
+
+    /// Find the pantry item whose name matches this shopping item (normalized)
+    /// and adjust its quantity. This is what makes "mark bought" actually update
+    /// the pantry — the final step of the core loop.
+    private func restockPantry(for item: ShoppingListItem, by delta: Int) {
+        guard let name = item.product?.name else { return }
+        let key = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let pantryItem = allItems.first(where: {
+            $0.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == key
+        }) else { return }
+        pantryItem.quantity = max(0, pantryItem.quantity + delta)
+        pantryItem.markDirty()
     }
 
     private func delete(from items: [ShoppingListItem], at offsets: IndexSet) {
