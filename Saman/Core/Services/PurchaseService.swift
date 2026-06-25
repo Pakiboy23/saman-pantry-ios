@@ -24,7 +24,7 @@ final class PurchaseService {
             do {
                 let (_, _) = try await Purchases.shared.logIn(id)
             } catch {
-                print("[RevenueCat] logIn error: \(error)")
+                AppLogger.error("[RevenueCat] logIn error: \(error)")
             }
         }
     }

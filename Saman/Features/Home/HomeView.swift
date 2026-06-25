@@ -32,13 +32,13 @@ struct HomeView: View {
             Group {
                 if isEmpty { emptyState } else { dashboard }
             }
-            .background(Color.samanBg)
+            .background(Color.surfaceDoodh)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     topHeader
-                    Rectangle().frame(height: 1).foregroundStyle(Color.samanBorder)
+                    Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture)  { RecipeCaptureView() }
@@ -55,23 +55,23 @@ struct HomeView: View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Saman")
-                    .font(.cormorant(28))
-                    .foregroundStyle(Color.samanPrimary)
+                    .font(.cormorant(size: 28))
+                    .foregroundStyle(Color.inkKohl)
                 Text(greeting)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 16))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
                     .frame(width: 36, height: 36)
             }
             Button { showScanner = true } label: {
                 Image(systemName: "barcode.viewfinder")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                     .frame(width: 36, height: 36)
             }
             Button {
@@ -80,9 +80,9 @@ struct HomeView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.samanBg)
+                    .foregroundStyle(Color.surfaceDoodh)
                     .frame(width: 36, height: 36)
-                    .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
             }
         }
         .padding(.horizontal, Saman.Space.md)
@@ -97,14 +97,14 @@ struct HomeView: View {
             VStack(spacing: 16) {
                 Text("نسخہ")
                     .font(.custom("NotoNastaliqUrdu-Regular", size: 56))
-                    .foregroundStyle(Color.samanAccent)
+                    .foregroundStyle(Color.brandSaag)
                 VStack(spacing: 8) {
                     Text("Your kitchen starts here.")
-                        .font(.cormorant(28))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 28))
+                        .foregroundStyle(Color.inkKohl)
                     Text("Capture a parent's recipe — code-switched,\nandaza and all.")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -129,7 +129,7 @@ struct HomeView: View {
 
                 // Recent recipes
                 if !recentRecipes.isEmpty {
-                    SamanSectionHeader(title: "Recipes", color: .samanAccent)
+                    SamanSectionHeader(title: "Recipes", color: .brandSaag)
                     ForEach(recentRecipes) { recipe in
                         NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
                             HomeRecipeRow(recipe: recipe)
@@ -142,7 +142,7 @@ struct HomeView: View {
 
                 // Active shopping lists
                 if !activeLists.isEmpty {
-                    SamanSectionHeader(title: "Shopping", color: .samanAccent)
+                    SamanSectionHeader(title: "Shopping", color: .brandSaag)
                     ForEach(activeLists) { list in
                         NavigationLink(destination: ShoppingListDetailView(list: list)) {
                             HomeListRow(list: list)
@@ -155,7 +155,7 @@ struct HomeView: View {
 
                 // Low stock / attention items
                 if !attentionItems.isEmpty {
-                    SamanSectionHeader(title: "Running low", color: .samanRed)
+                    SamanSectionHeader(title: "Running low", color: .accentAnaar)
                     ForEach(attentionItems) { item in
                         HomeLowStockRow(item: item)
                             .padding(.horizontal, Saman.Space.md)
@@ -165,10 +165,10 @@ struct HomeView: View {
                         HStack {
                             Text("See all pantry items")
                                 .font(.system(size: 13))
-                                .foregroundStyle(Color.samanAccent)
+                                .foregroundStyle(Color.brandSaag)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.samanAccent.opacity(0.6))
+                                .foregroundStyle(Color.brandSaag.opacity(0.6))
                         }
                         .padding(.horizontal, Saman.Space.md)
                         .padding(.top, 4)
@@ -189,22 +189,22 @@ struct HomeView: View {
                     .font(.custom("NotoNastaliqUrdu-Regular", size: 26))
                     .foregroundStyle(.white)
                     .frame(width: 48, height: 48)
-                    .background(Color.samanAccent, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Capture a recipe")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.samanPrimary)
+                        .foregroundStyle(Color.inkKohl)
                     Text("Paste a transcript to extract ingredients")
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.samanMuted.opacity(0.5))
+                    .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
             }
             .padding(14)
             .samanCard()
@@ -233,20 +233,20 @@ private struct HomeRecipeRow: View {
             Text("🍲")
                 .font(.system(size: 20))
                 .frame(width: 42, height: 42)
-                .background(Color.samanAccentLight, in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.brandSaagSoft.opacity(0.3), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 2) {
                 Text(recipe.title)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                     .lineLimit(1)
                 Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.samanMuted.opacity(0.5))
+                .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
         }
         .padding(12)
         .samanCard()
@@ -260,22 +260,22 @@ private struct HomeListRow: View {
         HStack(spacing: 12) {
             Image(systemName: "cart")
                 .font(.system(size: 17))
-                .foregroundStyle(Color.samanAccent)
+                .foregroundStyle(Color.brandSaag)
                 .frame(width: 42, height: 42)
-                .background(Color.samanAccentLight, in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.brandSaagSoft.opacity(0.3), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 2) {
                 Text(list.name)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                     .lineLimit(1)
                 Text("\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.samanMuted.opacity(0.5))
+                .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
         }
         .padding(12)
         .samanCard()
@@ -294,10 +294,10 @@ private struct HomeLowStockRow: View {
             Text(item.emoji)
                 .font(.system(size: 16))
                 .frame(width: 36, height: 36)
-                .background(Color.samanDeep, in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 8))
             Text(item.name)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.samanPrimary)
+                .foregroundStyle(Color.inkKohl)
                 .lineLimit(1)
             Spacer()
             Text(statusLabel(item.stockStatus))

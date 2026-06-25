@@ -37,7 +37,7 @@ final class SyncManager {
             try await supabase.from("items").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] items: \(error)") }
+        } catch { AppLogger.error("[Sync] items: \(error)") }
     }
 
     private func syncPantries(context: ModelContext, userID: UUID) async {
@@ -48,7 +48,7 @@ final class SyncManager {
             try await supabase.from("pantries").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] pantries: \(error)") }
+        } catch { AppLogger.error("[Sync] pantries: \(error)") }
     }
 
     private func syncProducts(context: ModelContext, userID: UUID) async {
@@ -59,7 +59,7 @@ final class SyncManager {
             try await supabase.from("products").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] products: \(error)") }
+        } catch { AppLogger.error("[Sync] products: \(error)") }
     }
 
     private func syncStores(context: ModelContext, userID: UUID) async {
@@ -70,7 +70,7 @@ final class SyncManager {
             try await supabase.from("stores").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] stores: \(error)") }
+        } catch { AppLogger.error("[Sync] stores: \(error)") }
     }
 
     private func syncShoppingLists(context: ModelContext, userID: UUID) async {
@@ -81,7 +81,7 @@ final class SyncManager {
             try await supabase.from("shopping_lists").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] shopping_lists: \(error)") }
+        } catch { AppLogger.error("[Sync] shopping_lists: \(error)") }
     }
 
     private func syncShoppingListItems(context: ModelContext, userID: UUID) async {
@@ -92,7 +92,7 @@ final class SyncManager {
             try await supabase.from("shopping_list_items").upsert(payloads).execute()
             dirty.forEach { $0.isDirty = false }
             try? context.save()
-        } catch { print("[Sync] shopping_list_items: \(error)") }
+        } catch { AppLogger.error("[Sync] shopping_list_items: \(error)") }
     }
 
     private func fetchAll<T: PersistentModel>(_ type: T.Type, context: ModelContext) -> [T] {

@@ -34,15 +34,20 @@ struct RootView: View {
 
     private var tabShell: some View {
         TabView {
-            Tab("Home", systemImage: "house.fill") {
-                HomeView()
-            }
-            Tab("Recipes", systemImage: "fork.knife") {
-                RecipesView()
-            }
-            Tab("Lists", systemImage: "list.bullet.rectangle.fill") {
-                ShoppingListsView()
-            }
+            HomeView()
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
+                }
+
+            RecipesView()
+                .tabItem {
+                    Label("Recipes", systemImage: "fork.knife")
+                }
+
+            ShoppingListsView()
+                .tabItem {
+                    Label("Lists", systemImage: "list.bullet.rectangle.fill")
+                }
         }
         .tint(Color.brandSaag)
     }

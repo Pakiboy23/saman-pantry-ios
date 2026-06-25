@@ -27,7 +27,7 @@ struct RecipeCaptureView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.samanBg.ignoresSafeArea()
+                Color.surfaceDoodh.ignoresSafeArea()
                 switch phase {
                 case .idle:                idleContent
                 case .extracting, .adding: loadingContent
@@ -39,13 +39,13 @@ struct RecipeCaptureView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(navTitle)
-                        .font(.cormorant(20))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 20))
+                        .foregroundStyle(Color.inkKohl)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     if phase != .done {
                         Button("Cancel") { dismiss() }
-                            .foregroundStyle(Color.samanAccent)
+                            .foregroundStyle(Color.brandSaag)
                     }
                 }
             }
@@ -74,10 +74,10 @@ struct RecipeCaptureView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Paste the recipe transcript below.")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                 Text("Code-switched Urdu/Hindi/Punjabi and vague\nmeasurements are fine — even expected.")
                     .font(.system(size: 13))
-                    .foregroundStyle(Color.samanMuted)
+                    .foregroundStyle(Color.inkKohlSoft)
             }
             .padding(.horizontal, Saman.Space.md)
             .padding(.top, Saman.Space.md)
@@ -87,20 +87,20 @@ struct RecipeCaptureView: View {
                 if transcript.isEmpty {
                     Text("Beta listen, chicken karahi bahut easy hai…")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color.samanMuted.opacity(0.55))
+                        .foregroundStyle(Color.inkKohlSoft.opacity(0.55))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $transcript)
                     .font(.system(size: 14))
-                    .foregroundStyle(Color.samanPrimary)
+                    .foregroundStyle(Color.inkKohl)
                     .scrollContentBackground(.hidden)
                     .padding(8)
             }
             .frame(minHeight: 220)
-            .background(Color.samanCard, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.samanBorder, lineWidth: 1))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
             .padding(.horizontal, Saman.Space.md)
 
             Spacer()
@@ -119,11 +119,11 @@ struct RecipeCaptureView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .progressViewStyle(.circular)
-                .tint(Color.samanAccent)
+                .tint(Color.brandSaag)
                 .scaleEffect(1.3)
             Text(phase == .adding ? "Saving to your list…" : "Reading the recipe…")
                 .font(.system(size: 14))
-                .foregroundStyle(Color.samanMuted)
+                .foregroundStyle(Color.inkKohlSoft)
         }
     }
 
@@ -137,11 +137,11 @@ struct RecipeCaptureView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("RECIPE TITLE")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .kerning(0.8)
                     TextField("Recipe title", text: $recipeTitle)
-                        .font(.cormorant(26))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 26))
+                        .foregroundStyle(Color.inkKohl)
                         .textFieldStyle(.plain)
                 }
                 .padding(Saman.Space.md)
@@ -151,7 +151,7 @@ struct RecipeCaptureView: View {
 
                 SamanSectionHeader(
                     title: "\(selections.filter(\.isSelected).count) of \(selections.count) selected",
-                    color: .samanAccent
+                    color: .brandSaag
                 )
 
                 ForEach($selections) { $sel in
@@ -171,7 +171,7 @@ struct RecipeCaptureView: View {
     private var addButton: some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [Color.samanBg.opacity(0), Color.samanBg],
+                colors: [Color.surfaceDoodh.opacity(0), Color.surfaceDoodh],
                 startPoint: .top, endPoint: .bottom
             )
             .frame(height: 40)
@@ -182,7 +182,7 @@ struct RecipeCaptureView: View {
                 .disabled(selections.filter(\.isSelected).isEmpty)
                 .padding(.horizontal, Saman.Space.md)
                 .padding(.bottom, 32)
-                .background(Color.samanBg)
+                .background(Color.surfaceDoodh)
         }
     }
 
@@ -202,11 +202,11 @@ struct RecipeCaptureView: View {
                 }
                 VStack(spacing: 6) {
                     Text("Ingredients saved")
-                        .font(.cormorant(26))
-                        .foregroundStyle(Color.samanPrimary)
+                        .font(.cormorant(size: 26))
+                        .foregroundStyle(Color.inkKohl)
                     Text("\"\(recipeTitle)\" added to your shopping list.")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                 }
@@ -280,23 +280,23 @@ private struct IngredientRow: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: selection.isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 20))
-                    .foregroundStyle(selection.isSelected ? Color.samanAccent : Color.samanMuted.opacity(0.4))
+                    .foregroundStyle(selection.isSelected ? Color.brandSaag : Color.inkKohlSoft.opacity(0.4))
                     .padding(.top, 1)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(ing.ingredient)
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color.samanPrimary)
+                            .foregroundStyle(Color.inkKohl)
                         Spacer()
                         Text(ing.amountLabel)
                             .font(.samanMono(13))
-                            .foregroundStyle(ing.vague ? Color.samanMuted : Color.samanAccent)
+                            .foregroundStyle(ing.vague ? Color.inkKohlSoft : Color.brandSaag)
                     }
                     Text(ing.originalPhrase)
                         .font(.system(size: 12))
                         .italic()
-                        .foregroundStyle(Color.samanMuted)
+                        .foregroundStyle(Color.inkKohlSoft)
                 }
             }
             .padding(12)

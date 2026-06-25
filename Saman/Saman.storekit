@@ -1,0 +1,62 @@
+{
+  "identifier" : "52C43571-0FE8-46BC-9D34-6D2DA3C642E2",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "com.samanpantry.Saman",
+    "_developerTeamID" : "6KTSZRW2J6",
+    "_lastSynchronizedDate" : 772329600,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "SamanProSubscriptions",
+      "localizations" : [
+        {
+          "description" : "Saman Pro unlocks premium pantry and recipe features.",
+          "displayName" : "Saman Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Saman Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "saman.pro.monthly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Monthly access to Saman Pro.",
+              "displayName" : "Saman Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "saman.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Saman Pro Monthly",
+          "subscriptionGroupID" : "SamanProSubscriptions",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
