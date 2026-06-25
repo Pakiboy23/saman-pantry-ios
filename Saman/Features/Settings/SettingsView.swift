@@ -6,6 +6,8 @@ struct SettingsView: View {
     @State private var showSignOutConfirm = false
     @State private var showPaywall = false
     @State private var showCustomerCenter = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
 
     var body: some View {
         NavigationStack {
@@ -87,6 +89,39 @@ struct SettingsView: View {
                                 .font(.system(size: 15))
                             }
                             .buttonStyle(.plain)
+
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
+
+                            Button {
+                                showDeleteConfirm = true
+                            } label: {
+                                HStack {
+                                    if isDeleting {
+                                        ProgressView().tint(Color.accentAnaar)
+                                    } else {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(Color.accentAnaar)
+                                    }
+                                    Text("Delete account")
+                                        .foregroundStyle(Color.accentAnaar)
+                                    Spacer()
+                                }
+                                .font(.system(size: 15))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDeleting)
+                        }
+                    }
+
+                    // Legal card
+                    settingsCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            cardLabel("LEGAL")
+                            legalLink("Privacy Policy", urlString: Config.privacyPolicyURL)
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
+                            legalLink("Terms of Use", urlString: Config.termsOfUseURL)
+                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
+                            legalLink("Support", urlString: Config.supportURL)
                         }
                     }
 
@@ -133,8 +168,21 @@ struct SettingsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .confirmationDialog("Sign out of Saman?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
                 Button("Sign Out", role: .destructive) {
-                    Task { await appEnv.auth.signOut() }
+                    Task { await appEnv.auth.signOut(); appEnv.clearLocalStore() }
                 }
+            }
+            .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete Account", role: .destructive) {
+                    Task {
+                        isDeleting = true
+                        let deleted = await appEnv.auth.deleteAccount()
+                        if deleted { appEnv.clearLocalStore() }
+                        isDeleting = false
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This permanently removes your account, pantry, lists, and recipes. This can't be undone.")
             }
             .sheet(isPresented: $showPaywall) {
                 SamanPaywallView()
@@ -167,6 +215,23 @@ struct SettingsView: View {
             Text(label).font(.system(size: 14)).foregroundStyle(Color.inkKohl)
             Spacer()
             Text(value).font(.samanMono(13)).foregroundStyle(Color.inkKohlSoft)
+        }
+    }
+
+    @ViewBuilder
+    private func legalLink(_ title: String, urlString: String) -> some View {
+        if let url = URL(string: urlString) {
+            Link(destination: url) {
+                HStack {
+                    Text(title)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.inkKohl)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.inkKohlSoft)
+                }
+            }
         }
     }
 }

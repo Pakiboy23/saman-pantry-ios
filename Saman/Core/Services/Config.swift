@@ -15,4 +15,15 @@ enum Config {
     // Recipe extraction is proxied through a Supabase Edge Function so private AI
     // provider keys never ship in the iOS app binary.
     static let recipeExtractionEndpoint = "\(supabaseURL)/functions/v1/extract-recipe"
+
+    // Account deletion (App Store 5.1.1(v)) is performed server-side with the
+    // service-role key; the client only calls this endpoint with the user's JWT.
+    static let deleteAccountEndpoint = "\(supabaseURL)/functions/v1/delete-account"
+
+    // Legal / support URLs. REQUIRED for submission and shown in Settings (and on
+    // the paywall). TODO(owner): replace the privacy and support URLs with live
+    // pages before submitting. The Terms URL is Apple's standard EULA, valid as-is.
+    static let privacyPolicyURL = "https://samanpantry.com/privacy"
+    static let termsOfUseURL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+    static let supportURL = "https://samanpantry.com/support"
 }

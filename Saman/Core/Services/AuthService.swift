@@ -77,6 +77,34 @@ final class AuthService {
         await run { try await self.supabase.auth.signOut() }
     }
 
+    /// Permanently delete the signed-in account via the delete-account Edge
+    /// Function (App Store 5.1.1(v)). On success the user is signed out; the
+    /// caller is responsible for wiping the local store. Returns true on success.
+    @discardableResult
+    func deleteAccount() async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let token = try await supabase.auth.session.accessToken
+            guard let url = URL(string: Config.deleteAccountEndpoint) else { throw URLError(.badURL) }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            try? await supabase.auth.signOut()
+            return true
+        } catch {
+            errorMessage = "Couldn't delete your account. Please try again."
+            return false
+        }
+    }
+
     // MARK: - Private
 
     private func run(_ action: @escaping () async throws -> Void) async {
