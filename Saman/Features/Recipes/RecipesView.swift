@@ -2,8 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct RecipesView: View {
+    @Environment(\.modelContext) private var context
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @State private var showCapture = false
+    @State private var pendingDeleteRecipe: Recipe?
 
     var body: some View {
         NavigationStack {
@@ -28,6 +30,22 @@ struct RecipesView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture) { RecipeCaptureView() }
+            .confirmationDialog(
+                "Delete \(pendingDeleteRecipe?.title ?? "recipe")?",
+                isPresented: Binding(
+                    get: { pendingDeleteRecipe != nil },
+                    set: { if !$0 { pendingDeleteRecipe = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingDeleteRecipe
+            ) { recipe in
+                Button("Delete", role: .destructive) {
+                    context.delete(recipe)
+                    try? context.save()
+                    pendingDeleteRecipe = nil
+                }
+                Button("Cancel", role: .cancel) { pendingDeleteRecipe = nil }
+            }
         }
     }
 
@@ -68,6 +86,11 @@ struct RecipesView: View {
                         RecipeRow(recipe: recipe)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) { pendingDeleteRecipe = recipe } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                     .padding(.horizontal, Saman.Space.md)
                 }
             }
@@ -95,9 +118,16 @@ private struct RecipeRow: View {
                 Text(recipe.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.inkKohl)
-                Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.inkKohlSoft)
+                HStack(spacing: 4) {
+                    if let attribution = recipe.attribution {
+                        Text("from \(attribution)")
+                            .italic()
+                        Text("·")
+                    }
+                    Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(Color.inkKohlSoft)
             }
             Spacer()
         }

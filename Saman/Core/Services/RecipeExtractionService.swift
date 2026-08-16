@@ -2,16 +2,24 @@ import Foundation
 
 // MARK: - Extraction result types
 
-struct ExtractedIngredient: Decodable {
-    let ingredient: String
-    let originalPhrase: String
-    let amount: Double?
-    let unit: String?
-    let vague: Bool
+struct ExtractedIngredient: Codable {
+    var ingredient: String
+    var originalPhrase: String
+    var amount: Double?
+    var unit: String?
+    var vague: Bool
 
     enum CodingKeys: String, CodingKey {
         case ingredient, amount, unit, vague
         case originalPhrase = "original_phrase"
+    }
+
+    init(ingredient: String, originalPhrase: String, amount: Double?, unit: String?, vague: Bool) {
+        self.ingredient = ingredient
+        self.originalPhrase = originalPhrase
+        self.amount = amount
+        self.unit = unit
+        self.vague = vague
     }
 
     init(from decoder: Decoder) throws {
@@ -31,12 +39,12 @@ struct ExtractedIngredient: Decodable {
     }
 }
 
-struct ExtractedRecipe: Decodable {
-    let title: String
-    let attribution: String?
-    let ingredients: [ExtractedIngredient]
-    let steps: [String]
-    let notes: String?
+struct ExtractedRecipe: Codable {
+    var title: String
+    var attribution: String?
+    var ingredients: [ExtractedIngredient]
+    var steps: [String]
+    var notes: String?
 }
 
 // MARK: - Service

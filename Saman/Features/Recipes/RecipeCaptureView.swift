@@ -8,6 +8,7 @@ struct RecipeCaptureView: View {
 
     @State private var transcript    = ""
     @State private var recipeTitle   = ""
+    @State private var recipeSource  = ""
     @State private var selections:   [IngredientSelection] = []
     @State private var extractedJSON = ""
     @State private var phase:        Phase = .idle
@@ -133,7 +134,7 @@ struct RecipeCaptureView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
 
-                // Editable title
+                // Editable title + source
                 VStack(alignment: .leading, spacing: 4) {
                     Text("RECIPE TITLE")
                         .font(.system(size: 11, weight: .semibold))
@@ -141,6 +142,16 @@ struct RecipeCaptureView: View {
                         .kerning(0.8)
                     TextField("Recipe title", text: $recipeTitle)
                         .font(.cormorant(size: 26))
+                        .foregroundStyle(Color.inkKohl)
+                        .textFieldStyle(.plain)
+
+                    Text("FROM")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.inkKohlSoft)
+                        .kerning(0.8)
+                        .padding(.top, 10)
+                    TextField("Who gave you this recipe? e.g. Mom", text: $recipeSource)
+                        .font(.system(size: 15))
                         .foregroundStyle(Color.inkKohl)
                         .textFieldStyle(.plain)
                 }
@@ -228,6 +239,7 @@ struct RecipeCaptureView: View {
         do {
             let result = try await RecipeExtractionService.shared.extract(transcript: text)
             recipeTitle  = result.recipe.title
+            recipeSource = result.recipe.attribution ?? ""
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
             phase = .reviewing
@@ -256,7 +268,20 @@ struct RecipeCaptureView: View {
             context.insert(item)
         }
 
-        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: extractedJSON)
+        // Fold the user-entered source back into the stored JSON so the saved
+        // recipe and its extracted structure agree on attribution.
+        let trimmedSource = recipeSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attribution = trimmedSource.isEmpty ? nil : trimmedSource
+        var finalJSON = extractedJSON
+        if var parsed = try? JSONDecoder().decode(ExtractedRecipe.self, from: Data(extractedJSON.utf8)) {
+            parsed.attribution = attribution
+            if let data = try? JSONEncoder().encode(parsed),
+               let json = String(data: data, encoding: .utf8) {
+                finalJSON = json
+            }
+        }
+
+        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: finalJSON, attribution: attribution)
         context.insert(recipe)
 
         try? context.save()
