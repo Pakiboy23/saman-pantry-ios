@@ -65,8 +65,9 @@ struct RecipeEditView: View {
                             TextField("Ingredient", text: $ing.name)
                             HStack(spacing: 8) {
                                 TextField("Amount", text: $ing.amountText)
-                                    .keyboardType(.decimalPad)
+                                    .keyboardType(.numbersAndPunctuation)
                                     .frame(maxWidth: 90)
+                                    .foregroundStyle(Self.isInvalidAmount(ing.amountText) ? Color.accentAnaar : Color.inkKohlSoft)
                                 TextField("Unit (cup, tsp…)", text: $ing.unit)
                             }
                             .font(.system(size: 14))
@@ -91,7 +92,12 @@ struct RecipeEditView: View {
                 } header: {
                     Text("Ingredients")
                 } footer: {
-                    Text("Swipe left to remove. Leave the amount empty for andaza — “to taste”.")
+                    if hasInvalidAmounts {
+                        Text("Check the amounts marked in red — use numbers like 2, 0.5, or 1/2.")
+                            .foregroundStyle(Color.accentAnaar)
+                    } else {
+                        Text("Swipe left to remove. Fractions like 1/2 are fine. Leave the amount empty for andaza — “to taste”.")
+                    }
                 }
 
                 Section {
@@ -111,7 +117,7 @@ struct RecipeEditView: View {
                 } header: {
                     Text("Steps")
                 } footer: {
-                    Text("Touch and hold a step to drag it into a different order.")
+                    Text("Tap Edit to reorder ingredients and steps.")
                 }
 
                 Section("Notes") {
@@ -125,19 +131,55 @@ struct RecipeEditView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItemGroup(placement: .confirmationAction) {
+                    EditButton()
                     Button("Save") { save() }
-                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || hasInvalidAmounts)
                 }
             }
         }
+    }
+
+    // MARK: - Amount parsing
+
+    /// Accepts decimals ("0.5", "0,5"), fractions ("1/2"), and mixed numbers
+    /// ("1 1/2"). Returns nil when the text can't be read as a quantity.
+    static func parseAmount(_ raw: String) -> Double? {
+        let text = raw
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: ",", with: ".")
+        guard !text.isEmpty else { return nil }
+        var total = 0.0
+        for part in text.split(separator: " ") {
+            if let d = Double(part) {
+                total += d
+            } else {
+                let frac = part.split(separator: "/")
+                guard frac.count == 2,
+                      let num = Double(frac[0]),
+                      let den = Double(frac[1]),
+                      den != 0
+                else { return nil }
+                total += num / den
+            }
+        }
+        return total
+    }
+
+    static func isInvalidAmount(_ raw: String) -> Bool {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        return !trimmed.isEmpty && parseAmount(trimmed) == nil
+    }
+
+    private var hasInvalidAmounts: Bool {
+        ingredients.contains { Self.isInvalidAmount($0.amountText) }
     }
 
     // MARK: - Save
 
     private func save() {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
+        guard !trimmedTitle.isEmpty, !hasInvalidAmounts else { return }
 
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         let attribution = trimmedSource.isEmpty ? nil : trimmedSource
@@ -145,7 +187,7 @@ struct RecipeEditView: View {
         let outIngredients: [ExtractedIngredient] = ingredients.compactMap { row in
             let name = row.name.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
-            let amount = Double(row.amountText.replacingOccurrences(of: ",", with: "."))
+            let amount = Self.parseAmount(row.amountText)
             let unit = row.unit.trimmingCharacters(in: .whitespacesAndNewlines)
             let phrase = row.originalPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
             return ExtractedIngredient(
