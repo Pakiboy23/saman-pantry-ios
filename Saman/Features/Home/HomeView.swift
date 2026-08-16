@@ -43,7 +43,7 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture)  { RecipeCaptureView() }
             .sheet(isPresented: $showAdd)       { AddItemView() }
-            .sheet(isPresented: $showPaywall)   { SamanPaywallView() }
+            .sheet(isPresented: $showPaywall)   { SamaanPaywallView() }
             .sheet(isPresented: $showScanner)   { ScannerView() }
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
@@ -54,7 +54,7 @@ struct HomeView: View {
     private var topHeader: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Saman")
+                Text("Samaan")
                     .font(.cormorant(size: 28))
                     .foregroundStyle(Color.inkKohl)
                 Text(greeting)
@@ -85,7 +85,7 @@ struct HomeView: View {
                     .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
             }
         }
-        .padding(.horizontal, Saman.Space.md)
+        .padding(.horizontal, Samaan.Space.md)
         .padding(.vertical, 12)
     }
 
@@ -113,8 +113,8 @@ struct HomeView: View {
                 if allItems.count >= 30 && !appEnv.purchases.isPro { showPaywall = true }
                 else { showAdd = true }
             }
-            .buttonStyle(SamanPrimaryButtonStyle())
-            .padding(.horizontal, Saman.Space.md)
+            .buttonStyle(SamaanPrimaryButtonStyle())
+            .padding(.horizontal, Samaan.Space.md)
             Button("or capture a recipe") { showCapture = true }
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.brandSaag)
@@ -131,41 +131,41 @@ struct HomeView: View {
 
                 // Capture card — always at top when there's other content
                 captureCard
-                    .padding(.horizontal, Saman.Space.md)
-                    .padding(.top, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.top, Samaan.Space.md)
 
                 // Recent recipes
                 if !recentRecipes.isEmpty {
-                    SamanSectionHeader(title: "Recipes", color: .brandSaag)
+                    SamaanSectionHeader(title: "Recipes", color: .brandSaag)
                     ForEach(recentRecipes) { recipe in
                         NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
                             HomeRecipeRow(recipe: recipe)
                         }
                         .buttonStyle(.plain)
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                         .padding(.bottom, 6)
                     }
                 }
 
                 // Active shopping lists
                 if !activeLists.isEmpty {
-                    SamanSectionHeader(title: "Shopping", color: .brandSaag)
+                    SamaanSectionHeader(title: "Shopping", color: .brandSaag)
                     ForEach(activeLists) { list in
                         NavigationLink(destination: ShoppingListDetailView(list: list)) {
                             HomeListRow(list: list)
                         }
                         .buttonStyle(.plain)
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                         .padding(.bottom, 6)
                     }
                 }
 
                 // Low stock / attention items
                 if !attentionItems.isEmpty {
-                    SamanSectionHeader(title: "Running low", color: .accentAnaar)
+                    SamaanSectionHeader(title: "Running low", color: .accentAnaar)
                     ForEach(attentionItems) { item in
                         HomeLowStockRow(item: item)
-                            .padding(.horizontal, Saman.Space.md)
+                            .padding(.horizontal, Samaan.Space.md)
                             .padding(.bottom, 4)
                     }
                     NavigationLink(destination: InventoryView()) {
@@ -177,7 +177,7 @@ struct HomeView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color.brandSaag.opacity(0.6))
                         }
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                         .padding(.top, 4)
                     }
                 }
@@ -214,7 +214,7 @@ struct HomeView: View {
                     .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
             }
             .padding(14)
-            .samanCard()
+            .samaanCard()
         }
         .buttonStyle(.plain)
     }
@@ -256,7 +256,7 @@ private struct HomeRecipeRow: View {
                 .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
         }
         .padding(12)
-        .samanCard()
+        .samaanCard()
     }
 }
 
@@ -285,7 +285,7 @@ private struct HomeListRow: View {
                 .foregroundStyle(Color.inkKohlSoft.opacity(0.5))
         }
         .padding(12)
-        .samanCard()
+        .samaanCard()
     }
 }
 
@@ -308,12 +308,12 @@ private struct HomeLowStockRow: View {
                 .lineLimit(1)
             Spacer()
             Text(statusLabel(item.stockStatus))
-                .font(.samanMono(11))
+                .font(.samaanMono(11))
                 .foregroundStyle(item.stockStatus.color)
         }
         .padding(10)
-        .background(item.stockStatus.color.opacity(0.06), in: RoundedRectangle(cornerRadius: Saman.Radius.sm))
-        .overlay(RoundedRectangle(cornerRadius: Saman.Radius.sm).stroke(item.stockStatus.color.opacity(0.2), lineWidth: 1))
+        .background(item.stockStatus.color.opacity(0.06), in: RoundedRectangle(cornerRadius: Samaan.Radius.sm))
+        .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.sm).stroke(item.stockStatus.color.opacity(0.2), lineWidth: 1))
     }
 
     private func statusLabel(_ s: StockStatus) -> String {

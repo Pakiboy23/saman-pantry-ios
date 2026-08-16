@@ -19,7 +19,7 @@ struct RecipesView: View {
             .background(Color.surfaceDoodh)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SamanHeader(
+                    SamaanHeader(
                         subtitle: recipes.isEmpty
                             ? "Capture a family recipe"
                             : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
@@ -70,8 +70,8 @@ struct RecipesView: View {
             }
             .padding(.bottom, 32)
             Button("Capture a Recipe") { showCapture = true }
-                .buttonStyle(SamanPrimaryButtonStyle())
-                .padding(.horizontal, Saman.Space.md)
+                .buttonStyle(SamaanPrimaryButtonStyle())
+                .padding(.horizontal, Samaan.Space.md)
             Spacer()
         }
     }
@@ -91,7 +91,7 @@ struct RecipesView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-                    .padding(.horizontal, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
                 }
             }
             .padding(.top, 8)
@@ -132,7 +132,7 @@ private struct RecipeRow: View {
             Spacer()
         }
         .padding(14)
-        .samanCard()
+        .samaanCard()
     }
 }
 

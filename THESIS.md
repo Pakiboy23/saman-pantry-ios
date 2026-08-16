@@ -1,11 +1,11 @@
-# Saman Pantry — Product Thesis v1
+# Samaan Pantry — Product Thesis v1
 One page. Updated as the product evolves. When a design decision comes up, answer it against this doc first. If the doc doesn't resolve it, the doc gets updated.
 
 
 ## What it is
 A native iOS app that helps one person keep track of what's in their desi kitchen and what they need to buy next.
 
-"Saman" is Urdu for provisions. The product is shaped around how Pakistani and South Asian households actually stock, cook, and restock. Staples first, not generic groceries.
+"Samaan" is Urdu for provisions. The product is shaped around how Pakistani and South Asian households actually stock, cook, and restock. Staples first, not generic groceries.
 
 
 ## Who it's for
@@ -51,7 +51,7 @@ What "this worked" looks like, for this project specifically:
 - 500 weekly active users within 12 months of public launch
 - Average user opens it twice a week or more
 - At least 50 users who would be visibly upset if it shut down
-- Portfolio credibility that makes the next Saman Technologies product easier to take seriously
+- Portfolio credibility that makes the next Samaan Technologies product easier to take seriously
 - Small, honest revenue from a paid tier. Not a VC-scale outcome.
 
 This is a product meant to be loved by a small audience, not scaled to millions.

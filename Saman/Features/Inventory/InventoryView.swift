@@ -36,11 +36,11 @@ struct InventoryView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
                     if !lowItems.isEmpty {
-                        SamanSectionHeader(title: "Running low", color: .accentAnaar)
+                        SamaanSectionHeader(title: "Running low", color: .accentAnaar)
                         ForEach(lowItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
-                                    .padding(.horizontal, Saman.Space.md)
+                                    .padding(.horizontal, Samaan.Space.md)
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
@@ -53,11 +53,11 @@ struct InventoryView: View {
                     }
 
                     if !stockedItems.isEmpty {
-                        SamanSectionHeader(title: "Well stocked", color: .brandSaag)
+                        SamaanSectionHeader(title: "Well stocked", color: .brandSaag)
                         ForEach(stockedItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
-                                    .padding(.horizontal, Saman.Space.md)
+                                    .padding(.horizontal, Samaan.Space.md)
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
@@ -71,7 +71,7 @@ struct InventoryView: View {
 
                     if filteredItems.isEmpty {
                         VStack(spacing: 16) {
-                            SamanEmptyState(
+                            SamaanEmptyState(
                                 emoji: "🛒",
                                 title: "Nothing here yet",
                                 message: "Tap + to add your first item, or scan a barcode."
@@ -80,8 +80,8 @@ struct InventoryView: View {
                                 Button("Add desi staples") {
                                     DesiStaples.seed(into: context) { appEnv.syncNow() }
                                 }
-                                .buttonStyle(SamanSecondaryButtonStyle())
-                                .padding(.horizontal, Saman.Space.md)
+                                .buttonStyle(SamaanSecondaryButtonStyle())
+                                .padding(.horizontal, Samaan.Space.md)
                             }
                         }
                     }
@@ -96,7 +96,7 @@ struct InventoryView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
-            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .sheet(isPresented: $showScanner) { ScannerView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .confirmationDialog(
@@ -125,7 +125,7 @@ struct InventoryView: View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Saman")
+                    Text("Samaan")
                         .font(.pantryDisplay)
                         .foregroundStyle(Color.inkKohl)
                     Text(greetingSubtitle)
@@ -162,7 +162,7 @@ struct InventoryView: View {
                         .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
-            .padding(.horizontal, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
             .padding(.vertical, 12)
 
             if allLowCount > 0 {

@@ -4,7 +4,7 @@ import CoreText
 import RevenueCat
 
 @main
-struct SamanApp: App {
+struct SamaanApp: App {
     @State private var appEnv = AppEnvironment()
 
     init() {

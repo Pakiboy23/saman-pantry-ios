@@ -18,7 +18,7 @@ xcodebuild archive \
   -project Saman.xcodeproj \
   -scheme Saman \
   -configuration Release \
-  -archivePath build/Saman.xcarchive
+  -archivePath build/Samaan.xcarchive
 ```
 
 Then upload and validate using Xcode Organizer or `xcrun altool`/Transporter according to the team's preferred release process.

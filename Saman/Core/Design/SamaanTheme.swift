@@ -1,45 +1,8 @@
 import SwiftUI
 
-// MARK: - Legacy Color Aliases (for gradual migration)
-// These map old token names to new Saag palette tokens.
-// Remove after all views are migrated.
-
 extension Color {
-    @available(*, deprecated, renamed: "surfaceDoodh")
-    static let samanBg = Color.surfaceDoodh
-
-    @available(*, deprecated, renamed: "surfaceMalai")
-    static let samanCard = Color.surfaceMalai
-
-    @available(*, deprecated, renamed: "surfaceAtta")
-    static let samanDeep = Color.surfaceAtta
-
-    @available(*, deprecated, renamed: "inkKohl")
-    static let samanPrimary = Color.inkKohl
-
-    @available(*, deprecated, renamed: "inkKohl")
-    static let samanSecondary = Color.inkKohl
-
-    @available(*, deprecated, renamed: "inkKohlSoft")
-    static let samanMuted = Color.inkKohlSoft
-
-    @available(*, deprecated, renamed: "brandSaag")
-    static let samanAccent = Color.brandSaag
-
-    @available(*, deprecated, renamed: "brandSaagSoft")
-    static let samanAccentLight = Color.brandSaagSoft.opacity(0.3)
-
-    @available(*, deprecated, renamed: "borderAkhrotSoft")
-    static let samanBorder = Color.borderAkhrotSoft.opacity(0.5)
-
-    @available(*, deprecated, renamed: "accentAnaar")
-    static let samanRed = Color.accentAnaar
-
-    @available(*, deprecated, renamed: "brandSaag")
-    static let samanGreen = Color.brandSaag
-
     /// Low-stock status color (brass / masala). Maps to accentMasala asset.
-    static let samanBrass = Color.accentMasala
+    static let samaanBrass = Color.accentMasala
 
     /// Hex initializer for backward compatibility
     init(hex: String) {
@@ -67,14 +30,14 @@ extension Font {
         .custom("CormorantGaramond-SemiBold", size: size, relativeTo: .body)
     }
     /// SF Mono — quantities and numbers
-    static func samanMono(_ size: CGFloat) -> Font {
+    static func samaanMono(_ size: CGFloat) -> Font {
         .system(size: size, design: .monospaced)
     }
 }
 
 // MARK: - Spacing & Radii
 
-enum Saman {
+enum Samaan {
     enum Space {
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
@@ -92,7 +55,7 @@ enum Saman {
 
 // MARK: - Button Styles
 
-struct SamanPrimaryButtonStyle: ButtonStyle {
+struct SamaanPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .semibold))
@@ -101,32 +64,32 @@ struct SamanPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 15)
             .background(
                 configuration.isPressed ? Color.brandSaagDeep : Color.brandSaag,
-                in: RoundedRectangle(cornerRadius: Saman.Radius.md)
+                in: RoundedRectangle(cornerRadius: Samaan.Radius.md)
             )
     }
 }
 
-struct SamanSecondaryButtonStyle: ButtonStyle {
+struct SamaanSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .medium))
             .foregroundStyle(Color.brandSaag)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
-            .background(Color.brandSaagSoft.opacity(0.2), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.brandSaagSoft.opacity(0.2), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
             .overlay(
-                RoundedRectangle(cornerRadius: Saman.Radius.md)
+                RoundedRectangle(cornerRadius: Samaan.Radius.md)
                     .stroke(Color.brandSaag.opacity(0.4), lineWidth: 1)
             )
     }
 }
 
 extension Button {
-    func samanPrimary() -> some View {
-        self.buttonStyle(SamanPrimaryButtonStyle())
+    func samaanPrimary() -> some View {
+        self.buttonStyle(SamaanPrimaryButtonStyle())
     }
-    func samanSecondary() -> some View {
-        self.buttonStyle(SamanSecondaryButtonStyle())
+    func samaanSecondary() -> some View {
+        self.buttonStyle(SamaanSecondaryButtonStyle())
     }
 }
 
@@ -134,7 +97,7 @@ extension Button {
 
 extension View {
     /// Standard warm card background
-    func samanCard(radius: CGFloat = Saman.Radius.md) -> some View {
+    func samaanCard(radius: CGFloat = Samaan.Radius.md) -> some View {
         self
             .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: radius))
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))

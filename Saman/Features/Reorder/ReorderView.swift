@@ -14,22 +14,22 @@ struct ReorderView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 12) {
                     if lowItems.isEmpty {
-                        SamanEmptyState(
+                        SamaanEmptyState(
                             emoji: "✅",
                             title: "All stocked up",
                             message: "Nothing needs reordering right now. Come back when something runs low."
                         )
                     } else {
                         summaryCard
-                            .padding(.horizontal, Saman.Space.md)
+                            .padding(.horizontal, Samaan.Space.md)
                             .padding(.top, 8)
 
-                        SamanSectionHeader(title: "To reorder", color: .accentAnaar)
+                        SamaanSectionHeader(title: "To reorder", color: .accentAnaar)
                         ForEach(lowItems) { item in
                             ReorderItemRow(item: item) {
                                 restockingItem = item
                             }
-                            .padding(.horizontal, Saman.Space.md)
+                            .padding(.horizontal, Samaan.Space.md)
                             .padding(.top, 6)
                         }
 
@@ -42,7 +42,7 @@ struct ReorderView: View {
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SamanHeader(subtitle: "\(lowItems.count) item\(lowItems.count == 1 ? "" : "s") to restock")
+                    SamaanHeader(subtitle: "\(lowItems.count) item\(lowItems.count == 1 ? "" : "s") to restock")
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
                 .background(Color.surfaceDoodh)
@@ -73,8 +73,8 @@ struct ReorderView: View {
         }
         .padding(14)
         .background(Color.accentAnaar.opacity(0.06))
-        .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.accentAnaar.opacity(0.3), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: Saman.Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.accentAnaar.opacity(0.3), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Samaan.Radius.md))
     }
 
     // MARK: - Writeback
@@ -134,7 +134,7 @@ private struct RestockSheet: View {
                         in: 1...999,
                         label: {
                             Text("\(amount) \(item.unit)")
-                                .font(.samanMono(28).weight(.semibold))
+                                .font(.samaanMono(28).weight(.semibold))
                                 .foregroundStyle(Color.brandSaag)
                         }
                     )
@@ -143,9 +143,9 @@ private struct RestockSheet: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Color.inkKohl)
                 }
-                .padding(Saman.Space.md)
-                .samanCard()
-                .padding(.horizontal, Saman.Space.md)
+                .padding(Samaan.Space.md)
+                .samaanCard()
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.top, 24)
 
                 Spacer()
@@ -154,8 +154,8 @@ private struct RestockSheet: View {
                     onConfirm(amount)
                     dismiss()
                 }
-                .buttonStyle(SamanPrimaryButtonStyle())
-                .padding(.horizontal, Saman.Space.md)
+                .buttonStyle(SamaanPrimaryButtonStyle())
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.bottom, 32)
             }
             .background(Color.surfaceDoodh)

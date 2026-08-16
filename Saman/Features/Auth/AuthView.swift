@@ -22,7 +22,7 @@ struct AuthView: View {
             VStack(spacing: 0) {
                 Spacer()
                 VStack(spacing: 6) {
-                    Text("Saman")
+                    Text("Samaan")
                         .font(.cormorant(size: 52, weight: .bold))
                         .foregroundStyle(Color.brandSaag)
                     Text("سامان")
@@ -42,7 +42,7 @@ struct AuthView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(Color.inkKohlSoft)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
                 Spacer().frame(height: 40)
                 Button {
                     Task { await auth.resendConfirmation() }
@@ -58,16 +58,16 @@ struct AuthView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
                 }
                 .disabled(auth.isLoading)
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 if let error = auth.errorMessage {
                     Text(error)
                         .font(.system(size: 13))
                         .foregroundStyle(Color.accentAnaar)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                 }
                 Spacer().frame(height: 16)
                 Button {
@@ -92,7 +92,7 @@ struct AuthView: View {
 
                     // Wordmark
                     VStack(spacing: 6) {
-                        Text("Saman")
+                        Text("Samaan")
                             .font(.cormorant(size: 52, weight: .bold))
                             .foregroundStyle(Color.brandSaag)
                         Text("سامان")
@@ -129,9 +129,9 @@ struct AuthView: View {
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 13)
                             }
-                            .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                            .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
                             .overlay(
-                                RoundedRectangle(cornerRadius: Saman.Radius.md)
+                                RoundedRectangle(cornerRadius: Samaan.Radius.md)
                                     .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
                             )
                         }
@@ -148,9 +148,9 @@ struct AuthView: View {
                                 .foregroundStyle(Color.inkKohl)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 13)
-                                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+                                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: Saman.Radius.md)
+                                    RoundedRectangle(cornerRadius: Samaan.Radius.md)
                                         .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
                                 )
                         }
@@ -170,7 +170,7 @@ struct AuthView: View {
                             .padding(.top, 2)
                         }
                     }
-                    .padding(.horizontal, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
 
                     Spacer().frame(height: 24)
 
@@ -199,11 +199,11 @@ struct AuthView: View {
                             email.isEmpty || password.isEmpty
                                 ? Color.brandSaag.opacity(0.45)
                                 : Color.brandSaag,
-                            in: RoundedRectangle(cornerRadius: Saman.Radius.md)
+                            in: RoundedRectangle(cornerRadius: Samaan.Radius.md)
                         )
                     }
                     .disabled(email.isEmpty || password.isEmpty || auth.isLoading)
-                    .padding(.horizontal, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
 
                     Spacer().frame(height: 20)
 

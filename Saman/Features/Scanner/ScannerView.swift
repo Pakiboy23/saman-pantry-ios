@@ -44,7 +44,7 @@ struct ScannerView: View {
                     VStack {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Saman")
+                                Text("Samaan")
                                     .font(.pantryDisplay)
                                     .foregroundStyle(.white)
                                 Text("Tap a barcode to scan")
@@ -53,7 +53,7 @@ struct ScannerView: View {
                             }
                             Spacer()
                         }
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                         .padding(.top, 8)
                         Spacer()
                     }
@@ -62,12 +62,12 @@ struct ScannerView: View {
                     VStack {
                         Spacer()
                         resultCard
-                            .padding(.horizontal, Saman.Space.md)
+                            .padding(.horizontal, Samaan.Space.md)
                             .padding(.bottom, 48)
                     }
 
                 } else {
-                    SamanEmptyState(
+                    SamaanEmptyState(
                         emoji: "📷",
                         title: "Scanner unavailable",
                         message: "This device doesn't support the camera scanner."
@@ -78,7 +78,7 @@ struct ScannerView: View {
             .sheet(isPresented: $showAddItem, onDismiss: resetScanner) {
                 AddItemView(prefillBarcode: scannedBarcode, prefillName: resultName)
             }
-            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
         }
     }
 
@@ -95,7 +95,7 @@ struct ScannerView: View {
                 Spacer()
             }
             .padding(16)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.lg))
         } else if let barcode = scannedBarcode {
             VStack(spacing: 14) {
                 // Product info
@@ -120,7 +120,7 @@ struct ScannerView: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color.inkKohl)
                             Text(barcode)
-                                .font(.samanMono(12))
+                                .font(.samaanMono(12))
                                 .foregroundStyle(Color.inkKohlSoft)
                         }
                     }
@@ -130,7 +130,7 @@ struct ScannerView: View {
                 // Actions
                 HStack(spacing: 10) {
                     Button("Scan Again") { resetScanner() }
-                        .buttonStyle(SamanSecondaryButtonStyle())
+                        .buttonStyle(SamaanSecondaryButtonStyle())
                     Button("Add to Pantry") {
                         if allItems.count >= 30 && !appEnv.purchases.isPro {
                             showPaywall = true
@@ -138,12 +138,12 @@ struct ScannerView: View {
                             showAddItem = true
                         }
                     }
-                    .buttonStyle(SamanPrimaryButtonStyle())
+                    .buttonStyle(SamaanPrimaryButtonStyle())
                 }
             }
             .padding(16)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.lg))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.lg).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.lg))
+            .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.lg).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
         } else {
             // Hint
             HStack(spacing: 8) {
@@ -154,7 +154,7 @@ struct ScannerView: View {
                     .foregroundStyle(Color.inkKohl)
             }
             .padding(14)
-            .background(Color.surfaceMalai.opacity(0.92), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.surfaceMalai.opacity(0.92), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
         }
     }
 

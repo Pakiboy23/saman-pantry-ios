@@ -33,8 +33,8 @@ struct ItemDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
-                .samanCard(radius: Saman.Radius.lg)
-                .padding(.horizontal, Saman.Space.md)
+                .samaanCard(radius: Samaan.Radius.lg)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.top, 8)
 
                 // Quantity card
@@ -50,7 +50,7 @@ struct ItemDetailView: View {
                                     value: $item.quantity, in: 0...9999,
                                     label: {
                                         Text("\(item.quantity) \(item.unit)")
-                                            .font(.samanMono(22).weight(.semibold))
+                                            .font(.samaanMono(22).weight(.semibold))
                                             .foregroundStyle(item.isLow ? Color.accentAnaar : Color.brandSaag)
                                     }
                                 )
@@ -68,7 +68,7 @@ struct ItemDetailView: View {
                                 value: $item.minimumQuantity, in: 0...9999,
                                 label: {
                                     Text("\(item.minimumQuantity) \(item.unit)")
-                                        .font(.samanMono(18))
+                                        .font(.samaanMono(18))
                                         .foregroundStyle(Color.inkKohl)
                                 }
                             )
@@ -102,9 +102,9 @@ struct ItemDetailView: View {
                         Label(addedToList ? "Added to your list" : "Add to shopping list",
                               systemImage: addedToList ? "checkmark" : "cart.badge.plus")
                     }
-                    .buttonStyle(SamanPrimaryButtonStyle())
+                    .buttonStyle(SamaanPrimaryButtonStyle())
                     .disabled(addedToList)
-                    .padding(.horizontal, Saman.Space.md)
+                    .padding(.horizontal, Samaan.Space.md)
                 }
 
                 // Expiry card
@@ -218,7 +218,7 @@ struct ItemDetailView: View {
                             .foregroundStyle(Color.accentAnaar)
                     }
                 }
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.vertical, 12)
                 Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
             }
@@ -247,8 +247,8 @@ struct ItemDetailView: View {
     private func detailCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 0) { content() }
             .padding(16)
-            .samanCard()
-            .padding(.horizontal, Saman.Space.md)
+            .samaanCard()
+            .padding(.horizontal, Samaan.Space.md)
     }
 
     private func sectionLabel(_ text: String) -> some View {
@@ -262,7 +262,7 @@ struct ItemDetailView: View {
         HStack {
             Text(label).font(.system(size: 13)).foregroundStyle(Color.inkKohlSoft)
             Spacer()
-            Text(value).font(.samanMono(12)).foregroundStyle(Color.inkKohl)
+            Text(value).font(.samaanMono(12)).foregroundStyle(Color.inkKohl)
         }
     }
 

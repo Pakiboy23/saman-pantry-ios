@@ -21,7 +21,7 @@ struct SettingsView: View {
                                 HStack {
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundStyle(Color.brandSaag)
-                                    Text("Saman Pro")
+                                    Text("Samaan Pro")
                                         .font(.system(size: 15))
                                         .foregroundStyle(Color.inkKohl)
                                     Spacer()
@@ -137,7 +137,7 @@ struct SettingsView: View {
 
                     // Wordmark footer
                     VStack(spacing: 6) {
-                        Text("Saman")
+                        Text("Samaan")
                             .font(.pantrySectionHead)
                             .foregroundStyle(Color.inkKohlSoft)
                         HStack(spacing: 4) {
@@ -152,7 +152,7 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 16)
                 }
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
@@ -160,13 +160,13 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SamanHeader(subtitle: "Preferences & account")
+                    SamaanHeader(subtitle: "Preferences & account")
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
                 .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .confirmationDialog("Sign out of Saman?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
+            .confirmationDialog("Sign out of Samaan?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
                 Button("Sign Out", role: .destructive) {
                     Task { await appEnv.auth.signOut(); appEnv.clearLocalStore() }
                 }
@@ -185,7 +185,7 @@ struct SettingsView: View {
                 Text("This permanently removes your account, pantry, lists, and recipes. This can't be undone.")
             }
             .sheet(isPresented: $showPaywall) {
-                SamanPaywallView()
+                SamaanPaywallView()
             }
             .sheet(isPresented: $showCustomerCenter) {
                 CustomerCenterView()
@@ -199,7 +199,7 @@ struct SettingsView: View {
     private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) { content() }
             .padding(16)
-            .samanCard()
+            .samaanCard()
     }
 
     private func cardLabel(_ text: String) -> some View {
@@ -214,7 +214,7 @@ struct SettingsView: View {
         HStack {
             Text(label).font(.system(size: 14)).foregroundStyle(Color.inkKohl)
             Spacer()
-            Text(value).font(.samanMono(13)).foregroundStyle(Color.inkKohlSoft)
+            Text(value).font(.samaanMono(13)).foregroundStyle(Color.inkKohlSoft)
         }
     }
 

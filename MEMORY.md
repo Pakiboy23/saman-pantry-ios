@@ -3,7 +3,7 @@ Last updated: 2026-04-20 | Session 2 | Branch: reorder-writeback
 Memory health: 9/10
 
 ## Project Overview
-Saman — iOS pantry app for Pakistani/South Asian diaspora. SwiftUI + SwiftData + Supabase. Product company: Saman Technologies LLC. Active v1 development.
+Samaan — iOS pantry app for Pakistani/South Asian diaspora. SwiftUI + SwiftData + Supabase. Product company: Samaan Technologies LLC. Active v1 development.
 
 ## Where We Left Off
 - **Current task:** #2 Reorder writeback fix — complete, on branch `reorder-writeback`
@@ -36,10 +36,10 @@ Saman — iOS pantry app for Pakistani/South Asian diaspora. SwiftUI + SwiftData
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
-| 2026-04-20 | Restock UX: tap→sheet→stepper→confirm | Explicit commit, no lying to user | ReorderView, SamanComponents |
+| 2026-04-20 | Restock UX: tap→sheet→stepper→confirm | Explicit commit, no lying to user | ReorderView, SamaanComponents |
 | 2026-04-20 | Smart default = max(min-qty+1, 1) | One confirm gets item above threshold | RestockSheet init |
 | 2026-04-20 | Items leave Reorder list naturally post-commit | No separate "Restocked" section needed | ReorderView |
-| 2026-04-20 | ReorderItemRow API: onTap only, no isChecked | Checked state removed, list shrinks on commit | SamanComponents |
+| 2026-04-20 | ReorderItemRow API: onTap only, no isChecked | Checked state removed, list shrinks on commit | SamaanComponents |
 | 2026-04-19 | SwiftData for local persistence | Native Apple, no third-party ORM | All models |
 | 2026-04-19 | Supabase for auth + sync | Quick backend, real-time capable | AuthService, SyncManager |
 | 2026-04-19 | isDirty flag pattern for sync | Simple optimistic sync tracking | Item, SyncManager |
@@ -76,8 +76,8 @@ Saman — iOS pantry app for Pakistani/South Asian diaspora. SwiftUI + SwiftData
 | Saman/App/RootView.swift | Auth gate + tab shell |
 | Saman/App/AppEnvironment.swift | auth, modelContainer, syncNow() |
 | Saman/Core/Models/Item.swift | quantity, min, barcode, expiry, isDirty, isLow |
-| Saman/Core/Design/SamanTheme.swift | Colors, fonts, spacing, button styles |
-| Saman/Core/Design/SamanComponents.swift | Shared components incl. ReorderItemRow |
+| Saman/Core/Design/SamaanTheme.swift | Colors, fonts, spacing, button styles |
+| Saman/Core/Design/SamaanComponents.swift | Shared components incl. ReorderItemRow |
 | Saman/Core/Services/SyncManager.swift | isDirty upsert to Supabase (upload-only) |
 | Saman/Core/Services/Config.swift | Supabase URL + anon key (hardcoded — fix in #4) |
 | Saman/Features/Reorder/ReorderView.swift | Restock sheet + writeback (fixed in #2) |

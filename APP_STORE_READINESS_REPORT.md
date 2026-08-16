@@ -1,4 +1,4 @@
-# Saman App Store Connect Readiness Assessment
+# Samaan App Store Connect Readiness Assessment
 
 Assessment date: 2026-06-21
 
@@ -26,7 +26,7 @@ Assessment date: 2026-06-21
 - Added `supabase/functions/README.md` with deployment and secret setup instructions.
 - Added `ci_scripts/check_secrets.sh` and a GitHub Actions workflow with static checks plus a macOS `xcodebuild test` job for real CI environments.
 - Normalized deployment targets to iOS 17.0, macOS 14.0, and visionOS 1.0 build settings.
-- Added `Saman/Saman.storekit` as a local StoreKit test artifact for a provisional Saman Pro monthly subscription.
+- Added `Saman/Samaan.storekit` as a local StoreKit test artifact for a provisional Samaan Pro monthly subscription.
 - Replaced ad hoc release logging calls with `AppLogger` using `OSLog`.
 - Replaced placeholder unit tests with smoke tests for config safety and preview SwiftData model creation.
 - Added `docs/APP_STORE_RELEASE_CHECKLIST.md` and `docs/PRIVACY_DISCLOSURE_WORKSHEET.md`.
@@ -35,7 +35,7 @@ Assessment date: 2026-06-21
 
 1. **Rotate/revoke the previously exposed Anthropic key.** The key is no longer in the current source, but it was previously committed/shared and must be revoked in Anthropic or the provider account.
 2. **Deploy and configure the Supabase Edge Function.** `ANTHROPIC_API_KEY` must be set as a Supabase secret and `extract-recipe` must be deployed to the production Supabase project.
-3. **Verify RevenueCat/App Store Connect IAP setup.** The app still checks entitlement `Saman Pro`; confirm this exactly matches RevenueCat, offerings, packages, and App Store Connect product IDs or update the code/config accordingly.
+3. **Verify RevenueCat/App Store Connect IAP setup.** The app still checks entitlement `Samaan Pro`; confirm this exactly matches RevenueCat, offerings, packages, and App Store Connect product IDs or update the code/config accordingly.
 4. **Run a clean Xcode build/test/archive/upload validation.** This container does not include Xcode, so archive/export/App Store validation must run on macOS with Xcode and signing access.
 5. **Create reviewer credentials and finalize privacy disclosures.** Production Supabase access, legal/privacy approval, App Store Connect account access, and a working reviewer account are still required.
 
@@ -62,7 +62,7 @@ Assessment date: 2026-06-21
 - Validate physical-device scanner behavior and screenshots.
 - Confirm App Privacy answers using `docs/PRIVACY_DISCLOSURE_WORKSHEET.md`.
 - Validate support URL, privacy policy URL, age rating, screenshots, subtitle, keywords, and marketing copy.
-- Decide whether `Saman Pro` should remain the RevenueCat entitlement identifier or be changed to a slug-like ID.
+- Decide whether `Samaan Pro` should remain the RevenueCat entitlement identifier or be changed to a slug-like ID.
 
 ## Completion ownership and what can be done from this repository
 

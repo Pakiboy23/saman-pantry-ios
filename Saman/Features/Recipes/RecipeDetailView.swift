@@ -30,7 +30,7 @@ struct RecipeDetailView: View {
                     .padding(.top, 28)
                     .padding(.bottom, 48)
             }
-            .padding(.horizontal, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
             .padding(.top, 12)
         }
         .background(Color.surfaceDoodh)
@@ -132,7 +132,7 @@ struct RecipeDetailView: View {
                 ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                     HStack(alignment: .top, spacing: 14) {
                         Text("\(i + 1)")
-                            .font(.samanMono(12))
+                            .font(.samaanMono(12))
                             .foregroundStyle(Color.brandSaag)
                             .frame(width: 20, alignment: .trailing)
                             .padding(.top, 2)
@@ -177,7 +177,7 @@ struct RecipeDetailView: View {
 
     private var addToListButton: some View {
         Button("Add to shopping list") { Task { await pushToList() } }
-            .buttonStyle(SamanPrimaryButtonStyle())
+            .buttonStyle(SamaanPrimaryButtonStyle())
             .disabled(extracted == nil)
     }
 
@@ -199,7 +199,7 @@ struct RecipeDetailView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text.uppercased())
-            .font(.samanMono(10))
+            .font(.samaanMono(10))
             .foregroundStyle(Color.inkKohlSoft)
             .kerning(0.8)
             .padding(.bottom, 10)
@@ -252,7 +252,7 @@ private struct IngredientDetailRow: View {
                     .foregroundStyle(Color.inkKohl)
                 Spacer()
                 Text(ingredient.amountLabel)
-                    .font(.samanMono(13))
+                    .font(.samaanMono(13))
                     .foregroundStyle(ingredient.vague ? Color.inkKohlSoft : Color.brandSaag)
             }
             Text(ingredient.originalPhrase)

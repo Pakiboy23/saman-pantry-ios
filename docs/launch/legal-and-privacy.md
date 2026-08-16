@@ -12,7 +12,7 @@ substance reviewers and users need.
 ## 1. Privacy Policy  (required by App Store Connect + paywall)
 Must accurately describe **actual** data behavior (App Privacy label must match this):
 
-- **Who:** Saman Technologies LLC, contact email.
+- **Who:** Samaan Technologies LLC, contact email.
 - **What we collect:** account email; an internal user ID; the pantry items, shopping lists,
   and recipes you enter; subscription/purchase status.
 - **Where it goes / processors:**
@@ -52,6 +52,6 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 
 ## Food-safety / expiry disclaimer (do this)
 The app shows "expiring" status. Add one line to Terms and ideally near the expiry UI:
-"Expiry and stock information is what you enter and maintain; Saman is not a food-safety
+"Expiry and stock information is what you enter and maintain; Samaan is not a food-safety
 authority and does not verify freshness." This pre-empts the "implies food-safety accuracy"
 rejection vector and protects you from liability.
