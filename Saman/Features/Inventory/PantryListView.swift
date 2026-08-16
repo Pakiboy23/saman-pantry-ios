@@ -41,11 +41,11 @@ struct PantryListView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     // Running low
                     if !lowFiltered.isEmpty {
-                        SamanSectionHeader(title: "Running low", color: .accentAnaar)
+                        SamaanSectionHeader(title: "Running low", color: .accentAnaar)
                         ForEach(lowFiltered) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
-                                    .padding(.horizontal, Saman.Space.md)
+                                    .padding(.horizontal, Samaan.Space.md)
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
@@ -54,11 +54,11 @@ struct PantryListView: View {
 
                     // Well stocked
                     if !stockedFiltered.isEmpty {
-                        SamanSectionHeader(title: "Well stocked", color: .brandSaag)
+                        SamaanSectionHeader(title: "Well stocked", color: .brandSaag)
                         ForEach(stockedFiltered) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
-                                    .padding(.horizontal, Saman.Space.md)
+                                    .padding(.horizontal, Samaan.Space.md)
                                     .padding(.top, 8)
                             }
                             .buttonStyle(.plain)
@@ -67,7 +67,7 @@ struct PantryListView: View {
 
                     // Empty state
                     if filteredItems.isEmpty {
-                        SamanEmptyState(
+                        SamaanEmptyState(
                             emoji: locationTabs.first(where: { $0.id == selectedLocation })
                                 .map { tabEmoji($0.id) } ?? "📦",
                             title: "Nothing in \(selectedLocation.capitalized)",
@@ -85,9 +85,9 @@ struct PantryListView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
-            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .sheet(isPresented: $showAddPantry) { AddPantryView() }
-            .sheet(isPresented: $showPantryPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showPantryPaywall) { SamaanPaywallView() }
             .sheet(isPresented: $showManage) { managePantriesSheet }
         }
     }
@@ -99,7 +99,7 @@ struct PantryListView: View {
             // Title row
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Saman")
+                    Text("Samaan")
                         .font(.pantryDisplay)
                         .foregroundStyle(Color.inkKohl)
                     Text("Storage locations")
@@ -121,7 +121,7 @@ struct PantryListView: View {
                         .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
-            .padding(.horizontal, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
             .padding(.vertical, 12)
 
             // Low stock banner
@@ -226,11 +226,11 @@ struct PantryDetailView: View {
                 let stockedItems = sorted.filter { !$0.isLow }
 
                 if !lowItems.isEmpty {
-                    SamanSectionHeader(title: "Running low", color: .accentAnaar)
+                    SamaanSectionHeader(title: "Running low", color: .accentAnaar)
                     ForEach(lowItems) { item in
                         NavigationLink(destination: ItemDetailView(item: item)) {
                             ItemCard(item: item)
-                                .padding(.horizontal, Saman.Space.md)
+                                .padding(.horizontal, Samaan.Space.md)
                                 .padding(.top, 8)
                         }
                         .buttonStyle(.plain)
@@ -238,11 +238,11 @@ struct PantryDetailView: View {
                 }
 
                 if !stockedItems.isEmpty {
-                    SamanSectionHeader(title: "Well stocked", color: .brandSaag)
+                    SamaanSectionHeader(title: "Well stocked", color: .brandSaag)
                     ForEach(stockedItems) { item in
                         NavigationLink(destination: ItemDetailView(item: item)) {
                             ItemCard(item: item)
-                                .padding(.horizontal, Saman.Space.md)
+                                .padding(.horizontal, Samaan.Space.md)
                                 .padding(.top, 8)
                         }
                         .buttonStyle(.plain)
@@ -250,7 +250,7 @@ struct PantryDetailView: View {
                 }
 
                 if sorted.isEmpty {
-                    SamanEmptyState(
+                    SamaanEmptyState(
                         emoji: "🗄️",
                         title: "Empty pantry",
                         message: "Tap + to add your first item to \(pantry.name)."
@@ -289,7 +289,7 @@ struct PantryDetailView: View {
                             .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: 8))
                     }
                 }
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.vertical, 12)
                 Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
             }
@@ -298,6 +298,6 @@ struct PantryDetailView: View {
         .sheet(isPresented: $showAdd) {
             AddItemView(defaultPantry: pantry)
         }
-        .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+        .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
     }
 }

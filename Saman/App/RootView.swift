@@ -12,7 +12,7 @@ struct RootView: View {
                 ZStack {
                     Color.surfaceDoodh.ignoresSafeArea()
                     VStack(spacing: 8) {
-                        Text("Saman")
+                        Text("Samaan")
                             .font(.pantryWordmark)
                             .foregroundStyle(Color.brandSaag)
                         Text("سامان")

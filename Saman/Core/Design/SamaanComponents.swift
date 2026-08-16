@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Wordmark Header
 
-struct SamanHeader: View {
+struct SamaanHeader: View {
     var subtitle: String = "Your pantry, organised"
     var trailingAction: (() -> Void)? = nil
     var trailingIcon: String = "plus"
@@ -10,7 +10,7 @@ struct SamanHeader: View {
     var body: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Saman")
+                Text("Samaan")
                     .font(.pantryDisplay)
                     .foregroundStyle(Color.inkKohl)
                 Text(subtitle)
@@ -28,7 +28,7 @@ struct SamanHeader: View {
                 }
             }
         }
-        .padding(.horizontal, Saman.Space.md)
+        .padding(.horizontal, Samaan.Space.md)
         .padding(.vertical, 12)
     }
 }
@@ -57,11 +57,11 @@ struct LowStockBanner: View {
                     .foregroundStyle(Color.accentAnaar.opacity(0.6))
             }
             .padding(12)
-            .background(Color.accentAnaar.opacity(0.08), in: RoundedRectangle(cornerRadius: Saman.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.accentAnaar.opacity(0.25), lineWidth: 1))
+            .background(Color.accentAnaar.opacity(0.08), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.accentAnaar.opacity(0.25), lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, Saman.Space.md)
+        .padding(.horizontal, Samaan.Space.md)
     }
 }
 
@@ -98,7 +98,7 @@ struct PillTabBar: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
             .padding(.vertical, 4)
         }
     }
@@ -106,7 +106,7 @@ struct PillTabBar: View {
 
 // MARK: - Section Header (Running low / Well stocked)
 
-struct SamanSectionHeader: View {
+struct SamaanSectionHeader: View {
     let title: String
     let color: Color
 
@@ -121,7 +121,7 @@ struct SamanSectionHeader: View {
                 .frame(height: 1)
                 .foregroundStyle(color.opacity(0.2))
         }
-        .padding(.horizontal, Saman.Space.md)
+        .padding(.horizontal, Samaan.Space.md)
         .padding(.top, 12)
         .padding(.bottom, 4)
     }
@@ -173,7 +173,7 @@ struct ItemCard: View {
                         .font(.system(size: 10))
                         .foregroundStyle(item.stockStatus.color)
                     Text("\(item.quantity)")
-                        .font(.samanMono(18).weight(.semibold))
+                        .font(.samaanMono(18).weight(.semibold))
                         .foregroundStyle(item.stockStatus.color)
                 }
                 Text(item.unit)
@@ -182,7 +182,7 @@ struct ItemCard: View {
             }
         }
         .padding(12)
-        .samanCard()
+        .samaanCard()
     }
 }
 
@@ -216,13 +216,13 @@ struct ReorderItemRow: View {
                 Spacer()
 
                 Text("\(item.quantity)/\(item.minimumQuantity)")
-                    .font(.samanMono(13))
+                    .font(.samaanMono(13))
                     .foregroundStyle(Color.accentAnaar)
             }
             .padding(12)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
             .overlay(
-                RoundedRectangle(cornerRadius: Saman.Radius.md)
+                RoundedRectangle(cornerRadius: Samaan.Radius.md)
                     .stroke(Color.accentAnaar.opacity(0.2), lineWidth: 1)
             )
         }
@@ -277,7 +277,7 @@ struct ScannerCornerBrackets: View {
 
 // MARK: - Empty State
 
-struct SamanEmptyState: View {
+struct SamaanEmptyState: View {
     let emoji: String
     let title: String
     let message: String

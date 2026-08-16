@@ -4,10 +4,13 @@ import SwiftData
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv)       private var appEnv
+    @Environment(\.dismiss)      private var dismiss
     @Bindable var recipe: Recipe
 
     @State private var extracted: ExtractedRecipe? = nil
     @State private var showAddedBanner = false
+    @State private var showEditor = false
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         ScrollView {
@@ -27,13 +30,43 @@ struct RecipeDetailView: View {
                     .padding(.top, 28)
                     .padding(.bottom, 48)
             }
-            .padding(.horizontal, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
             .padding(.top, 12)
         }
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button { showEditor = true } label: {
+                        Label("Edit Recipe", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) { showDeleteConfirm = true } label: {
+                        Label("Delete Recipe", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(Color.brandSaag)
+                }
+            }
+        }
+        .sheet(isPresented: $showEditor, onDismiss: { parseExtracted() }) {
+            RecipeEditView(recipe: recipe)
+        }
+        .confirmationDialog(
+            "Delete \(recipe.title)?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                dismiss()
+                context.delete(recipe)
+                try? context.save()
+            }
+            Button("Cancel", role: .cancel) { }
+        }
         .onAppear { parseExtracted() }
         .overlay(alignment: .top) {
             if showAddedBanner {
@@ -56,10 +89,10 @@ struct RecipeDetailView: View {
                 .lineLimit(3)
 
             HStack(spacing: 8) {
-                if let attr = extracted?.attribution {
-                    Text(attr)
+                if let attr = recipe.attribution ?? extracted?.attribution {
+                    Text("from \(attr)")
                         .font(.system(size: 13).italic())
-                        .foregroundStyle(Color.inkKohlSoft)
+                        .foregroundStyle(Color.brandSaag)
                 }
                 Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
                     .font(.system(size: 13))
@@ -99,7 +132,7 @@ struct RecipeDetailView: View {
                 ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                     HStack(alignment: .top, spacing: 14) {
                         Text("\(i + 1)")
-                            .font(.samanMono(12))
+                            .font(.samaanMono(12))
                             .foregroundStyle(Color.brandSaag)
                             .frame(width: 20, alignment: .trailing)
                             .padding(.top, 2)
@@ -144,7 +177,7 @@ struct RecipeDetailView: View {
 
     private var addToListButton: some View {
         Button("Add to shopping list") { Task { await pushToList() } }
-            .buttonStyle(SamanPrimaryButtonStyle())
+            .buttonStyle(SamaanPrimaryButtonStyle())
             .disabled(extracted == nil)
     }
 
@@ -166,7 +199,7 @@ struct RecipeDetailView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text.uppercased())
-            .font(.samanMono(10))
+            .font(.samaanMono(10))
             .foregroundStyle(Color.inkKohlSoft)
             .kerning(0.8)
             .padding(.bottom, 10)
@@ -179,6 +212,11 @@ struct RecipeDetailView: View {
               let parsed = try? JSONDecoder().decode(ExtractedRecipe.self, from: data)
         else { return }
         extracted = parsed
+        // Backfill the stored tag for recipes captured before Recipe.attribution existed.
+        if recipe.attribution == nil, let attr = parsed.attribution, !attr.isEmpty {
+            recipe.attribution = attr
+            try? context.save()
+        }
     }
 
     private func pushToList() async {
@@ -214,7 +252,7 @@ private struct IngredientDetailRow: View {
                     .foregroundStyle(Color.inkKohl)
                 Spacer()
                 Text(ingredient.amountLabel)
-                    .font(.samanMono(13))
+                    .font(.samaanMono(13))
                     .foregroundStyle(ingredient.vague ? Color.inkKohlSoft : Color.brandSaag)
             }
             Text(ingredient.originalPhrase)

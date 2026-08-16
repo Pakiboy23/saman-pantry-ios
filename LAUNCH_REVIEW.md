@@ -1,4 +1,4 @@
-# Saman Pantry — Pre-Launch Comprehensive Review
+# Samaan Pantry — Pre-Launch Comprehensive Review
 
 **Reviewer role:** Senior product / engineering / App Store / GTM
 **Date:** 2026-06-25
@@ -50,7 +50,7 @@ Everything else is real but secondary. Ship clean on the six above and you have 
 - **Local persistence:** SwiftData container with 7 models (Item, Pantry, Product, Store, ShoppingList, ShoppingListItem, Recipe). Solid.
 - **Barcode scanning:** VisionKit `DataScannerViewController` tap-to-scan works end-to-end; looks up local cache → Open Food Facts; manual-add fallback on unknown.
 - **AI recipe extraction:** genuinely functional and genuinely good. Pastes a code-switched transcript, calls Claude (`claude-sonnet-4-6`), parses structured ingredients, lets you select and push to a shopping list. The system prompt ("never invent a number", keep the speaker's exact phrase, map to English grocery terms) is the most differentiated thing in the product.
-- **Monetization plumbing:** RevenueCat configured, entitlement `Saman Pro`, native Paywall + Customer Center, restore wired via `.onRestoreCompleted`.
+- **Monetization plumbing:** RevenueCat configured, entitlement `Samaan Pro`, native Paywall + Customer Center, restore wired via `.onRestoreCompleted`.
 - **Design system:** coherent, distinctive Saag color system, bilingual (Cormorant + Noto Nastaliq Urdu), dark mode, app icon (light/dark/tinted) present.
 
 ### What is partially built
@@ -89,7 +89,7 @@ Everything else is real but secondary. Ship clean on the six above and you have 
 ### CRITICAL — will block submission or get pulled
 
 **AI-01 — Live Anthropic secret key in the client + git.** `Config.swift:18`, used at `RecipeExtractionService.swift:59`.
-*Why it matters:* uncapped billing theft against Saman Technologies LLC; also a Guideline 5.6/2.3 and automated-secret-scanner exposure. The in-file comment itself admits it.
+*Why it matters:* uncapped billing theft against Samaan Technologies LLC; also a Guideline 5.6/2.3 and automated-secret-scanner exposure. The in-file comment itself admits it.
 *Fix (in order):* (1) **Revoke** the key now. (2) Move the call into a **Supabase Edge Function** `extract-recipe` that reads `ANTHROPIC_API_KEY` from Edge secrets, validates the caller's JWT, enforces a per-user daily quota, and proxies to Anthropic. (3) Client calls `${SUPABASE_URL}/functions/v1/extract-recipe` with the user's access token; **delete `Config.anthropicAPIKey`**. (4) Scrub history (`git filter-repo --replace-text`) after rotation. Spec + code in `docs/launch/account-deletion-and-edge-functions.md`. Model string `claude-sonnet-4-6` is current — only the key custody and call site move.
 
 **AUTH-001 — No in-app account deletion.** `SettingsView.swift:74-91` (Account card = Sign out only).
@@ -171,8 +171,8 @@ So the free tier carries your cost and the paid tier sells free storage. One ent
 
 **Recommended launch strategy: free-first, with the recurring *cost* as the only thing behind the paywall.** (MON-07)
 - **Free and generous:** the entire pantry + list + shopping loop, multiple lists and pantries, manual item entry, barcode capture. Removes most gating/review risk and honors the "lighter than a spreadsheet" promise.
-- **Paid ("Saman Pro"):** **unlimited AI recipe capture** (free tier = 3–5 captures/month, metered **server-side** in the Edge Function) **+ multi-device sync** once pull exists. These are the two features that actually cost you money and deliver recurring value — the only honest basis for a recurring charge.
-- **Pricing:** a pantry utility is low-urgency; don't over-ask. ~$2.99/mo or **$14.99/yr**, lead with annual. Strongly consider a **one-time "Saman Pro" unlock (~$19.99)** for everything-local + a separate small AI credit model — it fits a utility far better than a subscription and slashes your 3.1.2 compliance surface. Trade-off: lower LTV, no recurring revenue to cover Anthropic — which is why AI must be metered either way.
+- **Paid ("Samaan Pro"):** **unlimited AI recipe capture** (free tier = 3–5 captures/month, metered **server-side** in the Edge Function) **+ multi-device sync** once pull exists. These are the two features that actually cost you money and deliver recurring value — the only honest basis for a recurring charge.
+- **Pricing:** a pantry utility is low-urgency; don't over-ask. ~$2.99/mo or **$14.99/yr**, lead with annual. Strongly consider a **one-time "Samaan Pro" unlock (~$19.99)** for everything-local + a separate small AI credit model — it fits a utility far better than a subscription and slashes your 3.1.2 compliance surface. Trade-off: lower LTV, no recurring revenue to cover Anthropic — which is why AI must be metered either way.
 - **Do not** charge a monthly fee for local row counts. It maximizes churn and review exposure for the weakest possible value story.
 
 **Habit before money:** gate nothing that blocks the first satisfying loop. The paywall should appear when a user hits their 4th AI capture in a month or taps "sync to my other phone" — moments of demonstrated value — not when they add their 31st item.
@@ -194,7 +194,7 @@ So the free tier carries your cost and the paid tier sells free storage. One ent
 ### Strongest organic positioning angle (P5-POSITIONING-010)
 **Cultural specificity, not "AI."** Lead with the desi-kitchen identity and the recipe-keepsake angle; let AI be invisible plumbing. Recommended line:
 
-> **Saman — your desi kitchen, sorted.** Know what's in the cabinet, capture the recipes you actually cook (in the words they were said), and stop buying atta you already have.
+> **Samaan — your desi kitchen, sorted.** Know what's in the cabinet, capture the recipes you actually cook (in the words they were said), and stop buying atta you already have.
 
 This earns word-of-mouth from exactly the people the app is for (diaspora home cooks, families, roommates) and reads as a benefit in seconds. "AI grocery intelligence" would read as generic and over-promised; the moat is the specificity.
 

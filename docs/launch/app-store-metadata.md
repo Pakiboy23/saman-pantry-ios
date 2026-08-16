@@ -11,9 +11,9 @@ Stays inside what the build does. No claims of grocery automation, food-safety, 
 ---
 
 ## App name (30 char max)
-`Saman: Desi Pantry & Recipes`  (28)
+`Samaan: Desi Pantry & Recipes`  (29)
 
-Alt if "Saman" alone is the listing name: `Saman` + subtitle below.
+Alt if "Samaan" alone is the listing name: `Samaan` + subtitle below.
 
 ## Subtitle (30 char max)
 `Your kitchen, sorted` (20)
@@ -31,7 +31,7 @@ Alt: `Pantry, lists & family recipes` (30)
 
 ## Description
 ```
-Saman is a pantry app built for how desi kitchens actually run.
+Samaan is a pantry app built for how desi kitchens actually run.
 
 Know what you have. Track your staples — atta, daal, ghee, masalas, chai — and
 see at a glance what's running low before you're standing at the store guessing.
@@ -40,13 +40,13 @@ Keep one running list. Add what you're low on, check it off as you shop, and let
 your pantry stay up to date. No spreadsheet, no clutter.
 
 Capture the recipes you actually cook. Paste a recipe the way it was told to you —
-code-switched, "andaza se," a fistful of this — and Saman turns it into a clean
+code-switched, "andaza se," a fistful of this — and Samaan turns it into a clean
 ingredient list you can add to your shopping in one tap. It never invents a number
 your mother didn't say.
 
 Made for the diaspora kitchen, not a generic grocery app.
 
-Saman is free to use. Saman Pro (optional) unlocks unlimited recipe capture and
+Samaan is free to use. Samaan Pro (optional) unlocks unlimited recipe capture and
 sync across your devices.
 
 — Your data is yours. Delete your account and everything in it any time, in the app.

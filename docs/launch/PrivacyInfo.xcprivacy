@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Saman — App privacy manifest (PrivacyInfo.xcprivacy)
+  Samaan — App privacy manifest (PrivacyInfo.xcprivacy)
 
   HOW TO USE
   1. Drag this file into the Saman app target in Xcode (File > Add Files…),

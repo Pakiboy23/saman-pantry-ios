@@ -5,7 +5,7 @@ import RevenueCatUI
 // Thin wrapper so we can intercept purchase/restore callbacks and
 // keep PurchaseService.isPro in sync immediately (stream also updates it,
 // but this makes the sheet dismiss feel instant).
-struct SamanPaywallView: View {
+struct SamaanPaywallView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

@@ -93,7 +93,7 @@ enum StockStatus {
     var color: Color {
         switch self {
         case .inStock:  return .brandSaag
-        case .low:      return .samanBrass
+        case .low:      return .samaanBrass
         case .expiring: return .accentAnaar
         case .out:      return .inkKohlSoft
         }

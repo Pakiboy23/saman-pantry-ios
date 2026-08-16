@@ -26,14 +26,14 @@ struct ShoppingListsView: View {
                     }
 
                     if lists.isEmpty {
-                        SamanEmptyState(
+                        SamaanEmptyState(
                             emoji: "📋",
                             title: "No shopping lists",
                             message: "Tap + to create your first list."
                         )
                     }
                 }
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
@@ -41,7 +41,7 @@ struct ShoppingListsView: View {
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SamanHeader(subtitle: listSubtitle) {
+                    SamaanHeader(subtitle: listSubtitle) {
                         if lists.count >= 1 && !appEnv.purchases.isPro {
                             showPaywall = true
                         } else {
@@ -54,7 +54,7 @@ struct ShoppingListsView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
-            .sheet(isPresented: $showPaywall) { SamanPaywallView() }
+            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .confirmationDialog(
                 "Delete \(pendingDeleteList?.name ?? "list")?",
                 isPresented: Binding(
@@ -120,7 +120,7 @@ private struct ShoppingListCard: View {
                 .foregroundStyle(Color.inkKohlSoft.opacity(0.6))
         }
         .padding(14)
-        .samanCard()
+        .samaanCard()
     }
 }
 

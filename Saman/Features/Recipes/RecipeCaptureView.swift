@@ -8,6 +8,7 @@ struct RecipeCaptureView: View {
 
     @State private var transcript    = ""
     @State private var recipeTitle   = ""
+    @State private var recipeSource  = ""
     @State private var selections:   [IngredientSelection] = []
     @State private var extractedJSON = ""
     @State private var phase:        Phase = .idle
@@ -79,8 +80,8 @@ struct RecipeCaptureView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Color.inkKohlSoft)
             }
-            .padding(.horizontal, Saman.Space.md)
-            .padding(.top, Saman.Space.md)
+            .padding(.horizontal, Samaan.Space.md)
+            .padding(.top, Samaan.Space.md)
             .padding(.bottom, 12)
 
             ZStack(alignment: .topLeading) {
@@ -99,16 +100,16 @@ struct RecipeCaptureView: View {
                     .padding(8)
             }
             .frame(minHeight: 220)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Saman.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Saman.Radius.md).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
-            .padding(.horizontal, Saman.Space.md)
+            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
+            .padding(.horizontal, Samaan.Space.md)
 
             Spacer()
 
             Button("Extract Recipe") { Task { await runExtraction() } }
-                .buttonStyle(SamanPrimaryButtonStyle())
+                .buttonStyle(SamaanPrimaryButtonStyle())
                 .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.bottom, 32)
         }
     }
@@ -133,7 +134,7 @@ struct RecipeCaptureView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
 
-                // Editable title
+                // Editable title + source
                 VStack(alignment: .leading, spacing: 4) {
                     Text("RECIPE TITLE")
                         .font(.system(size: 11, weight: .semibold))
@@ -143,20 +144,30 @@ struct RecipeCaptureView: View {
                         .font(.cormorant(size: 26))
                         .foregroundStyle(Color.inkKohl)
                         .textFieldStyle(.plain)
-                }
-                .padding(Saman.Space.md)
-                .samanCard()
-                .padding(.horizontal, Saman.Space.md)
-                .padding(.top, Saman.Space.md)
 
-                SamanSectionHeader(
+                    Text("FROM")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.inkKohlSoft)
+                        .kerning(0.8)
+                        .padding(.top, 10)
+                    TextField("Who gave you this recipe? e.g. Mom", text: $recipeSource)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.inkKohl)
+                        .textFieldStyle(.plain)
+                }
+                .padding(Samaan.Space.md)
+                .samaanCard()
+                .padding(.horizontal, Samaan.Space.md)
+                .padding(.top, Samaan.Space.md)
+
+                SamaanSectionHeader(
                     title: "\(selections.filter(\.isSelected).count) of \(selections.count) selected",
                     color: .brandSaag
                 )
 
                 ForEach($selections) { $sel in
                     IngredientRow(selection: $sel)
-                        .padding(.horizontal, Saman.Space.md)
+                        .padding(.horizontal, Samaan.Space.md)
                         .padding(.bottom, 6)
                 }
 
@@ -178,9 +189,9 @@ struct RecipeCaptureView: View {
             .allowsHitTesting(false)
 
             Button("Add to Shopping List") { Task { await pushToList() } }
-                .buttonStyle(SamanPrimaryButtonStyle())
+                .buttonStyle(SamaanPrimaryButtonStyle())
                 .disabled(selections.filter(\.isSelected).isEmpty)
-                .padding(.horizontal, Saman.Space.md)
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.bottom, 32)
                 .background(Color.surfaceDoodh)
         }
@@ -213,8 +224,8 @@ struct RecipeCaptureView: View {
             }
             Spacer()
             Button("Done") { dismiss() }
-                .buttonStyle(SamanPrimaryButtonStyle())
-                .padding(.horizontal, Saman.Space.md)
+                .buttonStyle(SamaanPrimaryButtonStyle())
+                .padding(.horizontal, Samaan.Space.md)
                 .padding(.bottom, 32)
         }
     }
@@ -228,6 +239,7 @@ struct RecipeCaptureView: View {
         do {
             let result = try await RecipeExtractionService.shared.extract(transcript: text)
             recipeTitle  = result.recipe.title
+            recipeSource = result.recipe.attribution ?? ""
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
             phase = .reviewing
@@ -256,7 +268,20 @@ struct RecipeCaptureView: View {
             context.insert(item)
         }
 
-        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: extractedJSON)
+        // Fold the user-entered source back into the stored JSON so the saved
+        // recipe and its extracted structure agree on attribution.
+        let trimmedSource = recipeSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attribution = trimmedSource.isEmpty ? nil : trimmedSource
+        var finalJSON = extractedJSON
+        if var parsed = try? JSONDecoder().decode(ExtractedRecipe.self, from: Data(extractedJSON.utf8)) {
+            parsed.attribution = attribution
+            if let data = try? JSONEncoder().encode(parsed),
+               let json = String(data: data, encoding: .utf8) {
+                finalJSON = json
+            }
+        }
+
+        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: finalJSON, attribution: attribution)
         context.insert(recipe)
 
         try? context.save()
@@ -290,7 +315,7 @@ private struct IngredientRow: View {
                             .foregroundStyle(Color.inkKohl)
                         Spacer()
                         Text(ing.amountLabel)
-                            .font(.samanMono(13))
+                            .font(.samaanMono(13))
                             .foregroundStyle(ing.vague ? Color.inkKohlSoft : Color.brandSaag)
                     }
                     Text(ing.originalPhrase)
@@ -300,7 +325,7 @@ private struct IngredientRow: View {
                 }
             }
             .padding(12)
-            .samanCard()
+            .samaanCard()
             .opacity(selection.isSelected ? 1 : 0.45)
         }
         .buttonStyle(.plain)
