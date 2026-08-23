@@ -3,6 +3,7 @@ import SwiftData
 
 struct RecipesView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.appEnv) private var appEnv
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @State private var showCapture = false
     @State private var pendingDeleteRecipe: Recipe?
@@ -40,8 +41,7 @@ struct RecipesView: View {
                 presenting: pendingDeleteRecipe
             ) { recipe in
                 Button("Delete", role: .destructive) {
-                    context.delete(recipe)
-                    try? context.save()
+                    appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
                     pendingDeleteRecipe = nil
                 }
                 Button("Cancel", role: .cancel) { pendingDeleteRecipe = nil }

@@ -1,96 +1,96 @@
 # Project Memory
-Last updated: 2026-04-20 | Session 2 | Branch: reorder-writeback
-Memory health: 9/10
+Last updated: 2026-08-23 | Session 3 | Branch: ops/sync-reset-legal
+Memory health: 8/10
 
 ## Project Overview
-Samaan — iOS pantry app for Pakistani/South Asian diaspora. SwiftUI + SwiftData + Supabase. Product company: Samaan Technologies LLC. Active v1 development.
+Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Product company: Saman Technologies LLC. Bundle `com.samanpantry.Saman`. THESIS.md wins product arguments.
 
 ## Where We Left Off
-- **Current task:** #2 Reorder writeback fix — complete, on branch `reorder-writeback`
-- **Status:** 2 commits pushed locally, awaiting user manual test then PR merge
-- **Next immediate step:** User tests the Reorder flow in Xcode (see test steps below), then merges PR. After merge, start #3 (loop unification design doc).
-- **Open question:** None — #3 scope is defined in THESIS and roadmap.
-
-## Manual test for #2 (do before merging PR)
-1. Item "Atta", quantity 0, minimumQuantity 2
-2. Reorder tab → item appears with `+` icon
-3. Tap row → sheet opens, stepper defaults to **3** (max(2-0+1,1))
-4. "New total: 3 unit" shows live
-5. Confirm → item leaves list
-6. Item detail → quantity shows 3
-7. Edge: set amount to 2, confirm → item stays (quantity=2=minimum, still low)
+- **Current task:** Bidirectional sync, password reset, honest low-stock copy, iPhone-only, PrivacyInfo, legal URLs.
+- **Status:** Code is on `ops/sync-reset-legal`. Not on TestFlight. Recipes table does not exist in prod until owner applies `supabase/migrations/003_recipes.sql`.
+- **Next immediate step:** Owner applies the recipes migration, deploys `extract-recipe` and `delete-account` Edge Functions, revokes the old Anthropic key, then TestFlight.
+- **Open question:** Deep-link recovery after the reset email. `resetPasswordForEmail` sends the mail; tapping the link still depends on the Supabase Site URL.
 
 ## Completed
-- 2026-04-20 #2 Reorder writeback: sheet+stepper UX, commits quantity, branch `reorder-writeback`
-- 2026-04-20 Foundation commit: full architecture (models, services, features, design system) now in git
-- 2026-04-19 THESIS.md written to repo root
-- 2026-04-19 Initial scaffolding: models, features, auth, sync, design system
+- 2026-08-23 Pull-sync + tombstones. Upload dirty, then pull. Local dirty wins. Missing server row deletes clean local.
+- 2026-08-23 Recipe `updatedAt` + `recipes` table migration. Recipe deletes now tombstone.
+- 2026-08-23 Password reset on AuthView. Friendly auth errors.
+- 2026-08-23 Item detail copy is "Flag as low below" — no notification lie.
+- 2026-08-23 PrivacyInfo in the synchronized Saman/ group. Device family iPhone only.
+- 2026-08-23 samaan-pantry-expert skill on main via #5.
+- 2026-04-20 #2 Reorder writeback.
+- 2026-04-19 THESIS.md + foundation.
 
 ## Active Work
-- [ ] User tests #2 in Xcode and merges `reorder-writeback` PR
-- [ ] #3: Write docs/loop-unification.md design doc (no code yet)
+- [ ] Owner: apply `003_recipes.sql` in the Supabase SQL editor
+- [ ] Owner: confirm extract-recipe + delete-account are deployed; rotate Anthropic key
+- [ ] Owner: merge saman-landing so samanpantry.com/privacy and /support return 200
+- [ ] Demo account for App Review (email confirmation currently required)
+- [ ] TestFlight after the four above
+- [ ] Household mode stays off (THESIS)
 
 ## Blockers
-- None
+- Recipes pull will no-op until the table exists in prod.
+- Legal URLs 404 until saman-landing ships rewrites.
 
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
-| 2026-04-20 | Restock UX: tap→sheet→stepper→confirm | Explicit commit, no lying to user | ReorderView, SamaanComponents |
-| 2026-04-20 | Smart default = max(min-qty+1, 1) | One confirm gets item above threshold | RestockSheet init |
-| 2026-04-20 | Items leave Reorder list naturally post-commit | No separate "Restocked" section needed | ReorderView |
-| 2026-04-20 | ReorderItemRow API: onTap only, no isChecked | Checked state removed, list shrinks on commit | SamaanComponents |
-| 2026-04-19 | SwiftData for local persistence | Native Apple, no third-party ORM | All models |
-| 2026-04-19 | Supabase for auth + sync | Quick backend, real-time capable | AuthService, SyncManager |
-| 2026-04-19 | isDirty flag pattern for sync | Simple optimistic sync tracking | Item, SyncManager |
-| 2026-04-19 | Cormorant Garamond + NotoNastaliqUrdu fonts | Bilingual (English + Urdu) brand | All UI |
+| 2026-08-23 | Tombstones in UserDefaults, flushed before upload/pull | Deletes must survive a killed process | SyncManager, AppEnvironment.deleteRecord |
+| 2026-08-23 | Local dirty wins over newer server | Avoid clobbering an in-flight edit | SyncReconcile |
+| 2026-08-23 | iPhone only | UI is iPhone-designed; no iPad screenshots | pbxproj TARGETED_DEVICE_FAMILY |
+| 2026-08-23 | No push alerts in v1 | Copy was lying; flagging as low is enough | ItemDetailView |
+| 2026-04-20 | Restock UX: tap→sheet→stepper→confirm | Explicit commit, no lying to user | ReorderView |
+| 2026-04-19 | SwiftData local + Supabase auth/sync | Native Apple, RLS for access | All models |
+| 2026-04-19 | isDirty flag pattern for sync | Simple optimistic tracking | Models, SyncManager |
 
-## Roadmap (do in order, stop after each for user review)
-- [x] #2 Reorder writeback fix (branch: reorder-writeback, pending merge)
-- [ ] #3 Loop unification design doc (docs/loop-unification.md, no code)
-- [ ] #4 Bidirectional sync + secrets hygiene
-- [ ] #5 Strip nav and dead code (tab cuts, PantryListView fixes, ItemRepository decision)
-- [ ] #6 TestFlight + README
+## Roadmap (do in order)
+- [x] #2 Reorder writeback
+- [x] Bidirectional sync + recipe sync + password reset + honest copy + iPhone-only
+- [ ] Owner: Edge Functions, recipes SQL, Anthropic revoke, live legal URLs
+- [ ] TestFlight + README
+- [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
 ## Strategic decisions (do not reopen)
 - Primary user: 25-35 diaspora adult, solo kitchen, single device
 - Household/sharing: v2 only, conditions in THESIS.md
 - Core loop: low → list → shop → bought → pantry updates
-- Tab target: Pantry, List (Reorder may fold into Pantry in #3)
 - Cuts approved: Prices tab, Scanner as top-level tab, Settings as tab
 - Cultural specificity is the moat — no generic mode
+- Not a recipe app. Recipes exist to feed the shopping list.
 
 ## Known issues (open)
-- Sync upload-only, no pull (#4)
-- Supabase anon key hardcoded in Config.swift (#4)
-- PantryListView filter hardcoded ["pantry","fridge","freezer"] (#5)
-- PantryListView showManage sheet unreachable (#5)
-- ItemRepository dead scaffolding, never injected (#5)
-- Prices tab is orphaned stub (#5)
-- SamanTests/SamanUITests empty templates (#4)
+- Deep-link password recovery is not in-app yet
+- PantryListView filter hardcoded ["pantry","fridge","freezer"]
+- PantryListView showManage sheet unreachable
+- ItemRepository dead scaffolding, never injected
+- Prices tab is an orphaned stub
+- Old Anthropic key must still be revoked in the provider account
 
 ## Key Files
 | File | Purpose |
 |------|---------|
-| THESIS.md | Product forcing function — answer every decision here first |
+| THESIS.md | Product forcing function |
 | Saman/App/RootView.swift | Auth gate + tab shell |
-| Saman/App/AppEnvironment.swift | auth, modelContainer, syncNow() |
-| Saman/Core/Models/Item.swift | quantity, min, barcode, expiry, isDirty, isLow |
-| Saman/Core/Design/SamaanTheme.swift | Colors, fonts, spacing, button styles |
-| Saman/Core/Design/SamaanComponents.swift | Shared components incl. ReorderItemRow |
-| Saman/Core/Services/SyncManager.swift | isDirty upsert to Supabase (upload-only) |
-| Saman/Core/Services/Config.swift | Supabase URL + anon key (hardcoded — fix in #4) |
-| Saman/Features/Reorder/ReorderView.swift | Restock sheet + writeback (fixed in #2) |
+| Saman/App/AppEnvironment.swift | auth, modelContainer, syncNow(), deleteRecord() |
+| Saman/Core/Services/SyncManager.swift | tombstones, upload dirty, pullAll |
+| Saman/Core/Services/SyncReconcile.swift | dirty-wins / delete-if-missing |
+| Saman/Core/Services/AuthService.swift | sign in/up, reset, delete-account, friendly errors |
+| Saman/Core/Services/Config.swift | Supabase URL, anon key, legal URLs, Edge Function endpoints |
+| Saman/PrivacyInfo.xcprivacy | Required nutrition labels |
+| supabase/migrations/003_recipes.sql | Owner must apply |
 
 ## Architecture Notes
-- persist pattern: item.markDirty() → context.save() → appEnv.syncNow()
-- Secrets.xcconfig gitignored; use Secrets.xcconfig.example for onboarding
+- persist pattern: model.markDirty() → context.save() → appEnv.syncNow()
+- delete pattern: appEnv.deleteRecord(model, table:, id:) queues a tombstone then deletes locally
+- Secrets.xcconfig gitignored; placeholders only
 - Item.isLow: quantity ≤ minimumQuantity (not strictly less than)
-- No new dependencies without asking. Only Supabase + VisionKit in use.
+- Recipe AI goes through extract-recipe. Never Anthropic from the binary.
 - Voice for strings: practical, warm, culturally rooted. No em dashes. No pitch-deck words.
 
 ## Session Log
 | Session | Date | Summary |
 |---------|------|---------|
+| 3 | 2026-08-23 | Pull-sync, tombstones, password reset, iPhone-only, PrivacyInfo, honest low-stock copy |
 | 2 | 2026-04-20 | Read THESIS, full codebase audit, wrote #2 reorder writeback fix |
 | 1 | 2026-04-19 | First session — read project structure, bootstrapped MEMORY.md |

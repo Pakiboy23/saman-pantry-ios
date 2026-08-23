@@ -61,7 +61,7 @@ struct ItemDetailView: View {
                         Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Alert me when below")
+                            Text("Flag as low below")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.inkKohl)
                             Stepper(
@@ -232,9 +232,7 @@ struct ItemDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                context.delete(item)
-                try? context.save()
-                appEnv.syncNow()
+                appEnv.deleteRecord(item, table: "items", id: item.id)
                 dismiss()
             }
             Button("Cancel", role: .cancel) { }

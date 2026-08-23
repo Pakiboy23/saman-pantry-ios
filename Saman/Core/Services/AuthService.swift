@@ -7,6 +7,7 @@ final class AuthService {
     private(set) var hasCheckedInitialSession = false
     private(set) var currentUserID: String? = nil
     private(set) var pendingEmailConfirmation = false
+    private(set) var pendingPasswordReset = false
     private(set) var pendingEmail = ""
     var errorMessage: String?
     var isLoading = false
@@ -29,6 +30,7 @@ final class AuthService {
                 isSignedIn = session != nil
                 currentUserID = session?.user.id.uuidString
                 pendingEmailConfirmation = false
+                pendingPasswordReset = false
             case .signedOut, .passwordRecovery, .userDeleted:
                 isSignedIn = false
                 currentUserID = nil
@@ -50,13 +52,32 @@ final class AuthService {
             pendingEmail = email
             pendingEmailConfirmation = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.friendly(error)
+        }
+        isLoading = false
+    }
+
+    func resetPassword(email: String) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await supabase.auth.resetPasswordForEmail(email)
+            pendingEmail = email
+            pendingPasswordReset = true
+        } catch {
+            errorMessage = Self.friendly(error)
         }
         isLoading = false
     }
 
     func cancelConfirmation() {
         pendingEmailConfirmation = false
+        pendingEmail = ""
+        errorMessage = nil
+    }
+
+    func cancelPasswordReset() {
+        pendingPasswordReset = false
         pendingEmail = ""
         errorMessage = nil
     }
@@ -68,7 +89,7 @@ final class AuthService {
         do {
             try await supabase.auth.resend(email: pendingEmail, type: .signup)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.friendly(error)
         }
         isLoading = false
     }
@@ -105,6 +126,27 @@ final class AuthService {
         }
     }
 
+    /// Map provider errors to a short line a person can act on.
+    static func friendly(_ error: Error) -> String {
+        let raw = error.localizedDescription.lowercased()
+        if raw.contains("invalid login") || raw.contains("invalid credentials") || raw.contains("invalid email or password") {
+            return "Email or password is wrong."
+        }
+        if raw.contains("already registered") || raw.contains("user already") || raw.contains("already been registered") {
+            return "That email already has an account. Try signing in."
+        }
+        if raw.contains("rate limit") || raw.contains("too many") {
+            return "Too many attempts. Wait a minute and try again."
+        }
+        if raw.contains("network") || raw.contains("offline") || raw.contains("not connected") || raw.contains("internet") {
+            return "Couldn't reach the server. Check your connection."
+        }
+        if raw.contains("password") && (raw.contains("6") || raw.contains("least") || raw.contains("short") || raw.contains("weak")) {
+            return "Use a password with at least 6 characters."
+        }
+        return "Something went wrong. Please try again."
+    }
+
     // MARK: - Private
 
     private func run(_ action: @escaping () async throws -> Void) async {
@@ -113,7 +155,7 @@ final class AuthService {
         do {
             try await action()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.friendly(error)
         }
         isLoading = false
     }

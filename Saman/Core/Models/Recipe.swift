@@ -7,10 +7,10 @@ final class Recipe {
     var title: String
     var rawTranscript: String
     var extractedJSON: String?
-    // Who the recipe came from ("Mom", "Khala Rubina") — shown as "from Mom".
     var attribution: String?
     var isDirty: Bool
     var createdAt: Date
+    var updatedAt: Date
 
     init(id: UUID = UUID(), title: String, rawTranscript: String, extractedJSON: String? = nil, attribution: String? = nil) {
         self.id = id
@@ -20,5 +20,11 @@ final class Recipe {
         self.attribution = attribution
         self.isDirty = true
         self.createdAt = Date()
+        self.updatedAt = Date()
+    }
+
+    func markDirty() {
+        isDirty = true
+        updatedAt = Date()
     }
 }

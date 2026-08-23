@@ -29,6 +29,16 @@ final class AppEnvironment {
         }
     }
 
+    /// Queue a server delete, then drop the local row. Without the tombstone,
+    /// pull-sync would resurrect the row from Supabase on the next launch.
+    @MainActor
+    func deleteRecord<T: PersistentModel>(_ model: T, table: String, id: UUID) {
+        syncManager.queueTombstone(table: table, id: id)
+        modelContainer.mainContext.delete(model)
+        try? modelContainer.mainContext.save()
+        syncNow()
+    }
+
     /// Wipe all locally-cached SwiftData. Called on sign-out and account deletion
     /// so the next account on a shared device never inherits the prior user's
     /// pantry (push-only sync would otherwise re-upload it under the new user).
@@ -43,6 +53,7 @@ final class AppEnvironment {
         try? context.delete(model: ShoppingListItem.self)
         try? context.delete(model: Recipe.self)
         try? context.save()
+        syncManager.clearTombstones()
     }
 }
 
