@@ -20,9 +20,8 @@ enum Config {
     // service-role key; the client only calls this endpoint with the user's JWT.
     static let deleteAccountEndpoint = "\(supabaseURL)/functions/v1/delete-account"
 
-    // Legal / support URLs. REQUIRED for submission and shown in Settings (and on
-    // the paywall). TODO(owner): replace the privacy and support URLs with live
-    // pages before submitting. The Terms URL is Apple's standard EULA, valid as-is.
+    // Legal / support URLs. Required for App Store review and shown in Settings
+    // and on the paywall. Hosted on saman-landing.
     static let privacyPolicyURL = "https://samanpantry.com/privacy"
     static let termsOfUseURL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
     static let supportURL = "https://samanpantry.com/support"

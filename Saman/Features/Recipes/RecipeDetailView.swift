@@ -62,8 +62,7 @@ struct RecipeDetailView: View {
         ) {
             Button("Delete", role: .destructive) {
                 dismiss()
-                context.delete(recipe)
-                try? context.save()
+                appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
             }
             Button("Cancel", role: .cancel) { }
         }

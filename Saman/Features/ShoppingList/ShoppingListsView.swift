@@ -65,9 +65,7 @@ struct ShoppingListsView: View {
                 presenting: pendingDeleteList
             ) { list in
                 Button("Delete", role: .destructive) {
-                    context.delete(list)
-                    try? context.save()
-                    appEnv.syncNow()
+                    appEnv.deleteRecord(list, table: "shopping_lists", id: list.id)
                     pendingDeleteList = nil
                 }
                 Button("Cancel", role: .cancel) { pendingDeleteList = nil }

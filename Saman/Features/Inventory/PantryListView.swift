@@ -201,9 +201,9 @@ struct PantryListView: View {
     }
 
     private func delete(at offsets: IndexSet) {
-        for i in offsets { context.delete(pantries[i]) }
-        try? context.save()
-        appEnv.syncNow()
+        for i in offsets {
+            appEnv.deleteRecord(pantries[i], table: "pantries", id: pantries[i].id)
+        }
     }
 }
 

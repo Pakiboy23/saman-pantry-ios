@@ -5,81 +5,114 @@ struct AuthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSignUp = false
+    @State private var isForgotPassword = false
 
     private var auth: AuthService { appEnv.auth }
 
     var body: some View {
         if auth.pendingEmailConfirmation {
-            confirmationView
+            mailNoticeView(
+                title: "Check your email",
+                bodyText: "We sent a confirmation link to\n\(auth.pendingEmail)",
+                actionTitle: "Resend email",
+                action: { await auth.resendConfirmation() },
+                backTitle: "Back to Sign In",
+                onBack: { auth.cancelConfirmation() }
+            )
+        } else if auth.pendingPasswordReset {
+            mailNoticeView(
+                title: "Check your email",
+                bodyText: "We sent a password reset link to\n\(auth.pendingEmail)",
+                actionTitle: nil,
+                action: nil,
+                backTitle: "Back to Sign In",
+                onBack: {
+                    auth.cancelPasswordReset()
+                    isForgotPassword = false
+                }
+            )
         } else {
             formView
         }
     }
 
-    private var confirmationView: some View {
+    private func mailNoticeView(
+        title: String,
+        bodyText: String,
+        actionTitle: String?,
+        action: (() async -> Void)?,
+        backTitle: String,
+        onBack: @escaping () -> Void
+    ) -> some View {
         ZStack {
             Color.surfaceDoodh.ignoresSafeArea()
             VStack(spacing: 0) {
                 Spacer()
-                VStack(spacing: 6) {
-                    Text("Samaan")
-                        .font(.cormorant(size: 52, weight: .bold))
-                        .foregroundStyle(Color.brandSaag)
-                    Text("سامان")
-                        .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
-                        .foregroundStyle(Color.inkKohlSoft)
-                }
+                wordmark
                 Spacer().frame(height: 48)
                 Image(systemName: "envelope.circle.fill")
                     .font(.system(size: 56))
                     .foregroundStyle(Color.brandSaag)
                 Spacer().frame(height: 24)
-                Text("Check your email")
+                Text(title)
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Color.inkKohl)
                 Spacer().frame(height: 10)
-                Text("We sent a confirmation link to\n\(auth.pendingEmail)")
+                Text(bodyText)
                     .font(.system(size: 15))
                     .foregroundStyle(Color.inkKohlSoft)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Samaan.Space.md)
-                Spacer().frame(height: 40)
-                Button {
-                    Task { await auth.resendConfirmation() }
-                } label: {
-                    Group {
-                        if auth.isLoading {
-                            ProgressView().tint(Color.surfaceDoodh)
-                        } else {
-                            Text("Resend email")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.surfaceDoodh)
+                if let actionTitle, let action {
+                    Spacer().frame(height: 40)
+                    Button {
+                        Task { await action() }
+                    } label: {
+                        Group {
+                            if auth.isLoading {
+                                ProgressView().tint(Color.surfaceDoodh)
+                            } else {
+                                Text(actionTitle)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Color.surfaceDoodh)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                    .disabled(auth.isLoading)
+                    .padding(.horizontal, Samaan.Space.md)
                 }
-                .disabled(auth.isLoading)
-                .padding(.horizontal, Samaan.Space.md)
                 if let error = auth.errorMessage {
                     Text(error)
                         .font(.system(size: 13))
                         .foregroundStyle(Color.accentAnaar)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Samaan.Space.md)
+                        .padding(.top, 12)
                 }
                 Spacer().frame(height: 16)
-                Button {
-                    auth.cancelConfirmation()
-                } label: {
-                    Text("Back to Sign In")
+                Button(action: onBack) {
+                    Text(backTitle)
                         .font(.system(size: 15))
                         .foregroundStyle(Color.brandSaag)
                 }
                 Spacer()
             }
         }
+    }
+
+    private var wordmark: some View {
+        VStack(spacing: 6) {
+            Text("Samaan")
+                .font(.cormorant(size: 52, weight: .bold))
+                .foregroundStyle(Color.brandSaag)
+            Text("سامان")
+                .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
+                .foregroundStyle(Color.inkKohlSoft)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var formView: some View {
@@ -90,27 +123,12 @@ struct AuthView: View {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 72)
 
-                    // Wordmark
-                    VStack(spacing: 6) {
-                        Text("Samaan")
-                            .font(.cormorant(size: 52, weight: .bold))
-                            .foregroundStyle(Color.brandSaag)
-                        Text("سامان")
-                            .font(.custom("NotoNastaliqUrdu-Regular", size: 22))
-                            .foregroundStyle(Color.inkKohlSoft)
-                    }
-                    .frame(maxWidth: .infinity)
+                    wordmark
 
                     Spacer().frame(height: 40)
 
-                    // Form card
                     VStack(spacing: 14) {
-                        // Email
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("EMAIL")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.inkKohlSoft)
-                                .kerning(0.8)
+                        labeledField(title: "EMAIL") {
                             ZStack(alignment: .leading) {
                                 if email.isEmpty {
                                     Text("you@example.com")
@@ -136,26 +154,22 @@ struct AuthView: View {
                             )
                         }
 
-                        // Password
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("PASSWORD")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.inkKohlSoft)
-                                .kerning(0.8)
-                            SecureField("••••••••", text: $password)
-                                .textContentType(isSignUp ? .newPassword : .password)
-                                .font(.system(size: 16))
-                                .foregroundStyle(Color.inkKohl)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 13)
-                                .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Samaan.Radius.md)
-                                        .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
-                                )
+                        if !isForgotPassword {
+                            labeledField(title: "PASSWORD") {
+                                SecureField("••••••••", text: $password)
+                                    .textContentType(isSignUp ? .newPassword : .password)
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(Color.inkKohl)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 13)
+                                    .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: Samaan.Radius.md)
+                                            .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
+                                    )
+                            }
                         }
 
-                        // Error message
                         if let error = auth.errorMessage {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.circle.fill")
@@ -172,12 +186,31 @@ struct AuthView: View {
                     }
                     .padding(.horizontal, Samaan.Space.md)
 
+                    if !isSignUp && !isForgotPassword {
+                        HStack {
+                            Spacer()
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isForgotPassword = true
+                                    auth.errorMessage = nil
+                                }
+                            } label: {
+                                Text("Forgot password?")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Color.brandSaag)
+                            }
+                        }
+                        .padding(.horizontal, Samaan.Space.md)
+                        .padding(.top, 10)
+                    }
+
                     Spacer().frame(height: 24)
 
-                    // Primary action button
                     Button {
                         Task {
-                            if isSignUp {
+                            if isForgotPassword {
+                                await auth.resetPassword(email: email)
+                            } else if isSignUp {
                                 await auth.signUp(email: email, password: password)
                             } else {
                                 await auth.signIn(email: email, password: password)
@@ -188,7 +221,7 @@ struct AuthView: View {
                             if auth.isLoading {
                                 ProgressView().tint(Color.surfaceDoodh)
                             } else {
-                                Text(isSignUp ? "Create Account" : "Sign In")
+                                Text(primaryLabel)
                                     .font(.system(size: 16, weight: .semibold))
                             }
                         }
@@ -196,33 +229,61 @@ struct AuthView: View {
                         .frame(height: 50)
                         .foregroundStyle(Color.surfaceDoodh)
                         .background(
-                            email.isEmpty || password.isEmpty
+                            primaryDisabled
                                 ? Color.brandSaag.opacity(0.45)
                                 : Color.brandSaag,
                             in: RoundedRectangle(cornerRadius: Samaan.Radius.md)
                         )
                     }
-                    .disabled(email.isEmpty || password.isEmpty || auth.isLoading)
+                    .disabled(primaryDisabled || auth.isLoading)
                     .padding(.horizontal, Samaan.Space.md)
 
                     Spacer().frame(height: 20)
 
-                    // Toggle sign-in / sign-up
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            isSignUp.toggle()
+                            if isForgotPassword {
+                                isForgotPassword = false
+                            } else {
+                                isSignUp.toggle()
+                            }
                             auth.errorMessage = nil
                         }
                     } label: {
-                        Text(
-                            "\(Text(isSignUp ? "Already have an account? " : "Don't have an account? ").foregroundStyle(Color.inkKohlSoft))\(Text(isSignUp ? "Sign In" : "Create account").foregroundStyle(Color.brandSaag))"
-                        )
+                        if isForgotPassword {
+                            Text("Back to Sign In")
+                                .foregroundStyle(Color.brandSaag)
+                        } else {
+                            Text(
+                                "\(Text(isSignUp ? "Already have an account? " : "Don't have an account? ").foregroundStyle(Color.inkKohlSoft))\(Text(isSignUp ? "Sign In" : "Create account").foregroundStyle(Color.brandSaag))"
+                            )
+                        }
                     }
                     .font(.system(size: 14))
 
                     Spacer().frame(height: 48)
                 }
             }
+        }
+    }
+
+    private var primaryLabel: String {
+        if isForgotPassword { return "Send reset link" }
+        return isSignUp ? "Create Account" : "Sign In"
+    }
+
+    private var primaryDisabled: Bool {
+        if isForgotPassword { return email.isEmpty }
+        return email.isEmpty || password.isEmpty
+    }
+
+    private func labeledField<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.inkKohlSoft)
+                .kerning(0.8)
+            content()
         }
     }
 }

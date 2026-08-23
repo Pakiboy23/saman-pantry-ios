@@ -109,9 +109,7 @@ struct InventoryView: View {
                 presenting: pendingDeleteItem
             ) { item in
                 Button("Delete", role: .destructive) {
-                    context.delete(item)
-                    try? context.save()
-                    appEnv.syncNow()
+                    appEnv.deleteRecord(item, table: "items", id: item.id)
                     pendingDeleteItem = nil
                 }
                 Button("Cancel", role: .cancel) { pendingDeleteItem = nil }

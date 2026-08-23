@@ -81,9 +81,9 @@ struct ShoppingListDetailView: View {
     }
 
     private func delete(from items: [ShoppingListItem], at offsets: IndexSet) {
-        for i in offsets { context.delete(items[i]) }
-        try? context.save()
-        appEnv.syncNow()
+        for i in offsets {
+            appEnv.deleteRecord(items[i], table: "shopping_list_items", id: items[i].id)
+        }
     }
 }
 
