@@ -11,7 +11,7 @@ Not a meal planner, not a recipe app, not household sharing at v1.
 
 ## Current state (29 Aug 2026)
 
-Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recipe extraction via `extract-recipe` Edge Function, Anthropic key removed from the client, PrivacyInfo in `Saman/PrivacyInfo.xcprivacy`, StoreKit config, iOS 17 target, iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), password reset on AuthView, pull-sync + tombstones, honest "Flag as low below" copy. Legal URLs are live: `samanpantry.com/privacy` and `/support` both return 200 (apex 307s to `www`), verified 29 Aug 2026.
+Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recipe extraction via `extract-recipe` Edge Function, Anthropic key removed from the client, PrivacyInfo in `Saman/PrivacyInfo.xcprivacy`, StoreKit config, iOS 17 target, iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), password reset on AuthView, pull-sync + tombstones, honest "Flag as low below" copy. Legal URLs are live: `samanpantry.com/privacy` and `/support` both return 200 (apex 307s to `www`), verified 29 Aug 2026. Keep them in App Store Connect and in `Config.swift`.
 
 Still not submittable:
 

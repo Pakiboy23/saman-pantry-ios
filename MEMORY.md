@@ -99,7 +99,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Session Log
 | Session | Date | Summary |
 |---------|------|---------|
-| 4 | 2026-08-29 | Verified legal URLs live (200), rewrote Active Work against live facts, deleted ItemRepository + PricesView |
+| 4 | 2026-08-29 | Legal URLs confirmed live (200) and the 404 claim removed from MEMORY + skill; Active Work rewritten against live facts; ItemRepository + PricesView deleted |
 | 3 | 2026-08-23 | Pull-sync, tombstones, password reset, iPhone-only, PrivacyInfo, honest low-stock copy |
 | 2 | 2026-04-20 | Read THESIS, full codebase audit, wrote #2 reorder writeback fix |
 | 1 | 2026-04-19 | First session — read project structure, bootstrapped MEMORY.md |
