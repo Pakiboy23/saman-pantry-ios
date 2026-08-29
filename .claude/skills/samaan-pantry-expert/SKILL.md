@@ -9,7 +9,7 @@ Native iOS. SwiftUI + SwiftData + Supabase + RevenueCat. Bundle `com.samanpantry
 
 Not a meal planner, not a recipe app, not household sharing at v1.
 
-## Current state (23 Aug 2026)
+## Current state (29 Aug 2026)
 
 Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recipe extraction via `extract-recipe` Edge Function, Anthropic key removed from the client, PrivacyInfo in `Saman/PrivacyInfo.xcprivacy`, StoreKit config, iOS 17 target, iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), password reset on AuthView, pull-sync + tombstones, honest "Flag as low below" copy.
 
@@ -17,7 +17,7 @@ Still not submittable:
 
 - Owner must apply `supabase/migrations/003_recipes.sql`. Without it, recipe pull no-ops.
 - Owner must confirm `extract-recipe` and `delete-account` are deployed, and revoke the old Anthropic key.
-- Legal URLs (`samanpantry.com/privacy`, `/support`) 404 until saman-landing rewrites ship.
+- Legal URLs (`samanpantry.com/privacy`, `/support`) are live (200). Keep them in App Store Connect and in `Config.swift`.
 - App Review needs a pre-confirmed demo account (email confirmation is on).
 
 ## Non-negotiables (from THESIS.md)
@@ -47,6 +47,6 @@ Still not submittable:
 
 ## Next repo work (order)
 
-1. Owner: recipes SQL, Edge Functions, Anthropic revoke, live legal URLs.
+1. Owner: recipes SQL, Edge Functions, Anthropic revoke. Legal URLs are already live.
 2. Then TestFlight.
 3. Household mode only after the thesis gates.
