@@ -1,5 +1,5 @@
 # Project Memory
-Last updated: 2026-08-23 | Session 3 | Branch: ops/sync-reset-legal
+Last updated: 2026-08-29 | Session 4 | Branch: docs/legal-urls-are-live
 Memory health: 8/10
 
 ## Project Overview
@@ -24,14 +24,13 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Active Work
 - [ ] Owner: apply `003_recipes.sql` in the Supabase SQL editor
 - [ ] Owner: confirm extract-recipe + delete-account are deployed; rotate Anthropic key
-- [ ] Owner: merge saman-landing so samanpantry.com/privacy and /support return 200
+- [x] Legal URLs live: samanpantry.com/privacy and /support return 200 (verified 29 Aug)
 - [ ] Demo account for App Review (email confirmation currently required)
 - [ ] TestFlight after the four above
 - [ ] Household mode stays off (THESIS)
 
 ## Blockers
 - Recipes pull will no-op until the table exists in prod.
-- Legal URLs 404 until saman-landing ships rewrites.
 
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
@@ -47,7 +46,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Roadmap (do in order)
 - [x] #2 Reorder writeback
 - [x] Bidirectional sync + recipe sync + password reset + honest copy + iPhone-only
-- [ ] Owner: Edge Functions, recipes SQL, Anthropic revoke, live legal URLs
+- [ ] Owner: Edge Functions, recipes SQL, Anthropic revoke (legal URLs live)
 - [ ] TestFlight + README
 - [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
@@ -91,6 +90,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Session Log
 | Session | Date | Summary |
 |---------|------|---------|
+| 4 | 2026-08-29 | Legal URLs confirmed live; skill + MEMORY no longer say 404 |
 | 3 | 2026-08-23 | Pull-sync, tombstones, password reset, iPhone-only, PrivacyInfo, honest low-stock copy |
 | 2 | 2026-04-20 | Read THESIS, full codebase audit, wrote #2 reorder writeback fix |
 | 1 | 2026-04-19 | First session — read project structure, bootstrapped MEMORY.md |
