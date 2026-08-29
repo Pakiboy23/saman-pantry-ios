@@ -9,15 +9,14 @@ Native iOS. SwiftUI + SwiftData + Supabase + RevenueCat. Bundle `com.samanpantry
 
 Not a meal planner, not a recipe app, not household sharing at v1.
 
-## Current state (23 Aug 2026)
+## Current state (29 Aug 2026)
 
-Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recipe extraction via `extract-recipe` Edge Function, Anthropic key removed from the client, PrivacyInfo in `Saman/PrivacyInfo.xcprivacy`, StoreKit config, iOS 17 target, iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), password reset on AuthView, pull-sync + tombstones, honest "Flag as low below" copy.
+Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recipe extraction via `extract-recipe` Edge Function, Anthropic key removed from the client, PrivacyInfo in `Saman/PrivacyInfo.xcprivacy`, StoreKit config, iOS 17 target, iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), password reset on AuthView, pull-sync + tombstones, honest "Flag as low below" copy. Legal URLs are live: `samanpantry.com/privacy` and `/support` both return 200 (apex 307s to `www`), verified 29 Aug 2026.
 
 Still not submittable:
 
 - Owner must apply `supabase/migrations/003_recipes.sql`. Without it, recipe pull no-ops.
-- Owner must confirm `extract-recipe` and `delete-account` are deployed, and revoke the old Anthropic key.
-- Legal URLs (`samanpantry.com/privacy`, `/support`) 404 until saman-landing rewrites ship.
+- Owner must deploy `extract-recipe` and `delete-account`, and revoke the old Anthropic key.
 - App Review needs a pre-confirmed demo account (email confirmation is on).
 
 ## Non-negotiables (from THESIS.md)
@@ -35,7 +34,11 @@ Still not submittable:
 - Recipe AI goes through `Config.recipeExtractionEndpoint`, never Anthropic from the binary.
 - Account deletion goes through `delete-account` with the user JWT.
 - Deletes go through `AppEnvironment.deleteRecord` so a tombstone is queued. Bare `context.delete` resurrects the row on the next pull.
-- Prices tab is a stub. Scanner is a data-entry method, not a destination — keep it inside Add Item.
+- Prices is gone. The view was deleted 29 Aug 2026; do not rebuild it.
+- Scanner is a data-entry method, not a destination — keep it inside Add Item.
+- The app target is a synchronized Xcode group. Every `.swift` under `Saman/` compiles with no pbxproj entry, so an unreferenced file still ships. Delete dead code, do not park it.
+- `PantryListView` and `AddPantryView` are still unreachable. Wire them up or delete them, but know they are dead today.
+- RevenueCat entitlement id is `Saman Pro`, byte-for-byte with the dashboard. Do not "fix" it.
 - Guest mode does not exist.
 
 ## Do not
@@ -47,6 +50,6 @@ Still not submittable:
 
 ## Next repo work (order)
 
-1. Owner: recipes SQL, Edge Functions, Anthropic revoke, live legal URLs.
+1. Owner: recipes SQL, Edge Functions, Anthropic revoke, pre-confirmed App Review demo account.
 2. Then TestFlight.
 3. Household mode only after the thesis gates.
