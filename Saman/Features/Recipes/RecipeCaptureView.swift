@@ -247,7 +247,7 @@ struct RecipeCaptureView: View {
             phase = .reviewing
         } catch RecipeExtractionService.ExtractionError.quotaExceeded {
             if appEnv.purchases.isPro {
-                errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription ?? ""
+                errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
                 showError = true
             } else {
                 showPaywall = true

@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 // MARK: - Extraction result types
 
