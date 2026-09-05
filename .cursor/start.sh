@@ -9,7 +9,7 @@ export SAMAN_PHASE="start"
 # shellcheck source=/dev/null
 source "$REPO_ROOT/.cursor/lib.sh"
 
-saman_ensure_docker || { saman_log "could not start docker; see /var/log/dockerd.log"; exit 1; }
+saman_ensure_docker || { saman_log "could not start docker or apply required nested-VM networking; see /var/log/dockerd.log"; exit 1; }
 
 # `supabase start` is a no-op when the stack is already up, so this is safe to
 # re-run. It applies supabase/migrations and serves supabase/functions.

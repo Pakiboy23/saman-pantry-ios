@@ -42,6 +42,35 @@ saman_log "writing /etc/docker/daemon.json (fuse-overlayfs storage driver)"
 sudo mkdir -p /etc/docker
 printf '{\n  "storage-driver": "fuse-overlayfs"\n}\n' | sudo tee /etc/docker/daemon.json >/dev/null
 
+# Socket ACL (setfacl) + iptables-legacy FORWARD so start.sh can grant the
+# agent user Docker access without chmod 666 and can fail closed if nested-VM
+# egress networking cannot be applied.
+need_pkgs=()
+command -v setfacl >/dev/null 2>&1 || need_pkgs+=(acl)
+command -v iptables-legacy >/dev/null 2>&1 || need_pkgs+=(iptables)
+if [ "${#need_pkgs[@]}" -gt 0 ]; then
+  saman_log "installing ${need_pkgs[*]} (docker socket ACL + nested-VM networking)"
+  sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+    "${need_pkgs[@]}"
+fi
+if ! command -v iptables-legacy >/dev/null 2>&1; then
+  saman_log "iptables-legacy missing after install; Cloud Agent container egress will fail"
+  exit 1
+fi
+sudo iptables-legacy -L FORWARD >/dev/null || {
+  saman_log "iptables-legacy is present but cannot list the FORWARD chain"
+  exit 1
+}
+if getent group docker >/dev/null; then
+  sudo usermod -aG docker "$(id -un)"
+  saman_log "added $(id -un) to the docker group"
+else
+  saman_log "docker group missing after Docker install"
+  exit 1
+fi
+
 # --- Supabase CLI ------------------------------------------------------------
 if ! command -v supabase >/dev/null 2>&1 || [ "$(supabase --version 2>/dev/null)" != "$SUPABASE_CLI_VERSION" ]; then
   saman_log "installing Supabase CLI v${SUPABASE_CLI_VERSION}"
