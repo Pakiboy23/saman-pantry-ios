@@ -66,6 +66,89 @@ struct SyncReconcileTests {
     }
 }
 
+@MainActor
+@Suite(.serialized)
+struct DeleteRecordTests {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema([
+            Item.self,
+            Pantry.self,
+            Product.self,
+            Store.self,
+            ShoppingList.self,
+            ShoppingListItem.self,
+            Recipe.self,
+        ])
+        return try ModelContainer(
+            for: schema,
+            configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        )
+    }
+
+    @Test func deleteItemQueuesTombstoneAndDropsLocalRow() throws {
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+        env.syncManager.clearTombstones()
+        defer { env.syncManager.clearTombstones() }
+
+        let item = Item(name: "Atta", quantity: 2, unit: "kg")
+        container.mainContext.insert(item)
+        try container.mainContext.save()
+        let itemID = item.id
+
+        env.deleteRecord(item, table: "items", id: itemID)
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
+        #expect(remaining.isEmpty)
+        #expect(env.syncManager.queuedTombstones().contains { $0.table == "items" && $0.id == itemID })
+    }
+
+    @Test func deleteRecipeQueuesTombstoneAndDropsLocalRow() throws {
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+        env.syncManager.clearTombstones()
+        defer { env.syncManager.clearTombstones() }
+
+        let recipe = Recipe(title: "Karahi", rawTranscript: "chicken, tamatar")
+        container.mainContext.insert(recipe)
+        try container.mainContext.save()
+        let recipeID = recipe.id
+
+        env.deleteRecord(recipe, table: "recipes", id: recipeID)
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Recipe>())
+        #expect(remaining.isEmpty)
+        #expect(env.syncManager.queuedTombstones().contains { $0.table == "recipes" && $0.id == recipeID })
+    }
+
+    @Test func deleteShoppingListTombstonesListAndChildItems() throws {
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+        env.syncManager.clearTombstones()
+        defer { env.syncManager.clearTombstones() }
+
+        let list = ShoppingList(name: "Sunday shop")
+        let product = Product(name: "Atta")
+        let listItem = ShoppingListItem(quantity: 1, unit: "bag", product: product, shoppingList: list)
+        container.mainContext.insert(product)
+        container.mainContext.insert(list)
+        container.mainContext.insert(listItem)
+        try container.mainContext.save()
+        let listID = list.id
+        let itemID = listItem.id
+
+        env.deleteRecord(list, table: "shopping_lists", id: listID)
+
+        let lists = try container.mainContext.fetch(FetchDescriptor<ShoppingList>())
+        let items = try container.mainContext.fetch(FetchDescriptor<ShoppingListItem>())
+        #expect(lists.isEmpty)
+        #expect(items.isEmpty)
+        let stones = env.syncManager.queuedTombstones()
+        #expect(stones.contains { $0.table == "shopping_lists" && $0.id == listID })
+        #expect(stones.contains { $0.table == "shopping_list_items" && $0.id == itemID })
+    }
+}
+
 struct AuthCopyTests {
     private struct DummyError: LocalizedError {
         let message: String

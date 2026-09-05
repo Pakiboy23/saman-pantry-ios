@@ -31,8 +31,14 @@ final class AppEnvironment {
 
     /// Queue a server delete, then drop the local row. Without the tombstone,
     /// pull-sync would resurrect the row from Supabase on the next launch.
+    /// Shopping lists also tombstone their items — cascade-delete is local-only.
     @MainActor
     func deleteRecord<T: PersistentModel>(_ model: T, table: String, id: UUID) {
+        if let list = model as? ShoppingList {
+            for item in Array(list.items) {
+                syncManager.queueTombstone(table: "shopping_list_items", id: item.id)
+            }
+        }
         syncManager.queueTombstone(table: table, id: id)
         modelContainer.mainContext.delete(model)
         try? modelContainer.mainContext.save()

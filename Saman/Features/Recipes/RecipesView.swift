@@ -7,6 +7,7 @@ struct RecipesView: View {
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @State private var showCapture = false
     @State private var pendingDeleteRecipe: Recipe?
+    @State private var openSwipeID: UUID?
 
     var body: some View {
         NavigationStack {
@@ -82,10 +83,14 @@ struct RecipesView: View {
         ScrollView {
             LazyVStack(spacing: 10) {
                 ForEach(recipes) { recipe in
-                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                        RecipeRow(recipe: recipe)
+                    SamaanSwipeToDelete(id: recipe.id, openID: $openSwipeID) {
+                        pendingDeleteRecipe = recipe
+                    } content: {
+                        NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                            RecipeRow(recipe: recipe)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     .contextMenu {
                         Button(role: .destructive) { pendingDeleteRecipe = recipe } label: {
                             Label("Delete", systemImage: "trash")

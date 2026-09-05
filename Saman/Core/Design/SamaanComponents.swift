@@ -275,6 +275,83 @@ struct ScannerCornerBrackets: View {
     }
 }
 
+// MARK: - Swipe to delete (ScrollView cards)
+
+/// Reveals a trailing delete control on a custom card row. `List.swipeActions`
+/// is unavailable on the pantry / lists / recipes `ScrollView` surfaces, and
+/// long-press context menus are not discoverable enough for P3-07.
+struct SamaanSwipeToDelete<Content: View>: View {
+    let id: UUID
+    @Binding var openID: UUID?
+    let onDelete: () -> Void
+    let content: Content
+
+    @State private var offset: CGFloat = 0
+    private let revealWidth: CGFloat = 76
+
+    init(
+        id: UUID,
+        openID: Binding<UUID?>,
+        onDelete: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.id = id
+        self._openID = openID
+        self.onDelete = onDelete
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.surfaceDoodh)
+                    .frame(width: revealWidth)
+                    .frame(maxHeight: .infinity)
+                    .background(Color.accentAnaar, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                    .accessibilityLabel("Delete")
+            }
+            .buttonStyle(.plain)
+            .accessibilityHidden(offset > -revealWidth / 2)
+
+            content
+                .offset(x: offset)
+                .simultaneousGesture(swipeGesture)
+        }
+        .clipped()
+        .onChange(of: openID) { _, newValue in
+            guard newValue != id else { return }
+            withAnimation(.spring(response: 0.28)) { offset = 0 }
+        }
+        .accessibilityAction(named: "Delete", onDelete)
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 24, coordinateSpace: .local)
+            .onChanged { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > abs(dy) else { return }
+                let base: CGFloat = openID == id ? -revealWidth : 0
+                offset = min(0, max(-revealWidth, base + dx))
+            }
+            .onEnded { value in
+                let dx = value.predictedEndTranslation.width
+                let shouldOpen = dx < -revealWidth * 0.45 || offset < -revealWidth * 0.5
+                withAnimation(.spring(response: 0.28)) {
+                    if shouldOpen {
+                        offset = -revealWidth
+                        openID = id
+                    } else {
+                        offset = 0
+                        if openID == id { openID = nil }
+                    }
+                }
+            }
+    }
+}
+
 // MARK: - Empty State
 
 struct SamaanEmptyState: View {

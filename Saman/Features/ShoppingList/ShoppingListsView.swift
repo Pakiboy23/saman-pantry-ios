@@ -8,16 +8,21 @@ struct ShoppingListsView: View {
     @State private var showAdd = false
     @State private var showPaywall = false
     @State private var pendingDeleteList: ShoppingList?
+    @State private var openSwipeID: UUID?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     ForEach(lists) { list in
-                        NavigationLink(destination: ShoppingListDetailView(list: list)) {
-                            ShoppingListCard(list: list)
+                        SamaanSwipeToDelete(id: list.id, openID: $openSwipeID) {
+                            pendingDeleteList = list
+                        } content: {
+                            NavigationLink(destination: ShoppingListDetailView(list: list)) {
+                                ShoppingListCard(list: list)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                         .contextMenu {
                             Button(role: .destructive) { pendingDeleteList = list } label: {
                                 Label("Delete", systemImage: "trash")
