@@ -28,8 +28,12 @@ fi
 # the default overlay2 driver is not usable.
 if ! command -v fuse-overlayfs >/dev/null 2>&1; then
   saman_log "installing fuse-overlayfs"
-  sudo apt-get update -y
-  sudo apt-get install -y --no-install-recommends fuse-overlayfs
+  sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+  # -o Dpkg::Options=... keeps conffile prompts (e.g. /etc/fuse.conf) from
+  # blocking the non-interactive build environment on stdin.
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+    fuse-overlayfs
 else
   saman_log "fuse-overlayfs already installed"
 fi
