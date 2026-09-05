@@ -8,10 +8,8 @@ final class SyncManager {
     private let supabase: SupabaseClient
     private let tombstoneKey = "samaan.sync.tombstones"
 
-    nonisolated init() {
-        self.supabase = .shared
-    }
-
+    /// `nonisolated` so `AppEnvironment`'s init can construct us. Callers must
+    /// pass a client — `SupabaseClient.shared` is MainActor-isolated.
     nonisolated init(supabase: SupabaseClient) {
         self.supabase = supabase
     }
