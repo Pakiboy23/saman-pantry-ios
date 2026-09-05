@@ -4,13 +4,17 @@ struct AuthView: View {
     @Environment(\.appEnv) private var appEnv
     @State private var email = ""
     @State private var password = ""
+    @State private var newPassword = ""
+    @State private var confirmPassword = ""
     @State private var isSignUp = false
     @State private var isForgotPassword = false
 
     private var auth: AuthService { appEnv.auth }
 
     var body: some View {
-        if auth.pendingEmailConfirmation {
+        if auth.isRecoveringPassword {
+            setNewPasswordView
+        } else if auth.pendingEmailConfirmation {
             mailNoticeView(
                 title: "Check your email",
                 bodyText: "We sent a confirmation link to\n\(auth.pendingEmail)",
@@ -263,6 +267,94 @@ struct AuthView: View {
 
                     Spacer().frame(height: 48)
                 }
+            }
+        }
+    }
+
+    private var setNewPasswordView: some View {
+        ZStack {
+            Color.surfaceDoodh.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Spacer()
+                wordmark
+                Spacer().frame(height: 40)
+                Text("Set a new password")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color.inkKohl)
+                Spacer().frame(height: 8)
+                Text("Choose something you'll remember. At least 6 characters.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.inkKohlSoft)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Samaan.Space.md)
+
+                VStack(spacing: 14) {
+                    labeledField(title: "NEW PASSWORD") {
+                        SecureField("••••••••", text: $newPassword)
+                            .textContentType(.newPassword)
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.inkKohl)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 13)
+                            .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Samaan.Radius.md)
+                                    .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    labeledField(title: "CONFIRM") {
+                        SecureField("••••••••", text: $confirmPassword)
+                            .textContentType(.newPassword)
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.inkKohl)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 13)
+                            .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Samaan.Radius.md)
+                                    .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    if let error = auth.errorMessage {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.accentAnaar)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.horizontal, Samaan.Space.md)
+                .padding(.top, 28)
+
+                Spacer().frame(height: 24)
+                Button {
+                    Task {
+                        guard newPassword.count >= 6 else {
+                            auth.errorMessage = "Use a password with at least 6 characters."
+                            return
+                        }
+                        guard newPassword == confirmPassword else {
+                            auth.errorMessage = "Those passwords don't match."
+                            return
+                        }
+                        await auth.updatePassword(newPassword)
+                    }
+                } label: {
+                    Group {
+                        if auth.isLoading {
+                            ProgressView().tint(Color.surfaceDoodh)
+                        } else {
+                            Text("Save password")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .foregroundStyle(Color.surfaceDoodh)
+                    .background(Color.brandSaag, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                }
+                .disabled(auth.isLoading || newPassword.isEmpty || confirmPassword.isEmpty)
+                .padding(.horizontal, Samaan.Space.md)
+                Spacer()
             }
         }
     }

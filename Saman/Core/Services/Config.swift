@@ -20,6 +20,10 @@ enum Config {
     // service-role key; the client only calls this endpoint with the user's JWT.
     static let deleteAccountEndpoint = "\(supabaseURL)/functions/v1/delete-account"
 
+    // Password-reset email lands back in the app. Add this exact URL to
+    // Supabase Auth → URL Configuration → Redirect URLs.
+    static let authCallbackURL = "samaan://auth-callback"
+
     // Legal / support URLs. Required for App Store review and shown in Settings
     // and on the paywall. Hosted on saman-landing.
     static let privacyPolicyURL = "https://samanpantry.com/privacy"

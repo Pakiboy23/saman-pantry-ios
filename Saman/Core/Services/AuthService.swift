@@ -8,6 +8,7 @@ final class AuthService {
     private(set) var currentUserID: String? = nil
     private(set) var pendingEmailConfirmation = false
     private(set) var pendingPasswordReset = false
+    private(set) var isRecoveringPassword = false
     private(set) var pendingEmail = ""
     var errorMessage: String?
     var isLoading = false
@@ -26,14 +27,28 @@ final class AuthService {
                 isSignedIn = session != nil
                 currentUserID = session?.user.id.uuidString
                 hasCheckedInitialSession = true
-            case .signedIn, .tokenRefreshed, .userUpdated:
+            case .signedIn, .tokenRefreshed:
                 isSignedIn = session != nil
                 currentUserID = session?.user.id.uuidString
                 pendingEmailConfirmation = false
                 pendingPasswordReset = false
-            case .signedOut, .passwordRecovery, .userDeleted:
+            case .userUpdated:
+                isSignedIn = session != nil
+                currentUserID = session?.user.id.uuidString
+                pendingEmailConfirmation = false
+                pendingPasswordReset = false
+                isRecoveringPassword = false
+            case .passwordRecovery:
+                // A recovery session is a real session. Do not treat it as a
+                // sign-out — the app has to show the set-new-password form.
+                isSignedIn = session != nil
+                currentUserID = session?.user.id.uuidString
+                isRecoveringPassword = true
+                pendingPasswordReset = false
+            case .signedOut, .userDeleted:
                 isSignedIn = false
                 currentUserID = nil
+                isRecoveringPassword = false
             default:
                 break
             }
@@ -61,13 +76,32 @@ final class AuthService {
         isLoading = true
         errorMessage = nil
         do {
-            try await supabase.auth.resetPasswordForEmail(email)
+            try await supabase.auth.resetPasswordForEmail(
+                email,
+                redirectTo: URL(string: Config.authCallbackURL)
+            )
             pendingEmail = email
             pendingPasswordReset = true
         } catch {
             errorMessage = Self.friendly(error)
         }
         isLoading = false
+    }
+
+    func updatePassword(_ password: String) async {
+        await run {
+            try await self.supabase.auth.update(user: UserAttributes(password: password))
+        }
+    }
+
+    /// Called from the app's `onOpenURL`. Recovers the session from a
+    /// `samaan://auth-callback` redirect (password reset).
+    func handleAuthURL(_ url: URL) async {
+        do {
+            _ = try await supabase.auth.session(from: url)
+        } catch {
+            errorMessage = Self.friendly(error)
+        }
     }
 
     func cancelConfirmation() {

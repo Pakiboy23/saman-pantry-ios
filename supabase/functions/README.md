@@ -4,6 +4,10 @@
 
 The iOS app calls `https://<project-ref>.supabase.co/functions/v1/extract-recipe` instead of calling Anthropic directly. This keeps private AI provider credentials out of the app binary.
 
+The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected. After 5 attempts in a rolling 24h the function returns **402** `{ code: "quota_exceeded" }`. The client opens the paywall for free users.
+
+Requires `supabase/migrations/004_recipe_extraction_events.sql` applied in prod before this deploy, or every extract 500s.
+
 ### Required Supabase secrets
 
 ```sh
@@ -11,6 +15,8 @@ supabase secrets set ANTHROPIC_API_KEY=<rotated-production-key>
 # Optional override; defaults to claude-sonnet-4-6
 supabase secrets set ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
 
 ### Deploy
 

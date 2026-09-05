@@ -20,6 +20,8 @@ struct RootView: View {
                             .foregroundStyle(Color.inkKohlSoft)
                     }
                 }
+            } else if appEnv.auth.isRecoveringPassword {
+                AuthView()
             } else if appEnv.auth.isSignedIn {
                 tabShell
             } else {
