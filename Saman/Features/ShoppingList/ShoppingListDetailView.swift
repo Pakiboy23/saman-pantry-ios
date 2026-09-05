@@ -4,9 +4,11 @@ import SwiftData
 struct ShoppingListDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
+    @Environment(\.dismiss) private var dismiss
     @Query(sort: \Item.name) private var allItems: [Item]
     @Bindable var list: ShoppingList
     @State private var showAddItem = false
+    @State private var showDeleteConfirm = false
 
     private var pending: [ShoppingListItem] { list.items.filter { !$0.isPurchased }.sorted { ($0.product?.name ?? "") < ($1.product?.name ?? "") } }
     private var purchased: [ShoppingListItem] { list.items.filter { $0.isPurchased }.sorted { ($0.product?.name ?? "") < ($1.product?.name ?? "") } }
@@ -32,6 +34,11 @@ struct ShoppingListDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button("Add Item", systemImage: "plus") { showAddItem = true }
             }
+            ToolbarItem(placement: .destructiveAction) {
+                Button("Delete List", systemImage: "trash", role: .destructive) {
+                    showDeleteConfirm = true
+                }
+            }
             ToolbarItem(placement: .secondaryAction) {
                 Button(list.isCompleted ? "Reopen" : "Mark Complete") {
                     list.isCompleted.toggle()
@@ -42,6 +49,17 @@ struct ShoppingListDetailView: View {
             }
         }
         .sheet(isPresented: $showAddItem) { AddShoppingListItemView(list: list) }
+        .confirmationDialog(
+            "Delete \(list.name)?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                appEnv.deleteRecord(list, table: "shopping_lists", id: list.id)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        }
         .overlay {
             if list.items.isEmpty {
                 ContentUnavailableView("Empty List", systemImage: "cart",

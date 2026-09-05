@@ -39,17 +39,17 @@ struct RecipeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button { showEditor = true } label: {
-                        Label("Edit Recipe", systemImage: "pencil")
-                    }
-                    Button(role: .destructive) { showDeleteConfirm = true } label: {
-                        Label("Delete Recipe", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                Button { showEditor = true } label: {
+                    Image(systemName: "pencil")
                         .foregroundStyle(Color.brandSaag)
                 }
+                .accessibilityLabel("Edit Recipe")
+            }
+            ToolbarItem(placement: .destructiveAction) {
+                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel("Delete Recipe")
             }
         }
         .sheet(isPresented: $showEditor, onDismiss: { parseExtracted() }) {
@@ -61,8 +61,8 @@ struct RecipeDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                dismiss()
                 appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
+                dismiss()
             }
             Button("Cancel", role: .cancel) { }
         }

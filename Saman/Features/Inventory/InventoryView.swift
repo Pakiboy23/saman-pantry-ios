@@ -12,6 +12,7 @@ struct InventoryView: View {
     @State private var showSettings = false
     @State private var selectedTab = "all"
     @State private var pendingDeleteItem: Item?
+    @State private var openSwipeID: UUID?
 
     // MARK: - Derived
 
@@ -38,12 +39,16 @@ struct InventoryView: View {
                     if !lowItems.isEmpty {
                         SamaanSectionHeader(title: "Running low", color: .accentAnaar)
                         ForEach(lowItems) { item in
-                            NavigationLink(destination: ItemDetailView(item: item)) {
-                                ItemCard(item: item)
-                                    .padding(.horizontal, Samaan.Space.md)
-                                    .padding(.top, 8)
+                            SamaanSwipeToDelete(id: item.id, openID: $openSwipeID) {
+                                pendingDeleteItem = item
+                            } content: {
+                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                    ItemCard(item: item)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, Samaan.Space.md)
+                            .padding(.top, 8)
                             .contextMenu {
                                 Button(role: .destructive) { pendingDeleteItem = item } label: {
                                     Label("Delete", systemImage: "trash")
@@ -55,12 +60,16 @@ struct InventoryView: View {
                     if !stockedItems.isEmpty {
                         SamaanSectionHeader(title: "Well stocked", color: .brandSaag)
                         ForEach(stockedItems) { item in
-                            NavigationLink(destination: ItemDetailView(item: item)) {
-                                ItemCard(item: item)
-                                    .padding(.horizontal, Samaan.Space.md)
-                                    .padding(.top, 8)
+                            SamaanSwipeToDelete(id: item.id, openID: $openSwipeID) {
+                                pendingDeleteItem = item
+                            } content: {
+                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                    ItemCard(item: item)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, Samaan.Space.md)
+                            .padding(.top, 8)
                             .contextMenu {
                                 Button(role: .destructive) { pendingDeleteItem = item } label: {
                                     Label("Delete", systemImage: "trash")

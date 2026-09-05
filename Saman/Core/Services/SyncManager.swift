@@ -26,6 +26,12 @@ final class SyncManager {
         saveTombstones([])
     }
 
+    /// Snapshot of queued server deletes. Used by tests to prove `deleteRecord`
+    /// tombstones the row (and shopping-list children) before the local drop.
+    func queuedTombstones() -> [(table: String, id: UUID)] {
+        loadTombstones().map { ($0.table, $0.id) }
+    }
+
     func syncAll(context: ModelContext) async {
         guard let userID = try? await supabase.auth.session.user.id else { return }
         await flushTombstones()
