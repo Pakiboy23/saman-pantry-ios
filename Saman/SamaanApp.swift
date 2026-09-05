@@ -24,6 +24,9 @@ struct SamaanApp: App {
                         appEnv.purchases.setAppUserID(userID)
                     }
                 }
+                .onOpenURL { url in
+                    Task { await appEnv.auth.handleAuthURL(url) }
+                }
         }
         .modelContainer(appEnv.modelContainer)
     }

@@ -14,6 +14,7 @@ struct RecipeCaptureView: View {
     @State private var phase:        Phase = .idle
     @State private var showError     = false
     @State private var errorMessage  = ""
+    @State private var showPaywall   = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -55,6 +56,7 @@ struct RecipeCaptureView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
         }
     }
 
@@ -243,6 +245,14 @@ struct RecipeCaptureView: View {
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
             phase = .reviewing
+        } catch RecipeExtractionService.ExtractionError.quotaExceeded {
+            if appEnv.purchases.isPro {
+                errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
+                showError = true
+            } else {
+                showPaywall = true
+            }
+            phase = .idle
         } catch {
             errorMessage = error.localizedDescription
             showError    = true

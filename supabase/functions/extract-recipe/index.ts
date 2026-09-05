@@ -1,3 +1,11 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Recipe extraction is proxied so the Anthropic key never ships in the iOS
+// binary. The caller must be a signed-in user: the anon key as Bearer is a
+// valid JWT but getUser rejects it, which is what closed the open proxy.
+// Quota is 5 successful-or-attempted extractions per rolling 24h, counted in
+// recipe_extraction_events (service role only; see 004_recipe_extraction_events.sql).
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -6,6 +14,7 @@ const corsHeaders = {
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
 const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
+const DAILY_LIMIT = 5;
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -17,8 +26,45 @@ Deno.serve(async (request) => {
   }
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!apiKey || !supabaseUrl || !serviceRoleKey) {
     return json({ error: "Recipe extraction is not configured." }, 500);
+  }
+
+  const authHeader = request.headers.get("Authorization") ?? "";
+  const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!jwt) {
+    return json({ error: "Missing authorization." }, 401);
+  }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: userData, error: userError } = await admin.auth.getUser(jwt);
+  if (userError || !userData?.user) {
+    return json({ error: "Invalid or expired session." }, 401);
+  }
+
+  const userId = userData.user.id;
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error: countError } = await admin
+    .from("recipe_extraction_events")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", since);
+
+  if (countError) {
+    console.error("quota count failed:", countError.message);
+    return json({ error: "Could not check extraction quota." }, 500);
+  }
+
+  if ((count ?? 0) >= DAILY_LIMIT) {
+    return json(
+      { error: "Daily recipe extraction limit reached.", code: "quota_exceeded" },
+      402,
+    );
   }
 
   let transcript = "";
@@ -31,6 +77,16 @@ Deno.serve(async (request) => {
 
   if (!transcript) {
     return json({ error: "Transcript is required." }, 400);
+  }
+
+  // Consume the slot before calling Anthropic so parallel retries cannot
+  // burst past the daily cap. A provider failure still counts.
+  const { error: insertError } = await admin
+    .from("recipe_extraction_events")
+    .insert({ user_id: userId });
+  if (insertError) {
+    console.error("quota insert failed:", insertError.message);
+    return json({ error: "Could not record extraction." }, 500);
   }
 
   const anthropicResponse = await fetch(anthropicEndpoint, {

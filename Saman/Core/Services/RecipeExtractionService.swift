@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 // MARK: - Extraction result types
 
@@ -61,15 +62,18 @@ final class RecipeExtractionService {
     private let endpoint = URL(string: Config.recipeExtractionEndpoint)!
 
     func extract(transcript: String) async throws -> ExtractionResult {
+        let token = try await SupabaseClient.shared.auth.session.accessToken
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.httpBody = try JSONEncoder().encode(RequestBody(transcript: transcript))
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ExtractionError.apiError }
+        if http.statusCode == 401 { throw ExtractionError.unauthorized }
+        if http.statusCode == 402 { throw ExtractionError.quotaExceeded }
         guard (200...299).contains(http.statusCode) else {
             if let error = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data), !error.message.isEmpty {
                 throw ExtractionError.serviceError(error.message)
@@ -82,13 +86,15 @@ final class RecipeExtractionService {
     }
 
     enum ExtractionError: LocalizedError {
-        case apiError, noContent, parseError, serviceError(String)
+        case apiError, noContent, parseError, serviceError(String), quotaExceeded, unauthorized
         var errorDescription: String? {
             switch self {
             case .apiError:   return "Couldn't reach the extraction service. Check your connection and try again."
             case .noContent:  return "Got an empty response. Please try again."
             case .parseError: return "Couldn't parse the recipe. Try a cleaner transcript."
             case .serviceError(let message): return message
+            case .quotaExceeded: return "That's today's five recipes. Try again tomorrow."
+            case .unauthorized: return "Please sign in again, then retry."
             }
         }
     }

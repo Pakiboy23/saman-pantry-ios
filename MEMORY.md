@@ -1,17 +1,20 @@
 # Project Memory
-Last updated: 2026-08-29 | Session 4 | Branch: claude/samaan-pantry-cleanup-24cwo6
+Last updated: 2026-09-05 | Branch: fix/extract-recipe-auth-and-recovery
 Memory health: 9/10
 
 ## Project Overview
 Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Product company: Saman Technologies LLC. Bundle `com.samanpantry.Saman`. THESIS.md wins product arguments.
 
 ## Where We Left Off
-- **Current task:** Live-fact cleanup. Legal URLs confirmed live, dead scaffolding deleted.
-- **Status:** Not on TestFlight. Everything still standing between the repo and TestFlight is owner-side, in the Supabase and Anthropic dashboards. Nothing in the app code is blocking.
-- **Next immediate step:** Owner applies `supabase/migrations/003_recipes.sql`, deploys `extract-recipe` and `delete-account`, revokes the old Anthropic key, and creates a pre-confirmed App Review demo account. Then TestFlight.
-- **Open question:** Deep-link password recovery is still not in-app. `resetPasswordForEmail` sends the mail; tapping the link lands wherever the Supabase Site URL points. The app registers no URL scheme and has no `onOpenURL`, so recovery cannot complete inside the app.
+- **Current task:** Close the remaining code-only holes before App Review.
+- **Status:** On TestFlight — 1.0 (47) as of 30 Aug 2026. Not App Review ready. Owner-console work is still the blocker (SQL, deploy, revoke key, demo account, redirect URL).
+- **Next immediate step:** Owner applies `003_recipes.sql` and `004_recipe_extraction_events.sql`, deploys `extract-recipe` and `delete-account`, revokes the old Anthropic key, creates a pre-confirmed App Review demo account, and adds `samaan://auth-callback` to Supabase Auth redirect URLs. Do not submit.
+- **Open question:** none on the code side for recovery — `samaan://auth-callback` + `onOpenURL` + set-new-password UI are in this branch.
 
 ## Completed
+- 2026-09-05 extract-recipe requires the user JWT and a 5/day quota table. Client sends the access token; 402 opens the paywall (or a tomorrow message if already Pro).
+- 2026-09-05 Password recovery completes in-app: URL scheme, `onOpenURL`, `redirectTo`, `.passwordRecovery` is not a sign-out.
+- 2026-09-05 Deleted unreachable `PantryListView` / `AddPantryView`.
 - 2026-08-29 `samanpantry.com/privacy` and `/support` verified live: both return 200. Apex 307s to `www`, which is fine for App Review and for `Config.privacyPolicyURL` / `Config.supportURL`. Legal URLs are no longer a blocker.
 - 2026-08-29 Deleted dead scaffolding: `ItemRepository` (never injected, and its bare `context.delete` was a copy-paste trap) and `PricesView` (orphaned stub, already cut from the tab bar).
 - 2026-08-23 Pull-sync + tombstones. Upload dirty, then pull. Local dirty wins. Missing server row deletes clean local.
@@ -25,20 +28,26 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 
 ## Active Work
 - [ ] Owner: apply `supabase/migrations/003_recipes.sql` in the Supabase SQL editor
+- [ ] Owner: apply `supabase/migrations/004_recipe_extraction_events.sql`
 - [ ] Owner: deploy the `extract-recipe` and `delete-account` Edge Functions
 - [ ] Owner: revoke the old Anthropic key in the Anthropic console
 - [ ] Owner: create a pre-confirmed demo account for App Review (email confirmation is on)
-- [ ] TestFlight, after the four above
+- [ ] Owner: add `samaan://auth-callback` to Supabase Auth → URL Configuration → Redirect URLs
+- [x] TestFlight 1.0 (47)
 - [ ] Household mode stays off (THESIS)
 
 ## Blockers
 - Recipes pull no-ops until `003_recipes.sql` is applied in prod.
-- Recipe capture and in-app account deletion fail until both Edge Functions are deployed.
+- Recipe capture 500s until `004_recipe_extraction_events.sql` is applied and `extract-recipe` is redeployed.
+- In-app account deletion fails until `delete-account` is deployed.
+- Password-reset email will not bounce back into the app until the redirect URL is allow-listed.
 - App Review cannot get past sign-up without the pre-confirmed demo account.
 
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-09-05 | Delete PantryListView / AddPantryView | Unreachable; synchronized group would ship them | Inventory |
+| 2026-09-05 | extract-recipe JWT + 5/day quota | Anon Bearer was an open Anthropic proxy | extract-recipe, RecipeExtractionService |
 | 2026-08-29 | Delete unreferenced files rather than quarantine them | The Xcode target uses `PBXFileSystemSynchronizedRootGroup`, so every file on disk compiles and ships. An orphan is not free | ItemRepository, PricesView |
 | 2026-08-23 | Tombstones in UserDefaults, flushed before upload/pull | Deletes must survive a killed process | SyncManager, AppEnvironment.deleteRecord |
 | 2026-08-23 | Local dirty wins over newer server | Avoid clobbering an in-flight edit | SyncReconcile |
@@ -52,23 +61,21 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 - [x] #2 Reorder writeback
 - [x] Bidirectional sync + recipe sync + password reset + honest copy + iPhone-only
 - [x] Live legal URLs
-- [ ] Owner: recipes SQL, Edge Functions, Anthropic revoke, demo account
-- [ ] TestFlight + README
+- [x] TestFlight 1.0 (47)
+- [ ] Owner: recipes SQL, quota SQL, Edge Functions, Anthropic revoke, demo account, redirect URL
+- [ ] App Review (do not submit until the owner items above are done)
 - [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
 ## Strategic decisions (do not reopen)
 - Primary user: 25-35 diaspora adult, solo kitchen, single device
 - Household/sharing: v2 only, conditions in THESIS.md
 - Core loop: low → list → shop → bought → pantry updates
-- Cuts approved: Prices tab (view deleted 2026-08-29), Scanner as top-level tab, Settings as tab
+- Cuts approved: Prices tab (view deleted 2026-08-29), Scanner as top-level tab, Settings as tab, PantryListView / AddPantryView (deleted 2026-09-05)
 - Scanner stays inside Add Item. It is a data-entry method, not a destination
 - Cultural specificity is the moat — no generic mode
 - Not a recipe app. Recipes exist to feed the shopping list.
 
 ## Known issues (open)
-- Deep-link password recovery is not in-app yet. No `CFBundleURLTypes`, no `onOpenURL`.
-- `PantryListView` and `AddPantryView` are unreachable. Nothing presents `PantryListView`, and only it presents `AddPantryView`. Left in place on purpose: it is the only multi-pantry management UI written, so wiring it up is a real option. Delete it or wire it, do not keep ignoring it.
-- `PantryListView` location filter is hardcoded to `["pantry","fridge","freezer"]`.
 - `image_url` is modeled, migrated, and synced but nothing populates it. No photo picker, no Storage upload.
 - Old Anthropic key must still be revoked in the provider account.
 
@@ -78,28 +85,3 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 | THESIS.md | Product forcing function |
 | Saman/App/RootView.swift | Auth gate + tab shell (Home, Pantry, Lists, Recipes) |
 | Saman/App/AppEnvironment.swift | auth, modelContainer, syncNow(), deleteRecord() |
-| Saman/Core/Services/SyncManager.swift | tombstones, upload dirty, pullAll |
-| Saman/Core/Services/SyncReconcile.swift | dirty-wins / delete-if-missing |
-| Saman/Core/Services/AuthService.swift | sign in/up, reset, delete-account, friendly errors |
-| Saman/Core/Services/Config.swift | Supabase URL, anon key, legal URLs, Edge Function endpoints |
-| Saman/PrivacyInfo.xcprivacy | Required nutrition labels |
-| supabase/migrations/003_recipes.sql | Owner must apply |
-
-## Architecture Notes
-- The app target is a synchronized Xcode group. Any `.swift` file under `Saman/` compiles with no pbxproj entry, so unreferenced files still ship. Delete them, do not park them.
-- persist pattern: model.markDirty() → context.save() → appEnv.syncNow()
-- delete pattern: appEnv.deleteRecord(model, table:, id:) queues a tombstone then deletes locally
-- Bare `context.delete` on a synced model is forbidden. It resurrects the row on the next pull. The only legitimate bare deletes are inside SyncManager's reconcile (server already dropped the row) and AppEnvironment's local wipe on sign-out.
-- Secrets.xcconfig gitignored; placeholders only
-- Item.isLow: quantity ≤ minimumQuantity (not strictly less than)
-- Recipe AI goes through extract-recipe. Never Anthropic from the binary.
-- RevenueCat entitlement id is `Saman Pro`, byte-for-byte with the dashboard. Do not "fix" the spelling.
-- Voice for strings: practical, warm, culturally rooted. No em dashes. No pitch-deck words.
-
-## Session Log
-| Session | Date | Summary |
-|---------|------|---------|
-| 4 | 2026-08-29 | Legal URLs confirmed live (200) and the 404 claim removed from MEMORY + skill; Active Work rewritten against live facts; ItemRepository + PricesView deleted |
-| 3 | 2026-08-23 | Pull-sync, tombstones, password reset, iPhone-only, PrivacyInfo, honest low-stock copy |
-| 2 | 2026-04-20 | Read THESIS, full codebase audit, wrote #2 reorder writeback fix |
-| 1 | 2026-04-19 | First session — read project structure, bootstrapped MEMORY.md |
