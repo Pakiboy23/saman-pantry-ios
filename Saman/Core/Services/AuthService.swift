@@ -63,7 +63,14 @@ final class AuthService {
         isLoading = true
         errorMessage = nil
         do {
-            try await supabase.auth.signUp(email: email, password: password)
+            // Same deep link as resetPassword. Without redirectTo, Supabase
+            // embeds Site URL (localhost) and testers open Safari, not the app.
+            // Site URL + Redirect URLs in the dashboard must include this URL.
+            try await supabase.auth.signUp(
+                email: email,
+                password: password,
+                redirectTo: URL(string: Config.authCallbackURL)
+            )
             pendingEmail = email
             pendingEmailConfirmation = true
         } catch {
@@ -95,7 +102,7 @@ final class AuthService {
     }
 
     /// Called from the app's `onOpenURL`. Recovers the session from a
-    /// `samaan://auth-callback` redirect (password reset).
+    /// `samaan://auth-callback` redirect (signup confirmation or password reset).
     func handleAuthURL(_ url: URL) async {
         do {
             _ = try await supabase.auth.session(from: url)
@@ -121,7 +128,11 @@ final class AuthService {
         isLoading = true
         errorMessage = nil
         do {
-            try await supabase.auth.resend(email: pendingEmail, type: .signup)
+            try await supabase.auth.resend(
+                email: pendingEmail,
+                type: .signup,
+                emailRedirectTo: URL(string: Config.authCallbackURL)
+            )
         } catch {
             errorMessage = Self.friendly(error)
         }
