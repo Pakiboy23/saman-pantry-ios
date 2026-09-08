@@ -78,7 +78,7 @@ final class Item {
     }
 }
 
-enum StockStatus {
+enum StockStatus: Equatable {
     case inStock, low, expiring, out
 
     var dot: String {

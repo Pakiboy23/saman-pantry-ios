@@ -22,6 +22,9 @@ final class AppEnvironment {
     }
 
     func syncNow() {
+        // Screenshot / UI-test seeds are local-only. Pulling would race the
+        // canned kitchen, and a fake "ui-testing" user must not push to prod.
+        if ScreenshotLaunchConfiguration.current.shouldSeedDemoKitchen { return }
         let container = modelContainer
         let manager = syncManager
         Task { @MainActor in

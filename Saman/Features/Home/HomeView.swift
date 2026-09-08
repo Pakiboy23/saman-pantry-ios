@@ -47,6 +47,7 @@ struct HomeView: View {
             .sheet(isPresented: $showScanner)   { ScannerView() }
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
+        .accessibilityIdentifier("screenshot.home")
     }
 
     // MARK: - Header
@@ -68,6 +69,7 @@ struct HomeView: View {
                     .foregroundStyle(Color.inkKohlSoft)
                     .frame(width: 36, height: 36)
             }
+            .accessibilityLabel("Settings")
             Button { showScanner = true } label: {
                 Image(systemName: "barcode.viewfinder")
                     .font(.system(size: 16, weight: .semibold))

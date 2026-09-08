@@ -1,17 +1,29 @@
 import SwiftUI
 import SwiftData
+import UIKit
 import CoreText
 import RevenueCat
 
 @main
 struct SamaanApp: App {
-    @State private var appEnv = AppEnvironment()
+    @State private var appEnv: AppEnvironment
 
     init() {
         registerFonts()
         configureNavigationBarAppearance()
         configureTabBarAppearance()
         configureRevenueCat()
+
+        let launch = ScreenshotLaunchConfiguration.current
+        if launch.isUITesting {
+            UIView.setAnimationsEnabled(false)
+        }
+        let container: ModelContainer = launch.usesInMemoryStore ? .preview : .shared
+        let env = AppEnvironment(modelContainer: container)
+        if launch.shouldSeedDemoKitchen {
+            ScreenshotDemoKitchen.seed(into: env.modelContainer.mainContext)
+        }
+        _appEnv = State(initialValue: env)
     }
 
     var body: some Scene {
@@ -20,6 +32,7 @@ struct SamaanApp: App {
                 .environment(\.appEnv, appEnv)
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.currentUserID) { _, userID in
+                    if ScreenshotLaunchConfiguration.current.skipsAuth { return }
                     if let userID {
                         appEnv.purchases.setAppUserID(userID)
                     }

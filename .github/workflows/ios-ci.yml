@@ -21,6 +21,11 @@ jobs:
               json.load(path.open())
           print('asset catalogs JSON OK')
           PY
+      - name: Screenshot capture script syntax + dry-run
+        run: |
+          bash -n scripts/capture-app-store-screenshots.sh
+          ./scripts/capture-app-store-screenshots.sh --dry-run
+          ./scripts/capture-app-store-screenshots.sh --help >/dev/null
 
   xcodebuild:
     runs-on: macos-15

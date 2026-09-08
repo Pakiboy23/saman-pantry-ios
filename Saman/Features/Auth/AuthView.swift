@@ -150,6 +150,7 @@ struct AuthView: View {
                                     .foregroundStyle(Color.inkKohl)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 13)
+                                    .accessibilityIdentifier("auth.email")
                             }
                             .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
                             .overlay(
@@ -171,6 +172,7 @@ struct AuthView: View {
                                         RoundedRectangle(cornerRadius: Samaan.Radius.md)
                                             .stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1)
                                     )
+                                    .accessibilityIdentifier("auth.password")
                             }
                         }
 
@@ -240,6 +242,7 @@ struct AuthView: View {
                         )
                     }
                     .disabled(primaryDisabled || auth.isLoading)
+                    .accessibilityIdentifier("auth.submit")
                     .padding(.horizontal, Samaan.Space.md)
 
                     Spacer().frame(height: 20)
