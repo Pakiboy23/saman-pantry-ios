@@ -8,7 +8,7 @@
 # Usage:
 #   ./scripts/capture-app-store-screenshots.sh
 #   ./scripts/capture-app-store-screenshots.sh --dry-run
-#   ./scripts/capture-app-store-screenshots.sh --device "iPhone 16 Pro Max" --skip-paywall
+#   ./scripts/capture-app-store-screenshots.sh --appearance light
 #   ./scripts/capture-app-store-screenshots.sh --uitest
 #
 # Optional demo-account UITest path (not used by simctl; simctl cannot type):
@@ -34,6 +34,7 @@ SKIP_PAYWALL=0
 RUN_UITEST=0
 USE_DEMO_ACCOUNT=0
 DEVICE_NAME=""
+APPEARANCE="dark"
 
 usage() {
   cat <<'EOF'
@@ -44,7 +45,9 @@ Capture real iOS Simulator screenshots for App Store Connect.
 Options:
   --dry-run           Print the plan. Works on Linux. Does not write PNGs.
   --device NAME       Simulator device name (default: iPhone 16 Pro, else newest iPhone Pro)
-  --skip-paywall      Skip the optional paywall shot
+  --appearance dark|light
+                      Simulator + app color scheme (default: dark). Dark is the
+                      forest-green look on device. Light is cream doodh.
   --uitest            Also run SamanUITests/AppStoreScreenshotUITests
   --demo-account      With --uitest, sign in using SAMAN_DEMO_EMAIL / SAMAN_DEMO_PASSWORD
                       instead of -UITesting. simctl capture still uses -UITesting.
@@ -76,6 +79,17 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --skip-paywall) SKIP_PAYWALL=1; shift ;;
+    --appearance)
+      APPEARANCE="${2:?--appearance requires dark or light}"
+      case "$APPEARANCE" in
+        dark|light) ;;
+        *)
+          echo "--appearance must be dark or light, got: ${APPEARANCE}" >&2
+          exit 1
+          ;;
+      esac
+      shift 2
+      ;;
     --uitest) RUN_UITEST=1; shift ;;
     --demo-account) USE_DEMO_ACCOUNT=1; shift ;;
     --device)
@@ -114,7 +128,8 @@ print_plan() {
   echo "  bundle id:   ${BUNDLE_ID}"
   echo "  preferred:   ${DEVICE_NAME}"
   echo "  output:      ${OUT_DIR}"
-  echo "  launch args: -UITesting -ScreenshotSeed -ScreenshotScene <scene>"
+  echo "  launch args: -UITesting -ScreenshotSeed -ScreenshotScene <scene> -ScreenshotAppearance ${APPEARANCE}"
+  echo "  appearance:  ${APPEARANCE} (dark = green cards, matching a Dark Mode device)"
   echo "  auth:        skipped via -UITesting (not guest mode)"
   if [[ "$USE_DEMO_ACCOUNT" -eq 1 ]]; then
     echo "  uitest auth: SAMAN_DEMO_EMAIL demo account"
@@ -222,7 +237,7 @@ mkdir -p "$OUT_DIR" "$DERIVED_DATA"
 echo "Booting Simulator…"
 xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$UDID" -b
-xcrun simctl ui "$UDID" appearance light >/dev/null 2>&1 || true
+xcrun simctl ui "$UDID" appearance "$APPEARANCE" >/dev/null 2>&1 || true
 xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 >/dev/null 2>&1 || true
 
 echo "Building ${SCHEME} for Simulator…"
@@ -251,7 +266,8 @@ capture_scene() {
   xcrun simctl launch "$UDID" "$BUNDLE_ID" \
     -UITesting \
     -ScreenshotSeed \
-    -ScreenshotScene "$scene" >/dev/null
+    -ScreenshotScene "$scene" \
+    -ScreenshotAppearance "$APPEARANCE" >/dev/null
   sleep "$SETTLE_SECONDS"
   xcrun simctl io "$UDID" screenshot "${OUT_DIR}/${filename}"
 }
@@ -271,7 +287,8 @@ Generated: ${generated}
 Device: ${RESOLVED_NAME}
 UDID: ${UDID}
 Runtime: ${RUNTIME}
-Launch: \`-UITesting -ScreenshotSeed -ScreenshotScene <scene>\`
+Launch: \`-UITesting -ScreenshotSeed -ScreenshotScene <scene> -ScreenshotAppearance ${APPEARANCE}\`
+Appearance: ${APPEARANCE} (Dark Mode uses the forest-green surfaces from the asset catalog)
 Auth: skipped via \`-UITesting\` (not guest mode). Demo kitchen is local SwiftData seed.
 
 These are Simulator captures from this machine. Do not replace them with

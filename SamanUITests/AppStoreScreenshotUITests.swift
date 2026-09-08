@@ -12,6 +12,7 @@ final class AppStoreScreenshotUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        XCUIDevice.shared.appearance = .dark
     }
 
     @MainActor
@@ -72,7 +73,7 @@ final class AppStoreScreenshotUITests: XCTestCase {
         let email = env["SAMAN_DEMO_EMAIL"] ?? ""
         let password = env["SAMAN_DEMO_PASSWORD"] ?? ""
 
-        var args = ["-ScreenshotSeed", "-ScreenshotScene", scene]
+        var args = ["-ScreenshotSeed", "-ScreenshotScene", scene, "-ScreenshotAppearance", "dark"]
         if useDemo && !email.isEmpty && !password.isEmpty {
             app.launchArguments = args
             app.launch()

@@ -15,11 +15,33 @@ struct ScreenshotLaunchConfiguration: Equatable, Sendable {
         case paywall
     }
 
+    /// Explicit light/dark override from `-ScreenshotAppearance`.
+    /// App Store shots should match a Dark Mode device (forest-green
+    /// `surfaceDoodh` / `surfaceMalai`), not the cream light palette.
+    enum Appearance: String, Equatable, Sendable {
+        case light
+        case dark
+    }
+
     var isUITesting: Bool
     var shouldSeedDemoKitchen: Bool
     var skipsAuth: Bool
     var usesInMemoryStore: Bool
     var scene: Scene?
+    var appearance: Appearance?
+
+    /// Dark Mode is the App Store look: green cards on near-black doodh.
+    /// Capture defaults to dark even if `-ScreenshotAppearance` is omitted.
+    var usesDarkAppearance: Bool {
+        switch appearance {
+        case .dark:
+            return true
+        case .light:
+            return false
+        case nil:
+            return isUITesting || shouldSeedDemoKitchen
+        }
+    }
 
     static var current: ScreenshotLaunchConfiguration {
         parse(
@@ -42,12 +64,20 @@ struct ScreenshotLaunchConfiguration: Equatable, Sendable {
                 scene = Scene(rawValue: arguments[valueIndex])
             }
         }
+        var appearance: Appearance?
+        if let flagIndex = arguments.firstIndex(of: "-ScreenshotAppearance") {
+            let valueIndex = arguments.index(after: flagIndex)
+            if valueIndex < arguments.endIndex {
+                appearance = Appearance(rawValue: arguments[valueIndex])
+            }
+        }
         return ScreenshotLaunchConfiguration(
             isUITesting: isUITesting,
             shouldSeedDemoKitchen: shouldSeedDemoKitchen,
             skipsAuth: isUITesting,
             usesInMemoryStore: shouldSeedDemoKitchen,
-            scene: scene
+            scene: scene,
+            appearance: appearance
         )
     }
 }

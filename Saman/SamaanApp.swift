@@ -41,8 +41,22 @@ struct SamaanApp: App {
                 .onOpenURL { url in
                     Task { await appEnv.auth.handleAuthURL(url) }
                 }
+                .preferredColorScheme(Self.screenshotColorScheme)
         }
         .modelContainer(appEnv.modelContainer)
+    }
+
+    private static var screenshotColorScheme: ColorScheme? {
+        let launch = ScreenshotLaunchConfiguration.current
+        if launch.usesDarkAppearance { return .dark }
+        switch launch.appearance {
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        case nil:
+            return nil
+        }
     }
 
     // MARK: - RevenueCat

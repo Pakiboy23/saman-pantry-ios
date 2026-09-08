@@ -33,10 +33,16 @@ artifacts/app-store-screenshots/MANIFEST.md
 | Flag | Meaning |
 |------|---------|
 | `--dry-run` | Print the plan. Safe on Linux / CI. |
+| `--appearance dark|light` | Color scheme. **Default `dark`** (forest-green cards, matching a Dark Mode iPhone). `light` is cream doodh. |
 | `--device NAME` | Simulator device name. |
 | `--skip-paywall` | Skip the optional fifth shot. |
 | `--uitest` | Also run `SamanUITests/AppStoreScreenshotUITests`. |
 | `--demo-account` | With `--uitest`, sign in using env credentials instead of `-UITesting`. |
+
+`simctl` capture forces **Dark Appearance**. That is the look on a Dark Mode
+device: near-black `surfaceDoodh` and forest-green `surfaceMalai` cards — not
+the cream light palette. Override with `--appearance light` only if you
+explicitly want doodh screenshots.
 
 ## Auth: `-UITesting` vs demo account
 
@@ -45,7 +51,7 @@ Auth normally blocks the tab shell. There is still **no guest mode**.
 **Default (recommended for screenshots):** the script launches with:
 
 ```
--UITesting -ScreenshotSeed -ScreenshotScene <pantry|recipeReview|shoppingList|home|paywall>
+-UITesting -ScreenshotSeed -ScreenshotScene <pantry|recipeReview|shoppingList|home|paywall> -ScreenshotAppearance dark
 ```
 
 `-UITesting` is a launch-argument bypass used only by this script and the

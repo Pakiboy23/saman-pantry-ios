@@ -14,6 +14,7 @@ struct ScreenshotLaunchConfigurationTests {
         #expect(config.shouldSeedDemoKitchen)
         #expect(config.usesInMemoryStore)
         #expect(config.scene == nil)
+        #expect(config.usesDarkAppearance)
     }
 
     @Test func screenshotSeedWithoutUITestingStillSeedsButDoesNotSkipAuth() {
@@ -25,6 +26,7 @@ struct ScreenshotLaunchConfigurationTests {
         #expect(!config.skipsAuth)
         #expect(config.shouldSeedDemoKitchen)
         #expect(config.usesInMemoryStore)
+        #expect(config.usesDarkAppearance)
     }
 
     @Test func xcodeUITestEnvAloneDoesNotSkipAuth() {
@@ -35,6 +37,7 @@ struct ScreenshotLaunchConfigurationTests {
         #expect(!config.isUITesting)
         #expect(!config.skipsAuth)
         #expect(!config.shouldSeedDemoKitchen)
+        #expect(!config.usesDarkAppearance)
     }
 
     @Test func parsesKnownScenes() {
@@ -70,6 +73,33 @@ struct ScreenshotLaunchConfigurationTests {
         #expect(config.scene == nil)
     }
 
+    @Test func screenshotAppearanceDarkFlag() {
+        let config = ScreenshotLaunchConfiguration.parse(
+            arguments: ["/app", "-UITesting", "-ScreenshotAppearance", "dark"],
+            environment: [:]
+        )
+        #expect(config.appearance == .dark)
+        #expect(config.usesDarkAppearance)
+    }
+
+    @Test func screenshotAppearanceLightFlagOverridesCaptureDefault() {
+        let config = ScreenshotLaunchConfiguration.parse(
+            arguments: ["/app", "-UITesting", "-ScreenshotAppearance", "light"],
+            environment: [:]
+        )
+        #expect(config.appearance == .light)
+        #expect(!config.usesDarkAppearance)
+    }
+
+    @Test func unknownAppearanceIsNilAndCaptureStillDefaultsDark() {
+        let config = ScreenshotLaunchConfiguration.parse(
+            arguments: ["/app", "-UITesting", "-ScreenshotAppearance", "system"],
+            environment: [:]
+        )
+        #expect(config.appearance == nil)
+        #expect(config.usesDarkAppearance)
+    }
+
     @Test func productionLaunchIsUnchanged() {
         let config = ScreenshotLaunchConfiguration.parse(
             arguments: ["/var/containers/Bundle/Application/Saman.app/Saman"],
@@ -80,6 +110,8 @@ struct ScreenshotLaunchConfigurationTests {
         #expect(!config.shouldSeedDemoKitchen)
         #expect(!config.usesInMemoryStore)
         #expect(config.scene == nil)
+        #expect(config.appearance == nil)
+        #expect(!config.usesDarkAppearance)
     }
 }
 
