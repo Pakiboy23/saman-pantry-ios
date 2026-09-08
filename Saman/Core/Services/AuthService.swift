@@ -17,10 +17,21 @@ final class AuthService {
 
     init(supabase: SupabaseClient = .shared) {
         self.supabase = supabase
+        if ScreenshotLaunchConfiguration.current.skipsAuth {
+            isSignedIn = true
+            hasCheckedInitialSession = true
+            currentUserID = "ui-testing"
+        }
     }
 
     /// Call once on app launch — keeps `isSignedIn` in sync with Supabase auth state.
     func startListening() async {
+        if ScreenshotLaunchConfiguration.current.skipsAuth {
+            isSignedIn = true
+            hasCheckedInitialSession = true
+            currentUserID = "ui-testing"
+            return
+        }
         for await (event, session) in supabase.auth.authStateChanges {
             switch event {
             case .initialSession:

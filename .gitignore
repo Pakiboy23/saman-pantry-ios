@@ -65,5 +65,8 @@ fastlane/test_output
 # Real values are injected by ci_scripts/ci_post_clone.sh.
 /Secrets.xcconfig
 
+# Generated App Store Simulator captures (never commit fake marketing images)
+artifacts/
+
 # Claude Code local config
 .claude/

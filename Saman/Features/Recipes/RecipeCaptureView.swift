@@ -24,6 +24,34 @@ struct RecipeCaptureView: View {
         var isSelected  = true
     }
 
+    /// Screenshot / UI-test entry: skip the live extract-recipe call and open
+    /// the review screen with canned ingredients (including "haldi — andaza se").
+    init(demoReview: ExtractedRecipe? = nil) {
+        if let demoReview {
+            _phase = State(initialValue: .reviewing)
+            _recipeTitle = State(initialValue: demoReview.title)
+            _recipeSource = State(initialValue: demoReview.attribution ?? "")
+            _selections = State(initialValue: demoReview.ingredients.map { IngredientSelection(ingredient: $0) })
+            _transcript = State(initialValue: ScreenshotDemoKitchen.karahiTranscript)
+            if let data = try? JSONEncoder().encode(demoReview),
+               let json = String(data: data, encoding: .utf8) {
+                _extractedJSON = State(initialValue: json)
+            } else {
+                _extractedJSON = State(initialValue: "")
+            }
+        } else {
+            _phase = State(initialValue: .idle)
+            _recipeTitle = State(initialValue: "")
+            _recipeSource = State(initialValue: "")
+            _selections = State(initialValue: [])
+            _transcript = State(initialValue: "")
+            _extractedJSON = State(initialValue: "")
+        }
+        _showError = State(initialValue: false)
+        _errorMessage = State(initialValue: "")
+        _showPaywall = State(initialValue: false)
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -176,6 +204,7 @@ struct RecipeCaptureView: View {
                 Spacer(minLength: 100)
             }
         }
+        .accessibilityIdentifier("screenshot.recipeReview")
         .overlay(alignment: .bottom) {
             addButton
         }

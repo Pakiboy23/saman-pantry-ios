@@ -84,6 +84,10 @@ the paywall. Privacy Policy and Terms links are in Settings > About and on the p
 
 Caption each with the benefit ("See what's low before you shop", "Your mother's exact words, kept").
 
+Capture from a Mac Simulator (real PNGs only, no mockups):
+[`app-store-screenshots.md`](./app-store-screenshots.md) and
+`./scripts/capture-app-store-screenshots.sh`.
+
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
 - Data collected: Email, User ID, Other User Content (pantry/recipes), Purchase History.
 - All "linked to you," none "used for tracking."

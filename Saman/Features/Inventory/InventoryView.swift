@@ -100,6 +100,7 @@ struct InventoryView: View {
             }
             .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
+            .accessibilityIdentifier("screenshot.pantry")
             .safeAreaInset(edge: .top, spacing: 0) {
                 topHeader
             }

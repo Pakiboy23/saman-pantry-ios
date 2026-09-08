@@ -9,6 +9,7 @@ struct ShoppingListsView: View {
     @State private var showPaywall = false
     @State private var pendingDeleteList: ShoppingList?
     @State private var openSwipeID: UUID?
+    @State private var showScreenshotList = false
 
     var body: some View {
         NavigationStack {
@@ -58,6 +59,17 @@ struct ShoppingListsView: View {
                 .background(Color.surfaceDoodh)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear {
+                openScreenshotListIfNeeded()
+            }
+            .onChange(of: lists.count) { _, _ in
+                openScreenshotListIfNeeded()
+            }
+            .navigationDestination(isPresented: $showScreenshotList) {
+                if let list = lists.first(where: { $0.name == ScreenshotDemoKitchen.shoppingListName }) {
+                    ShoppingListDetailView(list: list)
+                }
+            }
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
             .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .confirmationDialog(
@@ -80,6 +92,12 @@ struct ShoppingListsView: View {
 
     private var listSubtitle: String {
         lists.isEmpty ? "Plan your next shop" : "\(lists.count) list\(lists.count == 1 ? "" : "s")"
+    }
+
+    private func openScreenshotListIfNeeded() {
+        guard ScreenshotLaunchConfiguration.current.scene == .shoppingList else { return }
+        guard lists.contains(where: { $0.name == ScreenshotDemoKitchen.shoppingListName }) else { return }
+        showScreenshotList = true
     }
 }
 

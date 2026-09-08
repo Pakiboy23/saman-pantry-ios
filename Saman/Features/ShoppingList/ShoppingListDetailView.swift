@@ -30,6 +30,7 @@ struct ShoppingListDetailView: View {
         }
         .navigationTitle(list.name)
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("screenshot.shoppingList")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Add Item", systemImage: "plus") { showAddItem = true }
