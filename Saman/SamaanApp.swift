@@ -9,10 +9,11 @@ struct SamaanApp: App {
     @State private var appEnv: AppEnvironment
 
     init() {
-        registerFonts()
-        configureNavigationBarAppearance()
-        configureTabBarAppearance()
-        configureRevenueCat()
+        // Static helpers: instance methods cannot run before `_appEnv` is set.
+        Self.registerFonts()
+        Self.configureNavigationBarAppearance()
+        Self.configureTabBarAppearance()
+        Self.configureRevenueCat()
 
         let launch = ScreenshotLaunchConfiguration.current
         if launch.isUITesting {
@@ -46,14 +47,14 @@ struct SamaanApp: App {
 
     // MARK: - RevenueCat
 
-    private func configureRevenueCat() {
+    private static func configureRevenueCat() {
         Purchases.logLevel = .error
         Purchases.configure(withAPIKey: Config.revenueCatAPIKey)
     }
 
     // MARK: - Font registration
 
-    private func registerFonts() {
+    private static func registerFonts() {
         let names = [
             "CormorantGaramond-Bold",
             "CormorantGaramond-SemiBold",
@@ -72,7 +73,7 @@ struct SamaanApp: App {
 
     // MARK: - Navigation bar appearance
 
-    private func configureNavigationBarAppearance() {
+    private static func configureNavigationBarAppearance() {
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithOpaqueBackground()
         navAppearance.backgroundColor = UIColor(Color.surfaceDoodh)
@@ -98,7 +99,7 @@ struct SamaanApp: App {
 
     // MARK: - Tab bar appearance
 
-    private func configureTabBarAppearance() {
+    private static func configureTabBarAppearance() {
         // Saag palette colors
         let doodh = UIColor(Color.surfaceDoodh)          // #FCF8EE light
         let kohlSoft = UIColor(Color.inkKohlSoft)        // #5C5448 light

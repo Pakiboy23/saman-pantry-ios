@@ -68,6 +68,8 @@ struct ShoppingListsView: View {
             .navigationDestination(isPresented: $showScreenshotList) {
                 if let list = lists.first(where: { $0.name == ScreenshotDemoKitchen.shoppingListName }) {
                     ShoppingListDetailView(list: list)
+                } else {
+                    EmptyView()
                 }
             }
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
