@@ -57,7 +57,9 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             cardLabel("SYNC")
                             Button {
-                                appEnv.syncNow()
+                                if appEnv.requireAccount() {
+                                    appEnv.syncNow()
+                                }
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.trianglehead.clockwise")
@@ -76,40 +78,75 @@ struct SettingsView: View {
                     settingsCard {
                         VStack(alignment: .leading, spacing: 12) {
                             cardLabel("ACCOUNT")
-                            Button {
-                                showSignOutConfirm = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                                        .foregroundStyle(Color.accentAnaar)
-                                    Text("Sign out")
-                                        .foregroundStyle(Color.accentAnaar)
-                                    Spacer()
+                            if appEnv.auth.isSignedIn {
+                                Button {
+                                    showSignOutConfirm = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                                            .foregroundStyle(Color.accentAnaar)
+                                        Text("Sign out")
+                                            .foregroundStyle(Color.accentAnaar)
+                                        Spacer()
+                                    }
+                                    .font(.system(size: 15))
                                 }
-                                .font(.system(size: 15))
-                            }
-                            .buttonStyle(.plain)
+                                .buttonStyle(.plain)
 
-                            Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
+                                Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
 
-                            Button {
-                                showDeleteConfirm = true
-                            } label: {
-                                HStack {
-                                    if isDeleting {
-                                        ProgressView().tint(Color.accentAnaar)
-                                    } else {
+                                Button {
+                                    showDeleteConfirm = true
+                                } label: {
+                                    HStack {
+                                        if isDeleting {
+                                            ProgressView().tint(Color.accentAnaar)
+                                        } else {
+                                            Image(systemName: "trash")
+                                                .foregroundStyle(Color.accentAnaar)
+                                        }
+                                        Text("Delete account")
+                                            .foregroundStyle(Color.accentAnaar)
+                                        Spacer()
+                                    }
+                                    .font(.system(size: 15))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isDeleting)
+                            } else {
+                                Button {
+                                    appEnv.requireAccount()
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "person.crop.circle")
+                                            .foregroundStyle(Color.brandSaag)
+                                        Text("Sign in")
+                                            .foregroundStyle(Color.inkKohl)
+                                        Spacer()
+                                    }
+                                    .font(.system(size: 15))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("settings.signIn")
+
+                                Divider().overlay(Color.borderAkhrotSoft.opacity(0.5))
+
+                                Button {
+                                    if appEnv.requireAccount() {
+                                        showDeleteConfirm = true
+                                    }
+                                } label: {
+                                    HStack {
                                         Image(systemName: "trash")
                                             .foregroundStyle(Color.accentAnaar)
+                                        Text("Delete account")
+                                            .foregroundStyle(Color.accentAnaar)
+                                        Spacer()
                                     }
-                                    Text("Delete account")
-                                        .foregroundStyle(Color.accentAnaar)
-                                    Spacer()
+                                    .font(.system(size: 15))
                                 }
-                                .font(.system(size: 15))
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(isDeleting)
                         }
                     }
 
@@ -186,6 +223,12 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 SamaanPaywallView()
+            }
+            .fullScreenCover(isPresented: Binding(
+                get: { appEnv.isAuthPresented },
+                set: { appEnv.isAuthPresented = $0 }
+            )) {
+                AuthView()
             }
             .sheet(isPresented: $showCustomerCenter) {
                 CustomerCenterView()

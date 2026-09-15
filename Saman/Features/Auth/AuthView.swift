@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AuthView: View {
     @Environment(\.appEnv) private var appEnv
+    @Environment(\.dismiss) private var dismiss
+    var allowsDismiss: Bool = true
     @State private var email = ""
     @State private var password = ""
     @State private var newPassword = ""
@@ -12,31 +14,36 @@ struct AuthView: View {
     private var auth: AuthService { appEnv.auth }
 
     var body: some View {
-        if auth.isRecoveringPassword {
-            setNewPasswordView
-        } else if auth.pendingEmailConfirmation {
-            mailNoticeView(
-                title: "Check your email",
-                bodyText: "We sent a confirmation link to\n\(auth.pendingEmail)",
-                actionTitle: "Resend email",
-                action: { await auth.resendConfirmation() },
-                backTitle: "Back to Sign In",
-                onBack: { auth.cancelConfirmation() }
-            )
-        } else if auth.pendingPasswordReset {
-            mailNoticeView(
-                title: "Check your email",
-                bodyText: "We sent a password reset link to\n\(auth.pendingEmail)",
-                actionTitle: nil,
-                action: nil,
-                backTitle: "Back to Sign In",
-                onBack: {
-                    auth.cancelPasswordReset()
-                    isForgotPassword = false
-                }
-            )
-        } else {
-            formView
+        Group {
+            if auth.isRecoveringPassword {
+                setNewPasswordView
+            } else if auth.pendingEmailConfirmation {
+                mailNoticeView(
+                    title: "Check your email",
+                    bodyText: "We sent a confirmation link to\n\(auth.pendingEmail)",
+                    actionTitle: "Resend email",
+                    action: { await auth.resendConfirmation() },
+                    backTitle: "Back to Sign In",
+                    onBack: { auth.cancelConfirmation() }
+                )
+            } else if auth.pendingPasswordReset {
+                mailNoticeView(
+                    title: "Check your email",
+                    bodyText: "We sent a password reset link to\n\(auth.pendingEmail)",
+                    actionTitle: nil,
+                    action: nil,
+                    backTitle: "Back to Sign In",
+                    onBack: {
+                        auth.cancelPasswordReset()
+                        isForgotPassword = false
+                    }
+                )
+            } else {
+                formView
+            }
+        }
+        .onChange(of: auth.isSignedIn) { _, signedIn in
+            if signedIn && allowsDismiss { dismiss() }
         }
     }
 
@@ -103,6 +110,9 @@ struct AuthView: View {
                         .foregroundStyle(Color.brandSaag)
                 }
                 Spacer()
+                SamaanLegalLinks()
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.bottom, 24)
             }
         }
     }
@@ -268,7 +278,22 @@ struct AuthView: View {
                     }
                     .font(.system(size: 14))
 
-                    Spacer().frame(height: 48)
+                    if allowsDismiss {
+                        Spacer().frame(height: 16)
+                        Button("Not now") {
+                            appEnv.isAuthPresented = false
+                            dismiss()
+                        }
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.inkKohlSoft)
+                        .accessibilityIdentifier("auth.dismiss")
+                    }
+
+                    Spacer().frame(height: 28)
+                    SamaanLegalLinks()
+                        .padding(.horizontal, Samaan.Space.md)
+                        .accessibilityIdentifier("auth.legal")
+                    Spacer().frame(height: 32)
                 }
             }
         }
@@ -358,6 +383,9 @@ struct AuthView: View {
                 .disabled(auth.isLoading || newPassword.isEmpty || confirmPassword.isEmpty)
                 .padding(.horizontal, Samaan.Space.md)
                 Spacer()
+                SamaanLegalLinks()
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.bottom, 24)
             }
         }
     }

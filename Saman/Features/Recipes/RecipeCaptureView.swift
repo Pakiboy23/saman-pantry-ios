@@ -15,6 +15,7 @@ struct RecipeCaptureView: View {
     @State private var showError     = false
     @State private var errorMessage  = ""
     @State private var showPaywall   = false
+    @State private var resumeExtractAfterAuth = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -50,6 +51,7 @@ struct RecipeCaptureView: View {
         _showError = State(initialValue: false)
         _errorMessage = State(initialValue: "")
         _showPaywall = State(initialValue: false)
+        _resumeExtractAfterAuth = State(initialValue: false)
     }
 
     // MARK: - Body
@@ -85,6 +87,22 @@ struct RecipeCaptureView: View {
                 Text(errorMessage)
             }
             .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
+            .fullScreenCover(isPresented: Binding(
+                get: { appEnv.isAuthPresented },
+                set: { appEnv.isAuthPresented = $0 }
+            )) {
+                AuthView()
+            }
+            .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
+                guard signedIn, resumeExtractAfterAuth else { return }
+                resumeExtractAfterAuth = false
+                Task { await runExtraction() }
+            }
+            .onChange(of: appEnv.isAuthPresented) { _, presented in
+                if !presented && !appEnv.auth.isSignedIn {
+                    resumeExtractAfterAuth = false
+                }
+            }
         }
     }
 
@@ -266,6 +284,10 @@ struct RecipeCaptureView: View {
     private func runExtraction() async {
         let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        if !appEnv.requireAccount() {
+            resumeExtractAfterAuth = true
+            return
+        }
         phase = .extracting
         do {
             let result = try await RecipeExtractionService.shared.extract(transcript: text)
@@ -281,6 +303,10 @@ struct RecipeCaptureView: View {
             } else {
                 showPaywall = true
             }
+            phase = .idle
+        } catch RecipeExtractionService.ExtractionError.unauthorized {
+            resumeExtractAfterAuth = true
+            appEnv.requireAccount()
             phase = .idle
         } catch {
             errorMessage = error.localizedDescription

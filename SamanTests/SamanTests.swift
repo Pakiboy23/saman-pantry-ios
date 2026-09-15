@@ -164,3 +164,42 @@ struct AuthCopyTests {
         #expect(AuthService.friendly(DummyError(message: "unexpected blob")) == "Something went wrong. Please try again.")
     }
 }
+
+struct LegalURLTests {
+    @Test func configExposesAppStoreLegalURLs() {
+        #expect(Config.privacyPolicyURL == "https://samanpantry.com/privacy")
+        #expect(Config.termsOfUseURL == "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+        #expect(Config.supportURL == "https://samanpantry.com/support")
+        #expect(URL(string: Config.privacyPolicyURL) != nil)
+        #expect(URL(string: Config.termsOfUseURL) != nil)
+        #expect(URL(string: Config.supportURL) != nil)
+    }
+}
+
+@MainActor
+struct GuestAccountGateTests {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema([
+            Item.self,
+            Pantry.self,
+            Product.self,
+            Store.self,
+            ShoppingList.self,
+            ShoppingListItem.self,
+            Recipe.self,
+        ])
+        return try ModelContainer(
+            for: schema,
+            configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        )
+    }
+
+    @Test func requireAccountPresentsAuthWhenSignedOut() throws {
+        let env = AppEnvironment(modelContainer: try makeContainer())
+        guard !ScreenshotLaunchConfiguration.current.skipsAuth else { return }
+        #expect(env.auth.isSignedIn == false)
+        #expect(env.isAuthPresented == false)
+        #expect(env.requireAccount() == false)
+        #expect(env.isAuthPresented)
+    }
+}

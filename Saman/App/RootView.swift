@@ -15,8 +15,8 @@ struct RootView: View {
         let launch = ScreenshotLaunchConfiguration.current
         let scene = launch.scene
         _selectedTab = State(initialValue: Self.tab(for: scene))
-        // Don't present capture sheets over AuthView. -UITesting signs in
-        // before the first frame; a demo-account sign-in presents after.
+        // Don't present capture sheets over the splash. -UITesting is signed
+        // in before the first frame; a demo-account sign-in presents after.
         let presentNow = launch.skipsAuth
         _showScreenshotRecipeReview = State(initialValue: presentNow && scene == .recipeReview)
         _showScreenshotPaywall = State(initialValue: presentNow && scene == .paywall)
@@ -52,11 +52,9 @@ struct RootView: View {
                     }
                 }
             } else if appEnv.auth.isRecoveringPassword {
-                AuthView()
-            } else if appEnv.auth.isSignedIn {
-                tabShell
+                AuthView(allowsDismiss: false)
             } else {
-                AuthView()
+                tabShell
             }
         }
         .task { await appEnv.auth.startListening() }
@@ -65,6 +63,8 @@ struct RootView: View {
         }
         .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
             guard signedIn else { return }
+            appEnv.isAuthPresented = false
+            appEnv.syncNow()
             presentScreenshotSheetsIfNeeded()
         }
         .sheet(isPresented: $showScreenshotRecipeReview) {

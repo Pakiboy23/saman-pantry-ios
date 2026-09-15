@@ -10,6 +10,10 @@ final class AppEnvironment {
     let auth: AuthService
     let purchases: PurchaseService
 
+    /// Presents `AuthView` from Settings or recipe capture (nested cover)
+    /// when a guest hits Sync, AI extract, or account deletion.
+    var isAuthPresented = false
+
     init(
         modelContainer: ModelContainer = .shared,
         supabase: SupabaseClient = .shared
@@ -21,10 +25,22 @@ final class AppEnvironment {
         self.purchases = PurchaseService()
     }
 
+    /// Returns `true` when a session already exists. Otherwise presents
+    /// `AuthView` and returns `false` so the caller can wait or abort.
+    @discardableResult
+    func requireAccount() -> Bool {
+        if auth.isSignedIn { return true }
+        isAuthPresented = true
+        return false
+    }
+
     func syncNow() {
         // Screenshot / UI-test seeds are local-only. Pulling would race the
         // canned kitchen, and a fake "ui-testing" user must not push to prod.
         if ScreenshotLaunchConfiguration.current.shouldSeedDemoKitchen { return }
+        // Guests can edit locally. Background sync is a no-op without a
+        // session (`SyncManager` returns early). Do not prompt here — only
+        // the explicit Settings "Sync now" control should demand an account.
         let container = modelContainer
         let manager = syncManager
         Task { @MainActor in
