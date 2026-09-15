@@ -2,10 +2,10 @@ import Foundation
 
 /// Launch-argument contract for App Store screenshot capture and UI tests.
 ///
-/// This is **not** guest mode. Production launches never pass these flags, so
-/// auth still gates the tab shell. The Mac capture script and
-/// `AppStoreScreenshotUITests` pass `-UITesting` so Simulator can show a seeded
-/// desi kitchen without a live session.
+/// Production launches already show the tab shell without a session (guest
+/// browse). `-UITesting` still skips `AuthView` and seeds a demo kitchen so
+/// Simulator capture does not depend on Supabase. The Mac capture script and
+/// `AppStoreScreenshotUITests` pass that flag.
 struct ScreenshotLaunchConfiguration: Equatable, Sendable {
     enum Scene: String, Equatable, Sendable {
         case home

@@ -375,3 +375,40 @@ struct SamaanEmptyState: View {
         .padding(.horizontal, 32)
     }
 }
+
+// MARK: - Legal links (Auth, Settings, paywall)
+
+/// Privacy, Terms, and Support using `Config` URLs. Shown without login on
+/// `AuthView` and on the paywall so Review can open the EULA in-binary.
+struct SamaanLegalLinks: View {
+    var includeSupport: Bool = true
+
+    var body: some View {
+        HStack(spacing: 6) {
+            legalLink("Privacy Policy", Config.privacyPolicyURL)
+            separator
+            legalLink("Terms of Use", Config.termsOfUseURL)
+            if includeSupport {
+                separator
+                legalLink("Support", Config.supportURL)
+            }
+        }
+        .font(.system(size: 12))
+        .multilineTextAlignment(.center)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var separator: some View {
+        Text("·").foregroundStyle(Color.inkKohlSoft)
+    }
+
+    @ViewBuilder
+    private func legalLink(_ title: String, _ urlString: String) -> some View {
+        if let url = URL(string: urlString) {
+            Link(title, destination: url)
+                .foregroundStyle(Color.brandSaag)
+                .tint(Color.brandSaag)
+                .accessibilityLabel(title)
+        }
+    }
+}

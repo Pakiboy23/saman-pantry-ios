@@ -62,7 +62,12 @@ final class RecipeExtractionService {
     private let endpoint = URL(string: Config.recipeExtractionEndpoint)!
 
     func extract(transcript: String) async throws -> ExtractionResult {
-        let token = try await SupabaseClient.shared.auth.session.accessToken
+        let token: String
+        do {
+            token = try await SupabaseClient.shared.auth.session.accessToken
+        } catch {
+            throw ExtractionError.unauthorized
+        }
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
