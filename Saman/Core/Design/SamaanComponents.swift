@@ -37,31 +37,23 @@ struct SamaanHeader: View {
 
 struct LowStockBanner: View {
     let count: Int
-    var action: (() -> Void)? = nil
 
     var body: some View {
-        Button {
-            action?()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color.accentAnaar)
-                    .font(.system(size: 14))
-                Text("\(count) item\(count == 1 ? "" : "s") \(count == 1 ? "needs" : "need") restocking. Tap to see what to order.")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.accentAnaar)
-                    .multilineTextAlignment(.leading)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.accentAnaar.opacity(0.6))
-            }
-            .padding(12)
-            .background(Color.accentAnaar.opacity(0.08), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.accentAnaar.opacity(0.25), lineWidth: 1))
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.accentAnaar)
+                .font(.system(size: 14))
+            Text("\(count) item\(count == 1 ? "" : "s") \(count == 1 ? "needs" : "need") restocking.")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.accentAnaar)
+                .multilineTextAlignment(.leading)
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .background(Color.accentAnaar.opacity(0.08), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.accentAnaar.opacity(0.25), lineWidth: 1))
         .padding(.horizontal, Samaan.Space.md)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -183,50 +175,6 @@ struct ItemCard: View {
         }
         .padding(12)
         .samaanCard()
-    }
-}
-
-// MARK: - Reorder Item Row
-
-struct ReorderItemRow: View {
-    let item: Item
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(Color.brandSaag)
-
-                Text(item.emoji)
-                    .font(.system(size: 18))
-                    .frame(width: 36, height: 36)
-                    .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.name)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.inkKohl)
-                    Text("Have \(item.quantity), need ≥ \(item.minimumQuantity)")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.inkKohlSoft)
-                }
-
-                Spacer()
-
-                Text("\(item.quantity)/\(item.minimumQuantity)")
-                    .font(.samaanMono(13))
-                    .foregroundStyle(Color.accentAnaar)
-            }
-            .padding(12)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
-            .overlay(
-                RoundedRectangle(cornerRadius: Samaan.Radius.md)
-                    .stroke(Color.accentAnaar.opacity(0.2), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 }
 
