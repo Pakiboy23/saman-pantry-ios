@@ -31,6 +31,7 @@ Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recip
 - Account deletion goes through `delete-account` with the user JWT.
 - Deletes go through `AppEnvironment.deleteRecord` so a tombstone is queued. Bare `context.delete` resurrects the row on the next pull.
 - Prices is gone. The view was deleted 29 Aug 2026; do not rebuild it.
+- `ReorderView` / `ReorderItemRow` / `RestockSheet` are gone. The live loop is item detail → list → mark bought. Do not restore a Reorder tab.
 - Scanner is a data-entry method, not a destination — keep it inside Add Item.
 - The app target is a synchronized Xcode group. Every `.swift` under `Saman/` compiles with no pbxproj entry, so an unreferenced file still ships. Delete dead code, do not park it.
 - `PantryListView` and `AddPantryView` were deleted. Do not restore them; InventoryView is the pantry surface.

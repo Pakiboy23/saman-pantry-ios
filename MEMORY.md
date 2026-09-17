@@ -1,5 +1,5 @@
 # Project Memory
-Last updated: 2026-09-05 | Branch: fix/extract-recipe-auth-and-recovery
+Last updated: 2026-09-17 | Branch: cursor/kill-reorder-and-pages-bdbe
 Memory health: 9/10
 
 ## Project Overview
@@ -12,6 +12,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 - **Open question:** none on the code side for recovery — `samaan://auth-callback` + `onOpenURL` + set-new-password UI are in this branch.
 
 ## Completed
+- 2026-09-17 Deleted unreachable `ReorderView` / `ReorderItemRow` / private `RestockSheet`, trimmed the unwired LowStockBanner chevron, and dropped the two root `*.pages` thesis binaries.
 - 2026-09-05 extract-recipe requires the user JWT and a 5/day quota table. Client sends the access token; 402 opens the paywall (or a tomorrow message if already Pro).
 - 2026-09-05 Password recovery completes in-app: URL scheme, `onOpenURL`, `redirectTo`, `.passwordRecovery` is not a sign-out.
 - 2026-09-05 Deleted unreachable `PantryListView` / `AddPantryView`.
@@ -46,6 +47,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-09-17 | Delete ReorderView + Pages thesis binaries | Unreachable tab; live loop is item detail → list → mark bought. `.pages` copies were ~777KB each next to THESIS.md | ReorderView, LowStockBanner |
 | 2026-09-05 | Delete PantryListView / AddPantryView | Unreachable; synchronized group would ship them | Inventory |
 | 2026-09-05 | extract-recipe JWT + 5/day quota | Anon Bearer was an open Anthropic proxy | extract-recipe, RecipeExtractionService |
 | 2026-08-29 | Delete unreferenced files rather than quarantine them | The Xcode target uses `PBXFileSystemSynchronizedRootGroup`, so every file on disk compiles and ships. An orphan is not free | ItemRepository, PricesView |
@@ -70,7 +72,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 - Primary user: 25-35 diaspora adult, solo kitchen, single device
 - Household/sharing: v2 only, conditions in THESIS.md
 - Core loop: low → list → shop → bought → pantry updates
-- Cuts approved: Prices tab (view deleted 2026-08-29), Scanner as top-level tab, Settings as tab, PantryListView / AddPantryView (deleted 2026-09-05)
+- Cuts approved: Prices tab (view deleted 2026-08-29), Scanner as top-level tab, Settings as tab, PantryListView / AddPantryView (deleted 2026-09-05), ReorderView / ReorderItemRow (deleted 2026-09-17)
 - Scanner stays inside Add Item. It is a data-entry method, not a destination
 - Cultural specificity is the moat — no generic mode
 - Not a recipe app. Recipes exist to feed the shopping list.
