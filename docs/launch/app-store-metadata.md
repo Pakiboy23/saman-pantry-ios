@@ -53,14 +53,19 @@ sync across your devices.
 ```
 
 > The last two lines pre-empt reviewer questions about subscription + deletion. Keep them
-> accurate to whatever you actually ship (don't mention sync until pull-sync exists).
+> accurate to whatever you actually ship. Pull-sync exists. Guest browse exists: pantry /
+> lists / recipes work without an account; sync and recipe extract still need a session.
 
 ## What's New (version 1.0)
 `First release. Track your pantry, keep a shopping list, and capture family recipes exactly how they were said.`
 
 ## App Review notes (critical — prevents the reviewer lockout)
 ```
-DEMO ACCOUNT (email confirmation is required to sign in):
+Guest browse: launch without an account reaches Home / Pantry / Lists / Recipes
+(local SwiftData). Account is required only for Sync now, Extract Recipe, and
+Delete account. AuthView has "Not now".
+
+DEMO ACCOUNT (needed for extract / sync / delete; pantry UI does not require it):
   email: review@samanpantry.com   password: <set a real one>
 This account is pre-confirmed; sign in directly, no email step needed.
 
@@ -71,8 +76,9 @@ AI feature: "Capture a recipe" sends the pasted transcript to Anthropic via our
 Supabase Edge Function to structure it into ingredients. No third-party tracking.
 
 Camera is used only for barcode scanning when adding an item.
-Subscriptions are managed via RevenueCat; Restore Purchases is in Settings and on
-the paywall. Privacy Policy and Terms links are in Settings > About and on the paywall.
+Subscriptions are managed via RevenueCat; Restore Purchases is on the paywall
+(and Customer Center after purchase), not a free Settings row. Privacy Policy,
+Terms, and Support are in Settings → LEGAL, on AuthView, and on the paywall.
 ```
 
 ## Screenshot shot-list (show real use, not empty UI)

@@ -38,9 +38,13 @@ artifacts/app-store-screenshots/MANIFEST.md
 | `--uitest` | Also run `SamanUITests/AppStoreScreenshotUITests`. |
 | `--demo-account` | With `--uitest`, sign in using env credentials instead of `-UITesting`. |
 
-## Auth: `-UITesting` vs demo account
+## Auth: guest browse vs `-UITesting` vs demo account
 
-Auth normally blocks the tab shell. There is still **no guest mode**.
+Production already **guest-browses**: unsigned launch shows Home / Pantry / Lists / Recipes
+on local SwiftData (#20). Auth is only for Sync, Extract Recipe, and Delete account.
+
+Screenshot capture still uses `-UITesting` so the Simulator is not an empty guest kitchen
+and does not depend on Supabase.
 
 **Default (recommended for screenshots):** the script launches with:
 

@@ -54,8 +54,9 @@ Options:
 Environment:
   SAMAN_DEMO_EMAIL / SAMAN_DEMO_PASSWORD
       Pre-confirmed reviewer account. Required only for --uitest --demo-account.
-      The default path does not need an account: -UITesting skips AuthView and
-      seeds the shot-list kitchen. This is not guest mode.
+      The default path does not need an account: production already guest-browses
+      the tab shell; -UITesting additionally skips AuthView and seeds the
+      shot-list kitchen so screenshots are not an empty guest pantry.
 
   SETTLE_SECONDS      Pause after launch before capturing (default: 4)
 
@@ -115,7 +116,7 @@ print_plan() {
   echo "  preferred:   ${DEVICE_NAME}"
   echo "  output:      ${OUT_DIR}"
   echo "  launch args: -UITesting -ScreenshotSeed -ScreenshotScene <scene>"
-  echo "  auth:        skipped via -UITesting (not guest mode)"
+  echo "  auth:        skipped via -UITesting (screenshot seed; production already guest-browses)"
   if [[ "$USE_DEMO_ACCOUNT" -eq 1 ]]; then
     echo "  uitest auth: SAMAN_DEMO_EMAIL demo account"
   fi
@@ -272,7 +273,7 @@ Device: ${RESOLVED_NAME}
 UDID: ${UDID}
 Runtime: ${RUNTIME}
 Launch: \`-UITesting -ScreenshotSeed -ScreenshotScene <scene>\`
-Auth: skipped via \`-UITesting\` (not guest mode). Demo kitchen is local SwiftData seed.
+Auth: skipped via \`-UITesting\` (screenshot seed; production already guest-browses). Demo kitchen is local SwiftData seed.
 
 These are Simulator captures from this machine. Do not replace them with
 invented marketing images.
