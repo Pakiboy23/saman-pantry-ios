@@ -1,11 +1,22 @@
-# Legal & Privacy — what to publish and where to wire it
+# Legal & Privacy — live URLs and page substance
 
-Three URLs are **required to submit** and are currently missing both in-app and in App Store
-Connect. A subscription makes Terms + Privacy on the paywall mandatory under Guideline 3.1.2.
+Privacy, Terms, and Support URLs are **live** and shown in-app **without a login** (#20).
+Do not treat them as missing. A subscription still makes Terms + Privacy on the paywall
+mandatory under Guideline 3.1.2; that inset already ships.
 
-Cheapest correct path: one static site (GitHub Pages, Vercel, or a Notion public page) with
-three pages. A generator like the Apple-cited iubenda/Termly is fine; the content below is the
-substance reviewers and users need.
+| Surface | URLs |
+|---------|------|
+| `Config.swift` | `privacyPolicyURL`, `termsOfUseURL`, `supportURL` |
+| Settings → LEGAL, AuthView footer, paywall inset | same three |
+
+Live (verified 29 Aug 2026; keep in App Store Connect):
+
+- Privacy: `https://samanpantry.com/privacy` (200; apex 307s to `www`)
+- Terms: Apple standard EULA (`Config.termsOfUseURL`)
+- Support: `https://samanpantry.com/support` (200)
+
+The public pages still need to match actual data behavior. Substance below is for those
+hosted pages, not a to-do to invent new URLs.
 
 ---
 
@@ -40,15 +51,13 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 
 ---
 
-## Where to wire them in-app
-1. **Settings → About card** (`SettingsView.swift`): add rows "Privacy Policy", "Terms of Use",
-   "Support" opening the URLs (and they double as your discoverable legal surface since Settings
-   is a sheet, not a tab — see P2-SETTINGS-REACH-003).
-2. **Paywall** (`PaywallView.swift` / RevenueCat dashboard): set the Terms and Privacy URLs in
-   the RevenueCat paywall configuration (or via `.tosUrl`/`.privacyUrl` modifiers). Verify they
-   render on the live paywall — MON-04 flags this as unproven in code today.
+## Where they already appear
+1. **Settings → LEGAL** (`SettingsView.swift`): Privacy Policy, Terms of Use, Support. Visible
+   to guests (gear on Home/Pantry). Do not restore a login wall to reach them.
+2. **AuthView footer** and **paywall** (`SamaanLegalLinks` / `SamaanPaywallView` safe-area inset):
+   same links. RevenueCatUI has no `tosUrl`/`privacyUrl` modifier — keep the in-binary inset.
 3. **App Store Connect**: App Privacy → Privacy Policy URL; App Information → Support URL;
-   and the subscription group localization carries the Terms.
+   subscription group localization carries the Terms. Keep these pointed at the live URLs above.
 
 ## Food-safety / expiry disclaimer (do this)
 The app shows "expiring" status. Add one line to Terms and ideally near the expiry UI:
