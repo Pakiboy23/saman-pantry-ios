@@ -55,6 +55,10 @@ struct RootView: View {
                 AuthView(allowsDismiss: false)
             } else {
                 tabShell
+                    .onAppear {
+                        if ScreenshotLaunchConfiguration.current.skipsAuth { return }
+                        appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
+                    }
             }
         }
         .task { await appEnv.auth.startListening() }
@@ -62,6 +66,8 @@ struct RootView: View {
             if phase == .active && appEnv.auth.isSignedIn { appEnv.syncNow() }
         }
         .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
+            if ScreenshotLaunchConfiguration.current.skipsAuth { return }
+            appEnv.reconcileLocalStore(currentUserID: signedIn ? appEnv.auth.currentUserID : nil)
             guard signedIn else { return }
             appEnv.isAuthPresented = false
             appEnv.syncNow()
