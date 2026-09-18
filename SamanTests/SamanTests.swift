@@ -203,3 +203,132 @@ struct GuestAccountGateTests {
         #expect(env.isAuthPresented)
     }
 }
+
+struct LocalStoreAuthPolicyTests {
+    @Test func trueGuestKeepsLocalKitchen() {
+        #expect(LocalStoreAuthPolicy.shouldClearLocalStore(persistedUserID: nil, currentUserID: nil) == false)
+        #expect(LocalStoreAuthPolicy.shouldClearLocalStore(persistedUserID: "  ", currentUserID: nil) == false)
+    }
+
+    @Test func firstSignInAfterGuestKeepsKitchenForUpload() {
+        #expect(
+            LocalStoreAuthPolicy.shouldClearLocalStore(
+                persistedUserID: nil,
+                currentUserID: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+            ) == false
+        )
+    }
+
+    @Test func sameAccountRestoreKeepsCache() {
+        let userID = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+        #expect(LocalStoreAuthPolicy.shouldClearLocalStore(persistedUserID: userID, currentUserID: userID) == false)
+        #expect(
+            LocalStoreAuthPolicy.shouldClearLocalStore(
+                persistedUserID: userID.lowercased(),
+                currentUserID: userID
+            ) == false
+        )
+    }
+
+    @Test func sessionLossAndAccountSwitchWipe() {
+        let userA = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+        let userB = "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF"
+        #expect(LocalStoreAuthPolicy.shouldClearLocalStore(persistedUserID: userA, currentUserID: nil) == true)
+        #expect(LocalStoreAuthPolicy.shouldClearLocalStore(persistedUserID: userA, currentUserID: userB) == true)
+    }
+}
+
+@MainActor
+struct LocalStoreReconcileTests {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema([
+            Item.self,
+            Pantry.self,
+            Product.self,
+            Store.self,
+            ShoppingList.self,
+            ShoppingListItem.self,
+            Recipe.self,
+        ])
+        return try ModelContainer(
+            for: schema,
+            configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        )
+    }
+
+    private func makeDefaults() -> (UserDefaults, String) {
+        let suite = "samaan.tests.localstore.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return (defaults, suite)
+    }
+
+    @Test func sessionLossWipesPriorKitchenAndTombstones() throws {
+        guard !ScreenshotLaunchConfiguration.current.skipsAuth else { return }
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+        env.syncManager.clearTombstones()
+        defer { env.syncManager.clearTombstones() }
+
+        let item = Item(name: "Atta", quantity: 1, unit: "bag")
+        container.mainContext.insert(item)
+        try container.mainContext.save()
+        env.syncManager.queueTombstone(table: "items", id: item.id)
+
+        let (defaults, suite) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+
+        env.reconcileLocalStore(currentUserID: nil, defaults: defaults)
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
+        #expect(remaining.isEmpty)
+        #expect(env.syncManager.queuedTombstones().isEmpty)
+        #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == nil)
+    }
+
+    @Test func guestKitchenSurvivesFirstSignIn() throws {
+        guard !ScreenshotLaunchConfiguration.current.skipsAuth else { return }
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+
+        let item = Item(name: "Chawal", quantity: 2, unit: "kg")
+        container.mainContext.insert(item)
+        try container.mainContext.save()
+
+        let (defaults, suite) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        env.reconcileLocalStore(
+            currentUserID: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+            defaults: defaults
+        )
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
+        #expect(remaining.contains { $0.name == "Chawal" })
+        #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")
+    }
+
+    @Test func accountSwitchWipesPriorKitchen() throws {
+        guard !ScreenshotLaunchConfiguration.current.skipsAuth else { return }
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+
+        let item = Item(name: "Masoor", quantity: 1, unit: "bag")
+        container.mainContext.insert(item)
+        try container.mainContext.save()
+
+        let (defaults, suite) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+
+        env.reconcileLocalStore(
+            currentUserID: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF",
+            defaults: defaults
+        )
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
+        #expect(remaining.isEmpty)
+        #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")
+    }
+}

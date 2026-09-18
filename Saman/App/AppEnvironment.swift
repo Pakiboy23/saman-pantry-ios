@@ -64,9 +64,11 @@ final class AppEnvironment {
         syncNow()
     }
 
-    /// Wipe all locally-cached SwiftData. Called on sign-out and account deletion
-    /// so the next account on a shared device never inherits the prior user's
-    /// pantry (push-only sync would otherwise re-upload it under the new user).
+    static let lastAuthenticatedUserIDKey = "samaan.lastAuthenticatedUserID"
+
+    /// Wipe all locally-cached SwiftData. Called on sign-out, session loss,
+    /// account switch, and account deletion so guest browse never inherits the
+    /// prior user's pantry (and so push-sync cannot re-upload it under a new user).
     @MainActor
     func clearLocalStore() {
         let context = modelContainer.mainContext
@@ -79,6 +81,31 @@ final class AppEnvironment {
         try? context.delete(model: Recipe.self)
         try? context.save()
         syncManager.clearTombstones()
+    }
+
+    /// Align the on-disk kitchen with the current auth user.
+    /// Screenshot / UI-test launches keep their seeded kitchen.
+    @MainActor
+    func reconcileLocalStore(
+        currentUserID: String?,
+        defaults: UserDefaults = .standard
+    ) {
+        if ScreenshotLaunchConfiguration.current.skipsAuth {
+            return
+        }
+        let persisted = defaults.string(forKey: Self.lastAuthenticatedUserIDKey)
+        if LocalStoreAuthPolicy.shouldClearLocalStore(
+            persistedUserID: persisted,
+            currentUserID: currentUserID
+        ) {
+            clearLocalStore()
+        }
+        let trimmed = currentUserID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            defaults.removeObject(forKey: Self.lastAuthenticatedUserIDKey)
+        } else {
+            defaults.set(trimmed, forKey: Self.lastAuthenticatedUserIDKey)
+        }
     }
 }
 
