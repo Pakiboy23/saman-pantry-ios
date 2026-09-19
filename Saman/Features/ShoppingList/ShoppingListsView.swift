@@ -48,10 +48,10 @@ struct ShoppingListsView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamaanHeader(subtitle: listSubtitle) {
-                        if lists.count >= 1 && !appEnv.purchases.isPro {
-                            showPaywall = true
-                        } else {
+                        if FreeLimits.canAddShoppingListFromListsTab(existingCount: lists.count, isPro: appEnv.purchases.isPro) {
                             showAdd = true
+                        } else {
+                            showPaywall = true
                         }
                     }
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))

@@ -1,5 +1,5 @@
 # Project Memory
-Last updated: 2026-09-18 | Branch: cursor/stale-launch-docs-334f
+Last updated: 2026-09-19 | Branch: cursor/monetization-honesty-dbc3
 Memory health: 9/10
 
 ## Project Overview
@@ -15,7 +15,8 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 - 2026-09-18 Deleted June `LAUNCH_REVIEW.md` / `APP_STORE_READINESS_REPORT.md`, duplicate `docs/launch/PrivacyInfo.xcprivacy`, and replaced the obsolete Edge Function spec with a pointer at `supabase/functions/`. Trued up skill, MEMORY, THESIS, and screenshot copy for guest browse + mark-bought restock.
 - 2026-09-17 Deleted unreachable `ReorderView` / `ReorderItemRow` / private `RestockSheet`, trimmed the unwired LowStockBanner chevron, and dropped the two root `*.pages` thesis binaries (#21).
 - 2026-09-15 Guest browse + in-binary Privacy/Terms/Support (Auth, Settings LEGAL, paywall inset). Unsigned launch reaches the tab shell. Auth only for sync, extract, delete account. Build 65 (#20).
-- 2026-09-05 extract-recipe requires the user JWT and a 5/day quota table. Client sends the access token; 402 opens the paywall (or a tomorrow message if already Pro).
+- 2026-09-19 Monetization honesty: Settings / StoreKit / paywall name the real gates (30 pantry items, extra list from Lists tab). Extract 402 is try-tomorrow for everyone — Pro does not lift the 5/day cap. Restore Purchases is on the free Settings surface. Shared `FreeLimits`.
+- 2026-09-05 extract-recipe requires the user JWT and a 5/day quota table. Client sends the access token; 402 is try-tomorrow for everyone (function does not check Pro).
 - 2026-09-05 Password recovery completes in-app: URL scheme, `onOpenURL`, `redirectTo`, `.passwordRecovery` is not a sign-out.
 - 2026-09-05 Deleted unreachable `PantryListView` / `AddPantryView`.
 - 2026-08-29 `samanpantry.com/privacy` and `/support` verified live: both return 200. Apex 307s to `www`, which is fine for App Review and for `Config.privacyPolicyURL` / `Config.supportURL`. Legal URLs are no longer a blocker.
@@ -51,6 +52,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-09-19 | Monetization copy matches real gates; 402 is not a Pro upsell | Settings said "support development"; StoreKit said "premium pantry and recipe features"; extract 402 opened paywall though Pro does not lift the 5/day cap | FreeLimits, Settings, StoreKit, RecipeCaptureView |
 | 2026-09-18 | Delete June launch reports; truth-up skill/MEMORY/THESIS | Stale launch copy would send the next agent to undo #20/#21 | launch docs, skill |
 | 2026-09-17 | Delete ReorderView + Pages thesis binaries | Unreachable tab; live loop is item detail → list → mark bought. `.pages` copies were ~777KB each next to THESIS.md | ReorderView, LowStockBanner |
 | 2026-09-15 | Guest browse; legal links without login | App Review 5.1.1(v) + 3.1.2(c). Auth only for sync / extract / delete | RootView, AuthView, Settings, paywall |

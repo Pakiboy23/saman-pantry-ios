@@ -46,8 +46,9 @@ your mother didn't say.
 
 Made for the diaspora kitchen, not a generic grocery app.
 
-Samaan is free to use. Samaan Pro (optional) unlocks unlimited recipe capture and
-sync across your devices.
+Samaan is free to use. Samaan Pro (optional) unlocks more than 30 pantry items
+and extra shopping lists from the Lists tab. Recipe extract is 5 per day for
+everyone.
 
 — Your data is yours. Delete your account and everything in it any time, in the app.
 ```
@@ -76,9 +77,10 @@ AI feature: "Capture a recipe" sends the pasted transcript to Anthropic via our
 Supabase Edge Function to structure it into ingredients. No third-party tracking.
 
 Camera is used only for barcode scanning when adding an item.
-Subscriptions are managed via RevenueCat; Restore Purchases is on the paywall
-(and Customer Center after purchase), not a free Settings row. Privacy Policy,
-Terms, and Support are in Settings → LEGAL, on AuthView, and on the paywall.
+Subscriptions are managed via RevenueCat; Restore Purchases is on the free
+Settings surface and on the paywall (and Customer Center after purchase).
+Privacy Policy, Terms, and Support are in Settings → LEGAL, on AuthView,
+and on the paywall.
 ```
 
 ## Screenshot shot-list (show real use, not empty UI)
@@ -86,7 +88,7 @@ Terms, and Support are in Settings → LEGAL, on AuthView, and on the paywall.
 2. Recipe capture review screen showing "haldi — andaza se" preserved next to "turmeric."
 3. Shopping list mid-checkout, a couple items checked off.
 4. Home dashboard: running low + active list together.
-5. (Optional) Paywall framed around "unlimited recipe capture + sync," not "support development."
+5. (Optional) Paywall framed around more than 30 pantry items + extra Lists-tab lists, not unlimited extract or "support development."
 
 Caption each with the benefit ("See what's low before you shop", "Your mother's exact words, kept").
 

@@ -31,7 +31,7 @@ Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recip
 ## Landmines
 
 - Anon key in `Config.swift` is expected (RLS). Service role is not.
-- Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary. The function returns 402 `quota_exceeded` after 5 attempts / 24h (`recipe_extraction_events`). Owner must apply `004_recipe_extraction_events.sql` or every extract 500s.
+- Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary. The function returns 402 `quota_exceeded` after 5 attempts / 24h (`recipe_extraction_events`) for everyone, including Pro. Client must say try tomorrow — do not open the Pro paywall unless the function grants Pro a higher quota. Owner must apply `004_recipe_extraction_events.sql` or every extract 500s.
 - Account deletion goes through `delete-account` with the user JWT.
 - Deletes go through `AppEnvironment.deleteRecord` so a tombstone is queued. Bare `context.delete` resurrects the row on the next pull.
 - Prices is gone. The view was deleted 29 Aug 2026; do not rebuild it.

@@ -77,8 +77,11 @@ struct HomeView: View {
                     .frame(width: 36, height: 36)
             }
             Button {
-                if allItems.count >= 30 && !appEnv.purchases.isPro { showPaywall = true }
-                else { showAdd = true }
+                if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
+                    showAdd = true
+                } else {
+                    showPaywall = true
+                }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 16, weight: .semibold))
@@ -112,8 +115,11 @@ struct HomeView: View {
             }
             .padding(.bottom, 32)
             Button("Add your first item") {
-                if allItems.count >= 30 && !appEnv.purchases.isPro { showPaywall = true }
-                else { showAdd = true }
+                if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
+                    showAdd = true
+                } else {
+                    showPaywall = true
+                }
             }
             .buttonStyle(SamaanPrimaryButtonStyle())
             .padding(.horizontal, Samaan.Space.md)

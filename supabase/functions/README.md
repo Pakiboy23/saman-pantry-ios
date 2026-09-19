@@ -4,7 +4,7 @@
 
 The iOS app calls `https://<project-ref>.supabase.co/functions/v1/extract-recipe` instead of calling Anthropic directly. This keeps private AI provider credentials out of the app binary.
 
-The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected. After 5 attempts in a rolling 24h the function returns **402** `{ code: "quota_exceeded" }`. The client opens the paywall for free users.
+The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected. After 5 attempts in a rolling 24h the function returns **402** `{ code: "quota_exceeded" }` for **everyone**, including Pro — the function does not read the RevenueCat entitlement. The client shows a try-tomorrow message. Do not open the Pro paywall on 402 until this function grants Pro a higher quota.
 
 Requires `supabase/migrations/004_recipe_extraction_events.sql` applied in prod before this deploy, or every extract 500s.
 

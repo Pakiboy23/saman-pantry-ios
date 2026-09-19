@@ -20,7 +20,7 @@
       "id" : "SamanProSubscriptions",
       "localizations" : [
         {
-          "description" : "Saman Pro unlocks premium pantry and recipe features.",
+          "description" : "Unlocks more than 30 pantry items and extra shopping lists from the Lists tab. Recipe extract is 5 per day for everyone.",
           "displayName" : "Saman Pro",
           "locale" : "en_US"
         }
@@ -41,7 +41,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Monthly access to Saman Pro.",
+              "description" : "More than 30 pantry items and extra lists from Lists. Extract stays 5/day.",
               "displayName" : "Saman Pro Monthly",
               "locale" : "en_US"
             }
