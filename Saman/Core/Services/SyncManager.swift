@@ -7,11 +7,22 @@ final class SyncManager {
 
     private let supabase: SupabaseClient
     private let tombstoneKey = "samaan.sync.tombstones"
+    private var isSyncing = false
+    private var rerunAfterCurrentSync = false
+    private var syncEpoch = 0
 
     /// `nonisolated` so `AppEnvironment`'s init can construct us. Callers must
     /// pass a client — `SupabaseClient.shared` is MainActor-isolated.
     nonisolated init(supabase: SupabaseClient) {
         self.supabase = supabase
+    }
+
+    /// Drop in-flight pull/upload results. Sign-out and account deletion call
+    /// this before wiping SwiftData so a fetch that already left the network
+    /// cannot re-insert the previous kitchen.
+    func invalidateInFlightSync() {
+        syncEpoch += 1
+        rerunAfterCurrentSync = false
     }
 
     func queueTombstone(table: String, id: UUID) {
@@ -31,8 +42,25 @@ final class SyncManager {
     }
 
     func syncAll(context: ModelContext) async {
+        if isSyncing {
+            rerunAfterCurrentSync = true
+            return
+        }
+        isSyncing = true
+        defer { isSyncing = false }
+        repeat {
+            rerunAfterCurrentSync = false
+            let epoch = syncEpoch
+            await performSync(context: context, epoch: epoch)
+            if syncEpoch != epoch { return }
+        } while rerunAfterCurrentSync
+    }
+
+    private func performSync(context: ModelContext, epoch: Int) async {
         guard let userID = try? await supabase.auth.session.user.id else { return }
+        guard epoch == syncEpoch else { return }
         await flushTombstones()
+        guard epoch == syncEpoch else { return }
         await syncItems(context: context, userID: userID)
         await syncPantries(context: context, userID: userID)
         await syncProducts(context: context, userID: userID)
@@ -40,7 +68,8 @@ final class SyncManager {
         await syncShoppingLists(context: context, userID: userID)
         await syncShoppingListItems(context: context, userID: userID)
         await syncRecipes(context: context, userID: userID)
-        await pullAll(context: context, userID: userID)
+        guard epoch == syncEpoch else { return }
+        await pullAll(context: context, userID: userID, epoch: epoch)
     }
 
     // MARK: - Deletes
@@ -62,16 +91,22 @@ final class SyncManager {
     private func flushTombstones() async {
         let stones = loadTombstones()
         guard !stones.isEmpty else { return }
-        var remaining: [Tombstone] = []
+        var succeeded = Set<SyncReconcile.TombstoneID>()
         for stone in stones {
             do {
                 try await supabase.from(stone.table).delete().eq("id", value: stone.id).execute()
+                succeeded.insert(SyncReconcile.TombstoneID(table: stone.table, id: stone.id))
             } catch {
                 AppLogger.error("[Sync] delete \(stone.table): \(error)")
-                remaining.append(stone)
             }
         }
-        saveTombstones(remaining)
+        let current = loadTombstones().map { SyncReconcile.TombstoneID(table: $0.table, id: $0.id) }
+        let kept = SyncReconcile.remainingTombstones(current: current, successfullyDeleted: succeeded)
+        saveTombstones(kept.map { Tombstone(table: $0.table, id: $0.id) })
+    }
+
+    private func tombstonedIDs(in table: String) -> Set<UUID> {
+        Set(loadTombstones().filter { $0.table == table }.map(\.id))
     }
 
     // MARK: - Upload dirty
@@ -79,10 +114,13 @@ final class SyncManager {
     private func syncItems(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(Item.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { ItemPayload($0, userID: userID) }
         do {
             try await supabase.from("items").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] items: \(error)") }
     }
@@ -90,10 +128,13 @@ final class SyncManager {
     private func syncPantries(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(Pantry.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { PantryPayload($0, userID: userID) }
         do {
             try await supabase.from("pantries").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] pantries: \(error)") }
     }
@@ -101,10 +142,13 @@ final class SyncManager {
     private func syncProducts(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(Product.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { ProductPayload($0, userID: userID) }
         do {
             try await supabase.from("products").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] products: \(error)") }
     }
@@ -112,10 +156,13 @@ final class SyncManager {
     private func syncStores(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(Store.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { StorePayload($0, userID: userID) }
         do {
             try await supabase.from("stores").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] stores: \(error)") }
     }
@@ -123,10 +170,13 @@ final class SyncManager {
     private func syncShoppingLists(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(ShoppingList.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { ShoppingListPayload($0, userID: userID) }
         do {
             try await supabase.from("shopping_lists").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] shopping_lists: \(error)") }
     }
@@ -134,10 +184,13 @@ final class SyncManager {
     private func syncShoppingListItems(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(ShoppingListItem.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { ShoppingListItemPayload($0, userID: userID) }
         do {
             try await supabase.from("shopping_list_items").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] shopping_list_items: \(error)") }
     }
@@ -145,34 +198,41 @@ final class SyncManager {
     private func syncRecipes(context: ModelContext, userID: UUID) async {
         let dirty = fetchAll(Recipe.self, context: context).filter(\.isDirty)
         guard !dirty.isEmpty else { return }
+        let snapshot = dirty.map { (row: $0, uploadedAt: $0.updatedAt) }
         let payloads = dirty.map { RecipePayload($0, userID: userID) }
         do {
             try await supabase.from("recipes").upsert(payloads).execute()
-            dirty.forEach { $0.isDirty = false }
+            for pair in snapshot where SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: pair.uploadedAt, currentUpdatedAt: pair.row.updatedAt) {
+                pair.row.isDirty = false
+            }
             try? context.save()
         } catch { AppLogger.error("[Sync] recipes: \(error)") }
     }
 
     // MARK: - Pull
 
-    private func pullAll(context: ModelContext, userID: UUID) async {
-        await pullPantries(context: context, userID: userID)
-        await pullProducts(context: context, userID: userID)
-        await pullStores(context: context, userID: userID)
-        await pullItems(context: context, userID: userID)
-        await pullShoppingLists(context: context, userID: userID)
-        await pullShoppingListItems(context: context, userID: userID)
-        await pullRecipes(context: context, userID: userID)
+    private func pullAll(context: ModelContext, userID: UUID, epoch: Int) async {
+        await pullPantries(context: context, userID: userID, epoch: epoch)
+        await pullProducts(context: context, userID: userID, epoch: epoch)
+        await pullStores(context: context, userID: userID, epoch: epoch)
+        await pullItems(context: context, userID: userID, epoch: epoch)
+        await pullShoppingLists(context: context, userID: userID, epoch: epoch)
+        await pullShoppingListItems(context: context, userID: userID, epoch: epoch)
+        await pullRecipes(context: context, userID: userID, epoch: epoch)
+        guard epoch == syncEpoch else { return }
         try? context.save()
     }
 
-    private func pullPantries(context: ModelContext, userID: UUID) async {
+    private func pullPantries(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [PantryRow]
         do { rows = try await fetchRows("pantries", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(Pantry.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "pantries")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -192,13 +252,16 @@ final class SyncManager {
         }
     }
 
-    private func pullProducts(context: ModelContext, userID: UUID) async {
+    private func pullProducts(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [ProductRow]
         do { rows = try await fetchRows("products", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(Product.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "products")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -221,13 +284,16 @@ final class SyncManager {
         }
     }
 
-    private func pullStores(context: ModelContext, userID: UUID) async {
+    private func pullStores(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [StoreRow]
         do { rows = try await fetchRows("stores", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(Store.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "stores")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -248,15 +314,18 @@ final class SyncManager {
         }
     }
 
-    private func pullItems(context: ModelContext, userID: UUID) async {
+    private func pullItems(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [ItemRow]
         do { rows = try await fetchRows("items", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(Item.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         let pantries = Dictionary(uniqueKeysWithValues: fetchAll(Pantry.self, context: context).map { ($0.id, $0) })
         let products = Dictionary(uniqueKeysWithValues: fetchAll(Product.self, context: context).map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "items")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -289,14 +358,17 @@ final class SyncManager {
         item.isDirty = false
     }
 
-    private func pullShoppingLists(context: ModelContext, userID: UUID) async {
+    private func pullShoppingLists(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [ShoppingListRow]
         do { rows = try await fetchRows("shopping_lists", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(ShoppingList.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         let stores = Dictionary(uniqueKeysWithValues: fetchAll(Store.self, context: context).map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "shopping_lists")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -319,15 +391,18 @@ final class SyncManager {
         }
     }
 
-    private func pullShoppingListItems(context: ModelContext, userID: UUID) async {
+    private func pullShoppingListItems(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [ShoppingListItemRow]
         do { rows = try await fetchRows("shopping_list_items", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(ShoppingListItem.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         let lists = Dictionary(uniqueKeysWithValues: fetchAll(ShoppingList.self, context: context).map { ($0.id, $0) })
         let products = Dictionary(uniqueKeysWithValues: fetchAll(Product.self, context: context).map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "shopping_list_items")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
@@ -360,13 +435,16 @@ final class SyncManager {
         }
     }
 
-    private func pullRecipes(context: ModelContext, userID: UUID) async {
+    private func pullRecipes(context: ModelContext, userID: UUID, epoch: Int) async {
         let rows: [RecipeRow]
         do { rows = try await fetchRows("recipes", userID: userID) } catch { return }
+        guard epoch == syncEpoch else { return }
         let local = fetchAll(Recipe.self, context: context)
         let byId = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        let blocked = tombstonedIDs(in: "recipes")
         var seen = Set<UUID>()
         for row in rows {
+            guard SyncReconcile.shouldInsertPulledRow(id: row.id, tombstonedIDs: blocked) else { continue }
             seen.insert(row.id)
             if let existing = byId[row.id] {
                 if SyncReconcile.shouldApplyServer(localUpdatedAt: existing.updatedAt, localDirty: existing.isDirty, serverUpdatedAt: row.updatedAt) {
