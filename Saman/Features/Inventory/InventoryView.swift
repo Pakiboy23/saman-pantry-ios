@@ -157,10 +157,10 @@ struct InventoryView: View {
                 }
                 // Add item
                 Button {
-                    if items.count >= 30 && !appEnv.purchases.isPro {
-                        showPaywall = true
-                    } else {
+                    if FreeLimits.canAddPantryItem(existingCount: items.count, isPro: appEnv.purchases.isPro) {
                         showAdd = true
+                    } else {
+                        showPaywall = true
                     }
                 } label: {
                     Image(systemName: "plus")

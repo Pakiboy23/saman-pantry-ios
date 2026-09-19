@@ -203,3 +203,41 @@ struct GuestAccountGateTests {
         #expect(env.isAuthPresented)
     }
 }
+
+struct FreeLimitsTests {
+    @Test func pantryCapBlocksFreeUserAtLimit() {
+        #expect(FreeLimits.canAddPantryItem(existingCount: 29, isPro: false) == true)
+        #expect(FreeLimits.canAddPantryItem(existingCount: 30, isPro: false) == false)
+        #expect(FreeLimits.canAddPantryItem(existingCount: 30, isPro: true) == true)
+        #expect(FreeLimits.pantryItemCap == 30)
+    }
+
+    @Test func listsTabCapBlocksFreeUserAtOneList() {
+        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 0, isPro: false) == true)
+        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 1, isPro: false) == false)
+        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 1, isPro: true) == true)
+        #expect(FreeLimits.shoppingListCap == 1)
+    }
+
+    @Test func extractQuotaIsNotAProUnlock() {
+        #expect(FreeLimits.extractPerDay == 5)
+        #expect(FreeLimits.quotaExceededMessage.contains("tomorrow"))
+        #expect(FreeLimits.quotaExceededMessage.contains("\(FreeLimits.extractPerDay)"))
+        #expect(RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription == FreeLimits.quotaExceededMessage)
+        #expect(FreeLimits.proUnlocksSummary.contains("everyone"))
+        #expect(FreeLimits.freePlanSummary.contains("Extract stays"))
+    }
+}
+
+struct MonetizationCopyTests {
+    @Test func storeKitNamesRealUnlocks() throws {
+        let testsDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        let storekit = testsDir.deletingLastPathComponent().appendingPathComponent("Saman/Saman.storekit")
+        let text = try String(contentsOf: storekit, encoding: .utf8)
+        #expect(!text.contains("premium pantry and recipe features"))
+        #expect(!text.contains("support development"))
+        #expect(text.contains("\(FreeLimits.pantryItemCap) pantry"))
+        #expect(text.contains("Lists"))
+        #expect(text.contains("\(FreeLimits.extractPerDay) per day") || text.contains("\(FreeLimits.extractPerDay)/day"))
+    }
+}

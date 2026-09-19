@@ -132,10 +132,10 @@ struct ScannerView: View {
                     Button("Scan Again") { resetScanner() }
                         .buttonStyle(SamaanSecondaryButtonStyle())
                     Button("Add to Pantry") {
-                        if allItems.count >= 30 && !appEnv.purchases.isPro {
-                            showPaywall = true
-                        } else {
+                        if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
                             showAddItem = true
+                        } else {
+                            showPaywall = true
                         }
                     }
                     .buttonStyle(SamaanPrimaryButtonStyle())

@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var showCustomerCenter = false
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
+    @State private var isRestoring = false
+    @State private var restoreMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -18,35 +20,60 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             cardLabel("SUBSCRIPTION")
                             if appEnv.purchases.isPro {
-                                HStack {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .foregroundStyle(Color.brandSaag)
-                                    Text("Samaan Pro")
-                                        .font(.system(size: 15))
-                                        .foregroundStyle(Color.inkKohl)
-                                    Spacer()
-                                    Button("Manage") { showCustomerCenter = true }
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color.inkKohlSoft)
-                                }
-                            } else {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Free plan")
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .foregroundStyle(Color.brandSaag)
+                                        Text("Samaan Pro")
                                             .font(.system(size: 15))
                                             .foregroundStyle(Color.inkKohl)
-                                        Text("Upgrade to Pro to support development")
-                                            .font(.system(size: 12, weight: .light))
+                                        Spacer()
+                                        Button("Manage") { showCustomerCenter = true }
+                                            .font(.system(size: 13))
                                             .foregroundStyle(Color.inkKohlSoft)
                                     }
-                                    Spacer()
-                                    Button("Upgrade") { showPaywall = true }
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundStyle(Color.surfaceDoodh)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 7)
-                                        .background(Color.brandSaag)
-                                        .clipShape(Capsule())
+                                    Text(FreeLimits.proActiveSummary)
+                                        .font(.system(size: 12, weight: .light))
+                                        .foregroundStyle(Color.inkKohlSoft)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            } else {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(alignment: .top) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Free plan")
+                                                .font(.system(size: 15))
+                                                .foregroundStyle(Color.inkKohl)
+                                            Text(FreeLimits.freePlanSummary)
+                                                .font(.system(size: 12, weight: .light))
+                                                .foregroundStyle(Color.inkKohlSoft)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        Spacer(minLength: 8)
+                                        Button("Upgrade") { showPaywall = true }
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(Color.surfaceDoodh)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 7)
+                                            .background(Color.brandSaag)
+                                            .clipShape(Capsule())
+                                    }
+                                    Button {
+                                        Task { await restorePurchases() }
+                                    } label: {
+                                        HStack {
+                                            if isRestoring {
+                                                ProgressView().tint(Color.inkKohlSoft)
+                                            }
+                                            Text("Restore Purchases")
+                                                .foregroundStyle(Color.inkKohlSoft)
+                                            Spacer()
+                                        }
+                                        .font(.system(size: 13))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isRestoring)
+                                    .accessibilityIdentifier("settings.restorePurchases")
                                 }
                             }
                         }
@@ -224,6 +251,14 @@ struct SettingsView: View {
             .sheet(isPresented: $showPaywall) {
                 SamaanPaywallView()
             }
+            .alert("Restore Purchases", isPresented: Binding(
+                get: { restoreMessage != nil },
+                set: { if !$0 { restoreMessage = nil } }
+            )) {
+                Button("OK") { restoreMessage = nil }
+            } message: {
+                Text(restoreMessage ?? "")
+            }
             .fullScreenCover(isPresented: Binding(
                 get: { appEnv.isAuthPresented },
                 set: { appEnv.isAuthPresented = $0 }
@@ -237,6 +272,19 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    private func restorePurchases() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        do {
+            let restoredPro = try await appEnv.purchases.restorePurchases()
+            restoreMessage = restoredPro
+                ? "Samaan Pro restored."
+                : "No Pro purchase found for this Apple ID."
+        } catch {
+            restoreMessage = "Couldn't restore purchases. Try again."
+        }
+    }
 
     @ViewBuilder
     private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {

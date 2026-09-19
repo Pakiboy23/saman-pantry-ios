@@ -98,7 +98,7 @@ final class RecipeExtractionService {
             case .noContent:  return "Got an empty response. Please try again."
             case .parseError: return "Couldn't parse the recipe. Try a cleaner transcript."
             case .serviceError(let message): return message
-            case .quotaExceeded: return "That's today's five recipes. Try again tomorrow."
+            case .quotaExceeded: return FreeLimits.quotaExceededMessage
             case .unauthorized: return "Please sign in again, then retry."
             }
         }
