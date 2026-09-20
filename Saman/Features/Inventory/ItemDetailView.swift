@@ -270,8 +270,8 @@ struct ItemDetailView: View {
         appEnv.syncNow()
     }
 
-    /// Add this low item to an active shopping list (or start one). The list item
-    /// shares the item's name so "mark bought" can match it back to the pantry.
+    /// Add this low item to an active shopping list (or start one). Reuses the
+    /// pantry Item's Product so mark-bought restocks by FK, not by display name.
     private func addToShoppingList() {
         let targetList: ShoppingList
         if let active = lists.first(where: { !$0.isCompleted }) {
@@ -282,15 +282,11 @@ struct ItemDetailView: View {
             targetList = created
         }
 
-        let product: Product
-        if let existing = item.product {
-            product = existing
-        } else {
-            let created = Product(name: item.name)
-            context.insert(created)
-            item.product = created
-            product = created
-        }
+        let product = PantryProductLink.product(
+            groceryName: item.name,
+            pantryItems: [item],
+            in: context
+        )
 
         let needed = max(1, item.minimumQuantity - item.quantity)
         let listItem = ShoppingListItem(quantity: needed, unit: item.unit, product: product, shoppingList: targetList)

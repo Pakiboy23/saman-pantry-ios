@@ -222,14 +222,7 @@ struct RecipeDetailView: View {
         guard let ex = extracted else { return }
         let list = ShoppingList(name: recipe.title)
         context.insert(list)
-        for ing in ex.ingredients {
-            let product = Product(name: ing.ingredient)
-            context.insert(product)
-            let qty  = max(1, Int((ing.amount ?? 1.0).rounded(.up)))
-            let unit = ing.unit ?? "unit"
-            let item = ShoppingListItem(quantity: qty, unit: unit, product: product, shoppingList: list)
-            context.insert(item)
-        }
+        PantryProductLink.appendIngredients(ex.ingredients, to: list, in: context)
         try? context.save()
         appEnv.syncNow()
         withAnimation { showAddedBanner = true }

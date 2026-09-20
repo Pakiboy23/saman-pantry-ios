@@ -315,16 +315,7 @@ struct RecipeCaptureView: View {
 
         let list = ShoppingList(name: recipeTitle)
         context.insert(list)
-
-        for sel in chosen {
-            let ing     = sel.ingredient
-            let product = Product(name: ing.ingredient)
-            context.insert(product)
-            let qty  = max(1, Int((ing.amount ?? 1.0).rounded(.up)))
-            let unit = ing.unit ?? "unit"
-            let item = ShoppingListItem(quantity: qty, unit: unit, product: product, shoppingList: list)
-            context.insert(item)
-        }
+        PantryProductLink.appendIngredients(chosen.map(\.ingredient), to: list, in: context)
 
         // Fold the user-entered source back into the stored JSON so the saved
         // recipe and its extracted structure agree on attribution.
