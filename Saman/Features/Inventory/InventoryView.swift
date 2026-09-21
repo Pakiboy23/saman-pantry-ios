@@ -8,7 +8,6 @@ struct InventoryView: View {
     @Query(sort: \Pantry.name) private var pantries: [Pantry]
     @State private var showAdd = false
     @State private var showPaywall = false
-    @State private var showScanner = false
     @State private var showSettings = false
     @State private var selectedTab = "all"
     @State private var pendingDeleteItem: Item?
@@ -83,7 +82,7 @@ struct InventoryView: View {
                             SamaanEmptyState(
                                 emoji: "🛒",
                                 title: "Nothing here yet",
-                                message: "Tap + to add your first item, or scan a barcode."
+                                message: "Tap + to add your first item."
                             )
                             if items.isEmpty {
                                 Button("Add desi staples") {
@@ -107,7 +106,6 @@ struct InventoryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
             .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
-            .sheet(isPresented: $showScanner) { ScannerView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .confirmationDialog(
                 "Delete \(pendingDeleteItem?.name ?? "item")?",
@@ -148,13 +146,7 @@ struct InventoryView: View {
                         .foregroundStyle(Color.inkKohlSoft)
                         .frame(width: 36, height: 36)
                 }
-                // Scanner
-                Button { showScanner = true } label: {
-                    Image(systemName: "barcode.viewfinder")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.inkKohl)
-                        .frame(width: 36, height: 36)
-                }
+                .accessibilityLabel("Settings")
                 // Add item
                 Button {
                     if FreeLimits.canAddPantryItem(existingCount: items.count, isPro: appEnv.purchases.isPro) {
