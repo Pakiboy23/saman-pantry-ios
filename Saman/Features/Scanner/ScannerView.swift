@@ -134,7 +134,7 @@ struct ScannerView: View {
                     Spacer()
                 }
 
-                // Actions — fill the open Add Item form; do not present another AddItemView
+                // Fill the open Add Item form; do not present a nested add sheet
                 HStack(spacing: 10) {
                     Button("Scan Again") { resetScanner() }
                         .buttonStyle(SamaanSecondaryButtonStyle())
