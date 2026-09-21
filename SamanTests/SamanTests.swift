@@ -298,3 +298,27 @@ struct MonetizationCopyTests {
         return files
     }
 }
+
+struct ScanEntryTests {
+    @Test func scanLivesInsideAddItemNotHomeOrPantry() throws {
+        let saman = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman")
+        let home = try String(contentsOf: saman.appendingPathComponent("Features/Home/HomeView.swift"), encoding: .utf8)
+        let pantry = try String(contentsOf: saman.appendingPathComponent("Features/Inventory/InventoryView.swift"), encoding: .utf8)
+        let addItem = try String(contentsOf: saman.appendingPathComponent("Features/Inventory/AddItemView.swift"), encoding: .utf8)
+        let scanner = try String(contentsOf: saman.appendingPathComponent("Features/Scanner/ScannerView.swift"), encoding: .utf8)
+
+        #expect(!home.contains("ScannerView"))
+        #expect(!home.contains("barcode.viewfinder"))
+        #expect(!home.contains("See all pantry items"))
+        #expect(!home.contains("InventoryView()"))
+        #expect(!pantry.contains("ScannerView"))
+        #expect(!pantry.contains("barcode.viewfinder"))
+        #expect(addItem.contains("ScannerView"))
+        #expect(addItem.contains("barcode.viewfinder"))
+        #expect(!scanner.contains("AddItemView"))
+        #expect(!scanner.contains("showAddItem"))
+    }
+}
