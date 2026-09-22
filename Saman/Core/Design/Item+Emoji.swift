@@ -6,8 +6,19 @@ extension Item {
         let n = name.lowercased()
         let cat = product?.category?.lowercased() ?? ""
 
-        // Name-based matches
+        // Name-based matches. Desi names and aliases stay above the generic grocery tail.
         let nameLookup: [(String, String)] = [
+            ("atta", "🌾"), ("aata", "🌾"),
+            ("daal", "🫘"), ("dal", "🫘"),
+            ("ghee", "🧈"),
+            ("haldi", "🟡"), ("turmeric", "🟡"),
+            ("jeera", "🌿"), ("cumin", "🌿"),
+            ("dhaniya", "🌿"), ("dhania", "🌿"), ("coriander", "🌿"),
+            ("mirch", "🌶️"), ("chilli", "🌶️"), ("chili", "🌶️"),
+            ("chai", "🍵"),
+            ("masala", "🌶️"),
+            ("paneer", "🧀"),
+            ("adrak", "🫚"), ("ginger", "🫚"),
             ("milk", "🥛"), ("cream", "🥛"), ("yogurt", "🫙"), ("yoghurt", "🫙"),
             ("egg", "🥚"), ("bread", "🍞"), ("toast", "🍞"), ("bagel", "🥯"),
             ("butter", "🧈"), ("cheese", "🧀"),
@@ -25,7 +36,7 @@ extension Item {
             ("juice", "🧃"), ("water", "💧"), ("soda", "🥤"), ("wine", "🍷"),
             ("beer", "🍺"), ("kombucha", "🍶"),
             ("sugar", "🍬"), ("honey", "🍯"), ("jam", "🍓"), ("syrup", "🍁"),
-            ("salt", "🧂"), ("pepper", "🧂"), ("spice", "🌶️"), ("herb", "🌿"),
+            ("salt", "🧂"), ("spice", "🌶️"), ("herb", "🌿"),
             ("oil", "🫙"), ("vinegar", "🫙"), ("sauce", "🫙"), ("ketchup", "🍅"),
             ("mustard", "🌭"), ("mayo", "🫙"), ("dressing", "🫙"),
             ("chocolate", "🍫"), ("candy", "🍬"), ("cookie", "🍪"), ("cake", "🎂"),
