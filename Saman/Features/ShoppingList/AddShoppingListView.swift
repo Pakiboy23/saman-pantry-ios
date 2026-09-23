@@ -5,24 +5,14 @@ struct AddShoppingListView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnv) private var appEnv
-    @Query(sort: \Store.name) private var stores: [Store]
 
     @State private var name = ""
-    @State private var selectedStore: Store?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Name") {
                     TextField("e.g. Weekly Shop", text: $name)
-                }
-                if !stores.isEmpty {
-                    Section("Store") {
-                        Picker("Store", selection: $selectedStore) {
-                            Text("None").tag(Optional<Store>.none)
-                            ForEach(stores) { s in Text(s.name).tag(Optional(s)) }
-                        }
-                    }
                 }
             }
             .navigationTitle("New List")
@@ -38,7 +28,7 @@ struct AddShoppingListView: View {
     }
 
     private func save() {
-        let list = ShoppingList(name: name.trimmingCharacters(in: .whitespaces), store: selectedStore)
+        let list = ShoppingList(name: name.trimmingCharacters(in: .whitespaces))
         context.insert(list)
         try? context.save()
         appEnv.syncNow()
