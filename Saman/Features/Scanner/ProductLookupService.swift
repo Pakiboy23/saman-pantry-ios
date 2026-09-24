@@ -3,7 +3,6 @@ import Foundation
 struct FoundProduct {
     let name: String
     let brand: String?
-    let category: String?
 }
 
 /// Queries Open Food Facts (no API key required).
@@ -20,12 +19,8 @@ final class ProductLookupService {
         let name = product.productName ?? product.genericName ?? "Unknown Product"
         let brand = product.brands?.components(separatedBy: ",").first?
             .trimmingCharacters(in: .whitespaces)
-        let category = product.categoriesTags?.first(where: { $0.hasPrefix("en:") })?
-            .replacingOccurrences(of: "en:", with: "")
-            .replacingOccurrences(of: "-", with: " ")
-            .capitalized
 
-        return FoundProduct(name: name, brand: brand, category: category)
+        return FoundProduct(name: name, brand: brand)
     }
 }
 
@@ -40,12 +35,10 @@ private struct OFFProduct: Decodable {
     let productName: String?
     let genericName: String?
     let brands: String?
-    let categoriesTags: [String]?
 
     enum CodingKeys: String, CodingKey {
         case productName = "product_name"
         case genericName = "generic_name"
         case brands
-        case categoriesTags = "categories_tags"
     }
 }
