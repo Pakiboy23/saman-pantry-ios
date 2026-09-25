@@ -81,10 +81,9 @@ struct RecipeDetailView: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField("Recipe title", text: $recipe.title, axis: .vertical)
+            Text(recipe.title)
                 .font(.custom("CormorantGaramond-Bold", size: 36))
                 .foregroundStyle(Color.inkKohl)
-                .textFieldStyle(.plain)
                 .lineLimit(3)
 
             HStack(spacing: 8) {
