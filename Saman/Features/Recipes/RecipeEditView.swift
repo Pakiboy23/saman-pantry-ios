@@ -223,7 +223,7 @@ struct RecipeEditView: View {
             }
         }
 
-        recipe.isDirty = true
+        recipe.markDirty()
         try? context.save()
         dismiss()
     }
