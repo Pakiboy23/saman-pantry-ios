@@ -47,8 +47,8 @@ enum FreeLimits {
 
     static let proBenefits: [ProBenefit] = [
         ProBenefit(
-            title: "Unlimited pantries and items",
-            subtitle: "Track every staple across every shelf."
+            title: "Unlimited pantry items",
+            subtitle: "Track every staple in the kitchen."
         ),
         ProBenefit(
             title: "Unlimited shopping lists",
