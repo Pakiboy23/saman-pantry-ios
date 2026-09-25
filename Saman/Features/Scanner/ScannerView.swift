@@ -4,6 +4,7 @@ import SwiftData
 
 struct ScannerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Query private var items: [Item]
     @Query private var products: [Product]
 
     /// Reports the scanned barcode and a looked-up name (when known) back to Add Item.
@@ -170,8 +171,8 @@ struct ScannerView: View {
 
     private func handle(barcode: String) {
         scannedBarcode = barcode
-        if let local = products.first(where: { $0.barcode == barcode }) {
-            resultName = local.name
+        if let local = localName(forScannedBarcode: barcode, items: items, products: products) {
+            resultName = local
             return
         }
         isLooking = true
@@ -195,6 +196,40 @@ struct ScannerView: View {
         resultName = ""
         scannerActive = true
     }
+}
+
+/// Name already stored for this barcode.
+/// Add Item writes the code on `Item.barcode` and does not create a `Product`, so a pantry item wins.
+/// A product row is only a fallback for older synced catalog data.
+func localName(forScannedBarcode barcode: String, items: [Item], products: [Product]) -> String? {
+    guard !barcode.isEmpty else { return nil }
+    if let name = newestNonEmptyName(items.compactMap { item in
+        guard item.barcode == barcode else { return nil }
+        return StoredName(name: item.name, updatedAt: item.updatedAt)
+    }) {
+        return name
+    }
+    return newestNonEmptyName(products.compactMap { product in
+        guard product.barcode == barcode else { return nil }
+        return StoredName(name: product.name, updatedAt: product.updatedAt)
+    })
+}
+
+private struct StoredName {
+    let name: String
+    let updatedAt: Date
+}
+
+private func newestNonEmptyName(_ rows: [StoredName]) -> String? {
+    var best: StoredName?
+    for row in rows {
+        let trimmed = row.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { continue }
+        let candidate = StoredName(name: trimmed, updatedAt: row.updatedAt)
+        if let current = best, current.updatedAt >= candidate.updatedAt { continue }
+        best = candidate
+    }
+    return best?.name
 }
 
 #Preview { ScannerView { _, _ in }.modelContainer(.preview) }
