@@ -34,21 +34,40 @@ struct SamaanApp: App {
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
                     guard checked else { return }
-                    if ScreenshotLaunchConfiguration.current.skipsAuth { return }
-                    appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
+                    if !ScreenshotLaunchConfiguration.current.skipsAuth {
+                        appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
+                    }
+                    bindPurchases(to: appEnv.auth.currentUserID)
                 }
                 .onChange(of: appEnv.auth.currentUserID) { _, userID in
-                    if ScreenshotLaunchConfiguration.current.skipsAuth { return }
-                    appEnv.reconcileLocalStore(currentUserID: userID)
-                    if let userID {
-                        appEnv.purchases.setAppUserID(userID)
+                    if !ScreenshotLaunchConfiguration.current.skipsAuth {
+                        appEnv.reconcileLocalStore(currentUserID: userID)
                     }
+                    bindPurchases(to: userID)
                 }
                 .onOpenURL { url in
                     Task { await appEnv.auth.handleAuthURL(url) }
                 }
         }
         .modelContainer(appEnv.modelContainer)
+    }
+
+    /// Identify RevenueCat with the signed-in account, or log out an
+    /// identified leftover after sign-out / a vanished session. Leave an
+    /// anonymous guest alone so their own purchase survives relaunch.
+    private func bindPurchases(to userID: String?) {
+        switch PurchaseSessionBinding.action(
+            currentUserID: userID,
+            revenueCatIsAnonymous: appEnv.purchases.isAnonymous,
+            skipsAuth: ScreenshotLaunchConfiguration.current.skipsAuth
+        ) {
+        case .identify(let id):
+            appEnv.purchases.setAppUserID(id)
+        case .logOut:
+            appEnv.purchases.logOutAppUser()
+        case .ignore:
+            break
+        }
     }
 
     // MARK: - RevenueCat
