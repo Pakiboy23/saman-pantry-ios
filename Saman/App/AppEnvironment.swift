@@ -71,6 +71,7 @@ final class AppEnvironment {
     /// prior user's pantry (and so push-sync cannot re-upload it under a new user).
     @MainActor
     func clearLocalStore() {
+        syncManager.invalidateInFlightSync()
         let context = modelContainer.mainContext
         try? context.delete(model: Item.self)
         try? context.delete(model: Pantry.self)
