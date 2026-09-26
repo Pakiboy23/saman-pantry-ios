@@ -7,6 +7,7 @@ import SwiftData
 struct RecipeEditView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appEnv) private var appEnv
 
     let recipe: Recipe
 
@@ -225,6 +226,7 @@ struct RecipeEditView: View {
 
         recipe.markDirty()
         try? context.save()
+        appEnv.syncNow()
         dismiss()
     }
 

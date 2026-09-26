@@ -48,6 +48,14 @@ final class AppEnvironment {
         }
     }
 
+    /// Wait until dirty uploads and tombstone deletes have had a chance to
+    /// reach the server. Sign-out must call this *before* dropping the
+    /// session; `clearLocalStore()` wipes SwiftData and the delete queue.
+    func flushPendingSync() async {
+        if ScreenshotLaunchConfiguration.current.shouldSeedDemoKitchen { return }
+        await syncManager.syncAll(context: modelContainer.mainContext)
+    }
+
     /// Queue a server delete, then drop the local row. Without the tombstone,
     /// pull-sync would resurrect the row from Supabase on the next launch.
     /// Shopping lists also tombstone their items — cascade-delete is local-only.
