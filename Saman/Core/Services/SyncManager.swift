@@ -10,6 +10,7 @@ final class SyncManager {
     private var isSyncing = false
     private var rerunAfterCurrentSync = false
     private var syncEpoch = 0
+    private var syncWaiters: [CheckedContinuation<Void, Never>] = []
 
     /// `nonisolated` so `AppEnvironment`'s init can construct us. Callers must
     /// pass a client — `SupabaseClient.shared` is MainActor-isolated.
@@ -44,16 +45,30 @@ final class SyncManager {
     func syncAll(context: ModelContext) async {
         if isSyncing {
             rerunAfterCurrentSync = true
+            // Overlapping callers used to return immediately, so sign-out
+            // could drop the session while delete/upload was still in flight.
+            await withCheckedContinuation { continuation in
+                syncWaiters.append(continuation)
+            }
             return
         }
         isSyncing = true
-        defer { isSyncing = false }
+        defer { finishSyncAndResumeWaiters() }
         repeat {
             rerunAfterCurrentSync = false
             let epoch = syncEpoch
             await performSync(context: context, epoch: epoch)
             if syncEpoch != epoch { return }
         } while rerunAfterCurrentSync
+    }
+
+    private func finishSyncAndResumeWaiters() {
+        isSyncing = false
+        let waiters = syncWaiters
+        syncWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume()
+        }
     }
 
     private func performSync(context: ModelContext, epoch: Int) async {
