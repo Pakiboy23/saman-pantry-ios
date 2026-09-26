@@ -32,12 +32,18 @@ struct SamaanApp: App {
             RootView()
                 .environment(\.appEnv, appEnv)
                 .tint(Color.brandSaag)
-                .onChange(of: appEnv.auth.currentUserID) { _, userID in
-                    bindPurchases(to: userID)
-                }
                 .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
                     guard checked else { return }
+                    if !ScreenshotLaunchConfiguration.current.skipsAuth {
+                        appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
+                    }
                     bindPurchases(to: appEnv.auth.currentUserID)
+                }
+                .onChange(of: appEnv.auth.currentUserID) { _, userID in
+                    if !ScreenshotLaunchConfiguration.current.skipsAuth {
+                        appEnv.reconcileLocalStore(currentUserID: userID)
+                    }
+                    bindPurchases(to: userID)
                 }
                 .onOpenURL { url in
                     Task { await appEnv.auth.handleAuthURL(url) }
