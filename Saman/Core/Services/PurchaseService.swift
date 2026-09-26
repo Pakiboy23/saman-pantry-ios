@@ -72,7 +72,7 @@ final class PurchaseService {
         suppressIdentifiedEntitlements = false
         Task {
             do {
-                let (_, info) = try await Purchases.shared.logIn(id)
+                let (info, _) = try await Purchases.shared.logIn(id)
                 guard generation == self.identityGeneration else { return }
                 _ = await applyCustomerInfo(info)
             } catch {
