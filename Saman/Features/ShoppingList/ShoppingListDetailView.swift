@@ -76,6 +76,10 @@ struct ShoppingListDetailView: View {
         // Close the core loop: buying an item restocks the matching pantry item;
         // un-checking reverses it so the count can't drift.
         if !wasPurchased && item.isPurchased {
+            Analytics.track(.listItemBought)
+            if PantryRestock.matchingItem(in: allItems, for: item) != nil {
+                Analytics.track(.pantryRestocked)
+            }
             PantryRestock.apply(items: allItems, for: item, by: item.quantity)
         } else if wasPurchased && !item.isPurchased {
             PantryRestock.apply(items: allItems, for: item, by: -item.quantity)

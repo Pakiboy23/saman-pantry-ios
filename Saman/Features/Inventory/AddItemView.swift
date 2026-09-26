@@ -79,6 +79,7 @@ struct AddItemView: View {
         )
         context.insert(item)
         try? context.save()
+        Analytics.track(.itemAdded)
         appEnv.syncNow()
         dismiss()
     }

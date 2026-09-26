@@ -41,6 +41,7 @@ struct SamaanPaywallView: View {
                 .accessibilityIdentifier("paywall.legal")
         }
         .task { await loadOffering() }
+        .onAppear { Analytics.track(.paywallViewed) }
     }
 
     @ViewBuilder
@@ -312,6 +313,7 @@ struct SamaanPaywallView: View {
 
     private func purchaseSelected() async {
         guard let selectedPackage else { return }
+        Analytics.track(.purchaseStarted)
         isPurchasing = true
         errorMessage = nil
         defer { isPurchasing = false }

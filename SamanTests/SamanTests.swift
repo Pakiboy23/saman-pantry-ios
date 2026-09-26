@@ -572,3 +572,51 @@ struct ScanEntryTests {
         #expect(!scanner.contains("showAddItem"))
     }
 }
+
+struct AnalyticsTests {
+    @Test func eventNamesMatchEventsTableCheck() {
+        #expect(AnalyticsEvent.allCases.map(\.rawValue).sorted() == [
+            "app_open", "guest_start", "item_added", "list_item_bought",
+            "pantry_restocked", "paywall_viewed", "purchase_started",
+            "recipe_extracted", "recipe_saved", "signup",
+        ])
+    }
+
+    @Test func payloadCarriesNoAccountData() {
+        let id = UUID()
+        let body = Analytics.payload(event: .itemAdded, installID: id, appVersion: "1.1 (94)")
+        #expect(Set(body.keys) == ["install_id", "event", "app_version"])
+        #expect(body["install_id"] == id.uuidString.lowercased())
+        #expect(body["event"] == "item_added")
+    }
+
+    @Test func installIDIsStablePerDefaults() {
+        let suite = "samaan.tests.analytics.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = Analytics.installID(defaults: defaults)
+        #expect(Analytics.installID(defaults: defaults) == first)
+    }
+
+    @Test func analyticsIsOffUnderTests() {
+        #expect(Analytics.isEnabled == false)
+    }
+}
+
+struct AIProcessingConsentTests {
+    @Test func consentCopyNamesAnthropic() {
+        #expect(AIProcessingConsent.message.contains("Anthropic"))
+        #expect(AIProcessingConsent.title.contains("Anthropic"))
+    }
+
+    @Test func captureViewGatesExtractionOnConsent() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Features/Recipes/RecipeCaptureView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let gate = try #require(text.range(of: "if !hasAIConsent {"))
+        let call = try #require(text.range(of: "RecipeExtractionService.shared.extract("))
+        #expect(gate.lowerBound < call.lowerBound)
+    }
+}

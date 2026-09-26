@@ -34,6 +34,10 @@ struct SamaanApp: App {
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
                     guard checked else { return }
+                    Analytics.track(.appOpen)
+                    if appEnv.auth.currentUserID == nil {
+                        Analytics.trackOnce(.guestStart)
+                    }
                     if !ScreenshotLaunchConfiguration.current.skipsAuth {
                         appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
                     }

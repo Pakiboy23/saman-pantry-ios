@@ -84,6 +84,7 @@ final class AuthService {
             )
             pendingEmail = email
             pendingEmailConfirmation = true
+            Analytics.track(.signup)
         } catch {
             errorMessage = Self.friendly(error)
         }
