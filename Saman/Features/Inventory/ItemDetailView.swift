@@ -5,7 +5,6 @@ struct ItemDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \Pantry.name) private var pantries: [Pantry]
     @Query(sort: \ShoppingList.createdAt, order: .reverse) private var lists: [ShoppingList]
 
     @Bindable var item: Item
@@ -25,11 +24,6 @@ struct ItemDetailView: View {
                     Text(item.name)
                         .font(.pantrySectionHead)
                         .foregroundStyle(Color.inkKohl)
-                    if let pantry = item.pantry {
-                        Text(pantry.name)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.inkKohlSoft)
-                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
@@ -161,22 +155,6 @@ struct ItemDetailView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(Color.inkKohl)
                         .lineLimit(3...8)
-                    }
-                }
-
-                // Pantry picker card
-                if !pantries.isEmpty {
-                    detailCard {
-                        VStack(alignment: .leading, spacing: 10) {
-                            sectionLabel("PANTRY")
-                            Picker("Pantry", selection: $item.pantry) {
-                                Text("None").tag(Optional<Pantry>.none)
-                                ForEach(pantries) { p in Text(p.name).tag(Optional(p)) }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(Color.brandSaag)
-                            .onChange(of: item.pantry?.id) { _, _ in persist() }
-                        }
                     }
                 }
 

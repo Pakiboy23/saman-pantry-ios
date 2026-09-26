@@ -5,29 +5,16 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
     @Query(sort: \Item.name) private var items: [Item]
-    @Query(sort: \Pantry.name) private var pantries: [Pantry]
     @State private var showAdd = false
     @State private var showPaywall = false
     @State private var showSettings = false
-    @State private var selectedTab = "all"
     @State private var pendingDeleteItem: Item?
     @State private var openSwipeID: UUID?
 
     // MARK: - Derived
 
-    private var tabs: [(id: String, label: String)] {
-        [("all", "All")] + pantries.map { ($0.id.uuidString, $0.name) }
-    }
-
-    private var filteredItems: [Item] {
-        guard selectedTab != "all",
-              let id = UUID(uuidString: selectedTab) else { return items }
-        return items.filter { $0.pantry?.id == id }
-    }
-
-    private var lowItems:     [Item] { filteredItems.filter { $0.stockStatus.isAttention } }
-    private var stockedItems: [Item] { filteredItems.filter { !$0.stockStatus.isAttention } }
-    private var allLowCount:  Int    { items.filter { $0.stockStatus.isAttention }.count }
+    private var lowItems:     [Item] { items.filter { $0.stockStatus.isAttention } }
+    private var stockedItems: [Item] { items.filter { !$0.stockStatus.isAttention } }
 
     // MARK: - Body
 
@@ -77,20 +64,18 @@ struct InventoryView: View {
                         }
                     }
 
-                    if filteredItems.isEmpty {
+                    if items.isEmpty {
                         VStack(spacing: 16) {
                             SamaanEmptyState(
                                 emoji: "🛒",
                                 title: "Nothing here yet",
                                 message: "Tap + to add your first item."
                             )
-                            if items.isEmpty {
-                                Button("Add desi staples") {
-                                    DesiStaples.seed(into: context) { appEnv.syncNow() }
-                                }
-                                .buttonStyle(SamaanSecondaryButtonStyle())
-                                .padding(.horizontal, Samaan.Space.md)
+                            Button("Add desi staples") {
+                                DesiStaples.seed(into: context) { appEnv.syncNow() }
                             }
+                            .buttonStyle(SamaanSecondaryButtonStyle())
+                            .padding(.horizontal, Samaan.Space.md)
                         }
                     }
 
@@ -165,13 +150,9 @@ struct InventoryView: View {
             .padding(.horizontal, Samaan.Space.md)
             .padding(.vertical, 12)
 
-            if allLowCount > 0 {
-                LowStockBanner(count: allLowCount)
+            if !lowItems.isEmpty {
+                LowStockBanner(count: lowItems.count)
                     .padding(.bottom, 8)
-            }
-
-            if tabs.count > 1 {
-                PillTabBar(tabs: tabs, selection: $selectedTab)
             }
 
             Rectangle()

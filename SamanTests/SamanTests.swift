@@ -317,9 +317,10 @@ struct MonetizationCopyTests {
     @Test func paywallBenefitsAreTheRealUnlocks() {
         #expect(FreeLimits.proBenefits.count == 2)
         #expect(FreeLimits.proBenefits.map(\.title) == [
-            "Unlimited pantries and items",
+            "Unlimited pantry items",
             "Unlimited shopping lists",
         ])
+        #expect(!FreeLimits.proMarketingStrings.joined(separator: "\n").lowercased().contains("unlimited pantries"))
         #expect(FreeLimits.proUnlocksSummary.contains("\(FreeLimits.pantryItemCap) pantry"))
         #expect(FreeLimits.proUnlocksSummary.contains("everyone"))
         for string in FreeLimits.proMarketingStrings {

@@ -6,15 +6,10 @@ struct AddItemView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnv) private var appEnv
 
-    @Query(sort: \Pantry.name) private var pantries: [Pantry]
-
-    var defaultPantry: Pantry? = nil
-
     @State private var name = ""
     @State private var quantity = 1
     @State private var unit = "unit"
     @State private var minimumQuantity = 1
-    @State private var selectedPantry: Pantry?
     @State private var barcode: String?
     @State private var showScanner = false
 
@@ -46,14 +41,6 @@ struct AddItemView: View {
                     Stepper("Current: \(quantity) \(unit)", value: $quantity, in: 0...9999)
                     Stepper("Minimum: \(minimumQuantity) \(unit)", value: $minimumQuantity, in: 0...9999)
                 }
-                if !pantries.isEmpty {
-                    Section("Pantry") {
-                        Picker("Pantry", selection: $selectedPantry) {
-                            Text("None").tag(Optional<Pantry>.none)
-                            ForEach(pantries) { p in Text(p.name).tag(Optional(p)) }
-                        }
-                    }
-                }
             }
             .navigationTitle("New Item")
             .navigationBarTitleDisplayMode(.inline)
@@ -68,9 +55,6 @@ struct AddItemView: View {
                 ScannerView { scanned, scannedName in
                     applyScan(barcode: scanned, name: scannedName)
                 }
-            }
-            .onAppear {
-                selectedPantry = defaultPantry
             }
         }
     }
@@ -91,8 +75,7 @@ struct AddItemView: View {
             quantity: quantity,
             unit: unit,
             minimumQuantity: minimumQuantity,
-            barcode: barcode,
-            pantry: selectedPantry
+            barcode: barcode
         )
         context.insert(item)
         try? context.save()
