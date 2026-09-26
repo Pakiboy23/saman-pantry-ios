@@ -64,6 +64,39 @@ struct SyncReconcileTests {
         #expect(SyncReconcile.shouldDeleteLocal(localDirty: true, presentOnServer: false) == false)
         #expect(SyncReconcile.shouldDeleteLocal(localDirty: false, presentOnServer: true) == false)
     }
+
+    @Test func flushKeepsTombstonesQueuedDuringNetworkWait() {
+        let first = SyncReconcile.TombstoneID(table: "items", id: UUID())
+        let second = SyncReconcile.TombstoneID(table: "shopping_list_items", id: UUID())
+        let kept = SyncReconcile.remainingTombstones(
+            current: [first, second],
+            successfullyDeleted: [first]
+        )
+        #expect(kept == [second])
+    }
+
+    @Test func flushDropsOnlySuccessfulDeletes() {
+        let failed = SyncReconcile.TombstoneID(table: "recipes", id: UUID())
+        let kept = SyncReconcile.remainingTombstones(
+            current: [failed],
+            successfullyDeleted: []
+        )
+        #expect(kept == [failed])
+    }
+
+    @Test func pullSkipsTombstonedRows() {
+        let deleted = UUID()
+        let live = UUID()
+        #expect(SyncReconcile.shouldInsertPulledRow(id: deleted, tombstonedIDs: [deleted]) == false)
+        #expect(SyncReconcile.shouldInsertPulledRow(id: live, tombstonedIDs: [deleted]) == true)
+    }
+
+    @Test func uploadLeavesDirtyWhenRowChangedInFlight() {
+        let uploaded = Date(timeIntervalSince1970: 10)
+        let edited = Date(timeIntervalSince1970: 20)
+        #expect(SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: uploaded, currentUpdatedAt: edited) == false)
+        #expect(SyncReconcile.shouldClearDirtyAfterUpload(uploadedUpdatedAt: uploaded, currentUpdatedAt: uploaded) == true)
+    }
 }
 
 @MainActor
@@ -146,6 +179,25 @@ struct DeleteRecordTests {
         let stones = env.syncManager.queuedTombstones()
         #expect(stones.contains { $0.table == "shopping_lists" && $0.id == listID })
         #expect(stones.contains { $0.table == "shopping_list_items" && $0.id == itemID })
+    }
+
+    @Test func clearLocalStoreInvalidatesSyncAndDropsTombstones() throws {
+        let container = try makeContainer()
+        let env = AppEnvironment(modelContainer: container)
+        env.syncManager.clearTombstones()
+        defer { env.syncManager.clearTombstones() }
+
+        let item = Item(name: "Haldi", quantity: 1, unit: "jar")
+        container.mainContext.insert(item)
+        try container.mainContext.save()
+        env.deleteRecord(item, table: "items", id: item.id)
+        #expect(!env.syncManager.queuedTombstones().isEmpty)
+
+        env.clearLocalStore()
+
+        let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
+        #expect(remaining.isEmpty)
+        #expect(env.syncManager.queuedTombstones().isEmpty)
     }
 }
 
