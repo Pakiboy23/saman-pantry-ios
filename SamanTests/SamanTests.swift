@@ -573,6 +573,7 @@ struct ScanEntryTests {
     }
 }
 
+@MainActor
 struct AnalyticsTests {
     @Test func eventNamesMatchEventsTableCheck() {
         #expect(AnalyticsEvent.allCases.map(\.rawValue).sorted() == [
@@ -603,6 +604,7 @@ struct AnalyticsTests {
     }
 }
 
+@MainActor
 struct AIProcessingConsentTests {
     @Test func consentCopyNamesAnthropic() {
         #expect(AIProcessingConsent.message.contains("Anthropic"))
