@@ -3,16 +3,16 @@ import VisionKit
 import SwiftData
 
 struct ScannerView: View {
-    @Environment(\.modelContext) private var context
-    @Environment(\.appEnv) private var appEnv
+    @Environment(\.dismiss) private var dismiss
+    @Query private var items: [Item]
     @Query private var products: [Product]
-    @Query private var allItems: [Item]
+
+    /// Reports the scanned barcode and a looked-up name (when known) back to Add Item.
+    let onPick: (_ barcode: String, _ name: String?) -> Void
 
     @State private var scannedBarcode: String?
     @State private var foundProduct: FoundProduct?
     @State private var isLooking = false
-    @State private var showAddItem = false
-    @State private var showPaywall = false
     @State private var resultName = ""
     @State private var scannerActive = true
 
@@ -52,6 +52,13 @@ struct ScannerView: View {
                                     .foregroundStyle(.white.opacity(0.7))
                             }
                             Spacer()
+                            Button { dismiss() } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 36, height: 36)
+                            }
+                            .accessibilityLabel("Close scanner")
                         }
                         .padding(.horizontal, Samaan.Space.md)
                         .padding(.top, 8)
@@ -67,18 +74,19 @@ struct ScannerView: View {
                     }
 
                 } else {
-                    SamaanEmptyState(
-                        emoji: "📷",
-                        title: "Scanner unavailable",
-                        message: "This device doesn't support the camera scanner."
-                    )
+                    VStack(spacing: 16) {
+                        SamaanEmptyState(
+                            emoji: "📷",
+                            title: "Scanner unavailable",
+                            message: "This device doesn't support the camera scanner."
+                        )
+                        Button("Close") { dismiss() }
+                            .buttonStyle(SamaanSecondaryButtonStyle())
+                            .padding(.horizontal, Samaan.Space.md)
+                    }
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showAddItem, onDismiss: resetScanner) {
-                AddItemView(prefillBarcode: scannedBarcode, prefillName: resultName)
-            }
-            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
         }
     }
 
@@ -100,17 +108,17 @@ struct ScannerView: View {
             VStack(spacing: 14) {
                 // Product info
                 HStack(spacing: 12) {
-                    Text(foundProduct != nil ? "🛍️" : "❓")
+                    Text(pickedName == nil ? "❓" : "🛍️")
                         .font(.system(size: 28))
                         .frame(width: 52, height: 52)
                         .background(Color.surfaceAtta, in: RoundedRectangle(cornerRadius: 10))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        if let product = foundProduct {
-                            Text(product.name)
+                        if let name = pickedName {
+                            Text(name)
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color.inkKohl)
-                            if let brand = product.brand {
+                            if let brand = foundProduct?.brand {
                                 Text(brand)
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.inkKohlSoft)
@@ -127,18 +135,12 @@ struct ScannerView: View {
                     Spacer()
                 }
 
-                // Actions
+                // Fill the open Add Item form; do not present a nested add sheet
                 HStack(spacing: 10) {
                     Button("Scan Again") { resetScanner() }
                         .buttonStyle(SamaanSecondaryButtonStyle())
-                    Button("Add to Pantry") {
-                        if allItems.count >= 30 && !appEnv.purchases.isPro {
-                            showPaywall = true
-                        } else {
-                            showAddItem = true
-                        }
-                    }
-                    .buttonStyle(SamaanPrimaryButtonStyle())
+                    Button("Use this") { pickCurrent() }
+                        .buttonStyle(SamaanPrimaryButtonStyle())
                 }
             }
             .padding(16)
@@ -158,21 +160,34 @@ struct ScannerView: View {
         }
     }
 
+    /// Looked-up or local catalog name, never the raw barcode.
+    private var pickedName: String? {
+        if let name = foundProduct?.name, !name.isEmpty { return name }
+        if !resultName.isEmpty, resultName != scannedBarcode { return resultName }
+        return nil
+    }
+
     // MARK: - Logic
 
     private func handle(barcode: String) {
         scannedBarcode = barcode
-        if let local = products.first(where: { $0.barcode == barcode }) {
-            resultName = local.name
+        if let local = localName(forScannedBarcode: barcode, items: items, products: products) {
+            resultName = local
             return
         }
         isLooking = true
         Task {
             let result = await ProductLookupService.shared.lookup(barcode: barcode)
             foundProduct = result
-            resultName = result?.name ?? barcode
+            resultName = result?.name ?? ""
             isLooking = false
         }
+    }
+
+    private func pickCurrent() {
+        guard let barcode = scannedBarcode else { return }
+        onPick(barcode, pickedName)
+        dismiss()
     }
 
     private func resetScanner() {
@@ -183,4 +198,38 @@ struct ScannerView: View {
     }
 }
 
-#Preview { ScannerView().modelContainer(.preview) }
+/// Name already stored for this barcode.
+/// Add Item writes the code on `Item.barcode` and does not create a `Product`, so a pantry item wins.
+/// A product row is only a fallback for older synced catalog data.
+func localName(forScannedBarcode barcode: String, items: [Item], products: [Product]) -> String? {
+    guard !barcode.isEmpty else { return nil }
+    if let name = newestNonEmptyName(items.compactMap { item in
+        guard item.barcode == barcode else { return nil }
+        return StoredName(name: item.name, updatedAt: item.updatedAt)
+    }) {
+        return name
+    }
+    return newestNonEmptyName(products.compactMap { product in
+        guard product.barcode == barcode else { return nil }
+        return StoredName(name: product.name, updatedAt: product.updatedAt)
+    })
+}
+
+private struct StoredName {
+    let name: String
+    let updatedAt: Date
+}
+
+private func newestNonEmptyName(_ rows: [StoredName]) -> String? {
+    var best: StoredName?
+    for row in rows {
+        let trimmed = row.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { continue }
+        let candidate = StoredName(name: trimmed, updatedAt: row.updatedAt)
+        if let current = best, current.updatedAt >= candidate.updatedAt { continue }
+        best = candidate
+    }
+    return best?.name
+}
+
+#Preview { ScannerView { _, _ in }.modelContainer(.preview) }

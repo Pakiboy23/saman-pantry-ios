@@ -57,45 +57,6 @@ struct LowStockBanner: View {
     }
 }
 
-// MARK: - Pill Tab Bar
-
-struct PillTabBar: View {
-    let tabs: [(id: String, label: String)]
-    @Binding var selection: String
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(tabs, id: \.id) { tab in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.18)) { selection = tab.id }
-                    } label: {
-                        let isActive = selection == tab.id
-                        Text(tab.label)
-                            .font(.system(size: 13, weight: isActive ? .semibold : .regular))
-                            .foregroundStyle(isActive ? Color.brandSaag : Color.inkKohlSoft)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                isActive ? Color.brandSaag.opacity(0.10) : Color.clear,
-                                in: Capsule()
-                            )
-                            .overlay(
-                                Capsule().stroke(
-                                    isActive ? Color.brandSaag : Color.clear,
-                                    lineWidth: 1
-                                )
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, Samaan.Space.md)
-            .padding(.vertical, 4)
-        }
-    }
-}
-
 // MARK: - Section Header (Running low / Well stocked)
 
 struct SamaanSectionHeader: View {
@@ -138,21 +99,14 @@ struct ItemCard: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.inkKohl)
                     .lineLimit(1)
-                HStack(spacing: 4) {
-                    if let pantry = item.pantry {
-                        Text(pantry.name)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.inkKohlSoft)
-                    }
-                    if item.isExpired {
-                        Text("· Expired")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.accentAnaar)
-                    } else if item.isExpiringSoon {
-                        Text("· Expiring soon")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.accentMasala)
-                    }
+                if item.isExpired {
+                    Text("Expired")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.accentAnaar)
+                } else if item.isExpiringSoon {
+                    Text("Expiring soon")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.accentMasala)
                 }
             }
 

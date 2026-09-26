@@ -3,8 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Recipe extraction is proxied so the Anthropic key never ships in the iOS
 // binary. The caller must be a signed-in user: the anon key as Bearer is a
 // valid JWT but getUser rejects it, which is what closed the open proxy.
-// Quota is 5 successful-or-attempted extractions per rolling 24h, counted in
-// recipe_extraction_events (service role only; see 004_recipe_extraction_events.sql).
+// Quota is 5 successful-or-attempted extractions per rolling 24h for every
+// signed-in user, including Pro. This function does not read RevenueCat.
+// The iOS client must show "try tomorrow" on 402 — do not open the Pro
+// paywall until a higher Pro cap actually exists here.
+// Counted in recipe_extraction_events (service role only; see 004).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +17,7 @@ const corsHeaders = {
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
 const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 5; // Keep in sync with FreeLimits.extractPerDay. Not Pro-aware.
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {

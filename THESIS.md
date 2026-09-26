@@ -68,7 +68,7 @@ Until those conditions are met, household mode stays off the roadmap.
 
 
 ## Non-negotiables
-- The Reorder tab must actually restock. No lying to the user.
+- Marking an item bought must restock pantry. No lying to the user. Do not restore ReorderView.
 - Pantry and shopping list are one loop, not two separate features.
 - Sync must work bidirectionally before public launch.
 - No feature ships unless it advances the core loop.
@@ -76,11 +76,9 @@ Until those conditions are met, household mode stays off the roadmap.
 
 
 ## What gets cut if we're honest
-- Prices tab in its current form. Either it earns its place by doing price history or store comparison, or it goes away.
-- Barcode scanning as a top-level tab. Scanning is a data-entry method, not a destination. It moves inside the Add Item flow.
-- Settings as a tab. Becomes a button in the top bar.
+Already cut: Prices tab (deleted), Scanner as a top-level tab, Settings as a tab, ReorderView (deleted). Restock lives in mark-bought on the shopping list, not a fourth tab. Scanning is a data-entry method inside Add Item.
 
-This leaves three real tabs: Pantry, List, Reorder. Or two if Reorder folds into Pantry, which is worth considering.
+Live tabs: Home, Pantry, Lists, Recipes.
 
 
 ---

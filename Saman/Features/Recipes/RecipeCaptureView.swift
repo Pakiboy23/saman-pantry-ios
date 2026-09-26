@@ -14,7 +14,6 @@ struct RecipeCaptureView: View {
     @State private var phase:        Phase = .idle
     @State private var showError     = false
     @State private var errorMessage  = ""
-    @State private var showPaywall   = false
     @State private var resumeExtractAfterAuth = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
@@ -50,7 +49,6 @@ struct RecipeCaptureView: View {
         }
         _showError = State(initialValue: false)
         _errorMessage = State(initialValue: "")
-        _showPaywall = State(initialValue: false)
         _resumeExtractAfterAuth = State(initialValue: false)
     }
 
@@ -86,7 +84,6 @@ struct RecipeCaptureView: View {
             } message: {
                 Text(errorMessage)
             }
-            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .fullScreenCover(isPresented: Binding(
                 get: { appEnv.isAuthPresented },
                 set: { appEnv.isAuthPresented = $0 }
@@ -297,12 +294,8 @@ struct RecipeCaptureView: View {
             extractedJSON = result.rawJSON
             phase = .reviewing
         } catch RecipeExtractionService.ExtractionError.quotaExceeded {
-            if appEnv.purchases.isPro {
-                errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
-                showError = true
-            } else {
-                showPaywall = true
-            }
+            errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
+            showError = true
             phase = .idle
         } catch RecipeExtractionService.ExtractionError.unauthorized {
             resumeExtractAfterAuth = true
@@ -322,16 +315,7 @@ struct RecipeCaptureView: View {
 
         let list = ShoppingList(name: recipeTitle)
         context.insert(list)
-
-        for sel in chosen {
-            let ing     = sel.ingredient
-            let product = Product(name: ing.ingredient)
-            context.insert(product)
-            let qty  = max(1, Int((ing.amount ?? 1.0).rounded(.up)))
-            let unit = ing.unit ?? "unit"
-            let item = ShoppingListItem(quantity: qty, unit: unit, product: product, shoppingList: list)
-            context.insert(item)
-        }
+        PantryProductLink.appendIngredients(chosen.map(\.ingredient), to: list, in: context)
 
         // Fold the user-entered source back into the stored JSON so the saved
         // recipe and its extracted structure agree on attribution.

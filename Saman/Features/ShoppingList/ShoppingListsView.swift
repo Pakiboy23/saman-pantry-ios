@@ -48,10 +48,10 @@ struct ShoppingListsView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamaanHeader(subtitle: listSubtitle) {
-                        if lists.count >= 1 && !appEnv.purchases.isPro {
-                            showPaywall = true
-                        } else {
+                        if FreeLimits.canAddShoppingListFromListsTab(existingCount: lists.count, isPro: appEnv.purchases.isPro) {
                             showAdd = true
+                        } else {
+                            showPaywall = true
                         }
                     }
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
@@ -125,15 +125,9 @@ private struct ShoppingListCard: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(list.isCompleted ? Color.inkKohlSoft : Color.inkKohl)
                     .strikethrough(list.isCompleted)
-                HStack(spacing: 4) {
-                    if let store = list.store {
-                        Text(store.name)
-                        Text("·")
-                    }
-                    Text(list.isCompleted ? "Completed" : "\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
-                }
-                .font(.system(size: 12))
-                .foregroundStyle(Color.inkKohlSoft)
+                Text(list.isCompleted ? "Completed" : "\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.inkKohlSoft)
             }
 
             Spacer()
