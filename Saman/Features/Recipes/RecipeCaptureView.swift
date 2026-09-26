@@ -5,6 +5,12 @@ struct RecipeCaptureView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv)       private var appEnv
     @Environment(\.dismiss)      private var dismiss
+    @Environment(\.openURL)      private var openURL
+
+    /// One-time consent before any recipe text leaves the device (App Review
+    /// 5.1.1 / 5.1.2(i): disclose third-party AI processing and get permission).
+    @AppStorage(AIProcessingConsent.storageKey) private var hasAIConsent = false
+    @State private var showAIConsent = false
 
     @State private var transcript    = ""
     @State private var recipeTitle   = ""
@@ -154,6 +160,18 @@ struct RecipeCaptureView: View {
             Button("Extract Recipe") { Task { await runExtraction() } }
                 .buttonStyle(SamaanPrimaryButtonStyle())
                 .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .alert(AIProcessingConsent.title, isPresented: $showAIConsent) {
+                    Button("Allow and Extract") {
+                        hasAIConsent = true
+                        Task { await runExtraction() }
+                    }
+                    Button("Read Privacy Policy") {
+                        if let url = URL(string: Config.privacyPolicyURL) { openURL(url) }
+                    }
+                    Button("Cancel", role: .cancel) { }
+                } message: {
+                    Text(AIProcessingConsent.message)
+                }
                 .padding(.horizontal, Samaan.Space.md)
                 .padding(.bottom, 32)
         }
@@ -281,6 +299,10 @@ struct RecipeCaptureView: View {
     private func runExtraction() async {
         let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        if !hasAIConsent {
+            showAIConsent = true
+            return
+        }
         if !appEnv.requireAccount() {
             resumeExtractAfterAuth = true
             return
@@ -292,6 +314,7 @@ struct RecipeCaptureView: View {
             recipeSource = result.recipe.attribution ?? ""
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
+            Analytics.track(.recipeExtracted)
             phase = .reviewing
         } catch RecipeExtractionService.ExtractionError.quotaExceeded {
             errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
@@ -334,9 +357,18 @@ struct RecipeCaptureView: View {
         context.insert(recipe)
 
         try? context.save()
+        Analytics.track(.recipeSaved)
         appEnv.syncNow()
         phase = .done
     }
+}
+
+// MARK: - AI processing consent
+
+enum AIProcessingConsent {
+    static let storageKey = "samaan.consent.anthropicExtraction.v1"
+    static let title = "Send this recipe to Anthropic?"
+    static let message = "To pull out the ingredients and steps, Saman sends the recipe text or link you paste to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
 }
 
 // MARK: - Ingredient row
