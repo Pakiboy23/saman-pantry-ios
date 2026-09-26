@@ -1,13 +1,23 @@
 import Foundation
 
 extension Item {
-    /// Best-guess emoji based on item name and product category.
+    /// Best-guess emoji from the item name. Desi names stay above the generic grocery tail.
     var emoji: String {
         let n = name.lowercased()
-        let cat = product?.category?.lowercased() ?? ""
 
-        // Name-based matches
+        // Name-based matches. Desi names and aliases stay above the generic grocery tail.
         let nameLookup: [(String, String)] = [
+            ("atta", "🌾"), ("aata", "🌾"),
+            ("daal", "🫘"), ("dal", "🫘"),
+            ("ghee", "🧈"),
+            ("haldi", "🟡"), ("turmeric", "🟡"),
+            ("jeera", "🌿"), ("cumin", "🌿"),
+            ("dhaniya", "🌿"), ("dhania", "🌿"), ("coriander", "🌿"),
+            ("mirch", "🌶️"), ("chilli", "🌶️"), ("chili", "🌶️"),
+            ("chai", "🍵"),
+            ("masala", "🌶️"),
+            ("paneer", "🧀"),
+            ("adrak", "🫚"), ("ginger", "🫚"),
             ("milk", "🥛"), ("cream", "🥛"), ("yogurt", "🫙"), ("yoghurt", "🫙"),
             ("egg", "🥚"), ("bread", "🍞"), ("toast", "🍞"), ("bagel", "🥯"),
             ("butter", "🧈"), ("cheese", "🧀"),
@@ -25,7 +35,7 @@ extension Item {
             ("juice", "🧃"), ("water", "💧"), ("soda", "🥤"), ("wine", "🍷"),
             ("beer", "🍺"), ("kombucha", "🍶"),
             ("sugar", "🍬"), ("honey", "🍯"), ("jam", "🍓"), ("syrup", "🍁"),
-            ("salt", "🧂"), ("pepper", "🧂"), ("spice", "🌶️"), ("herb", "🌿"),
+            ("salt", "🧂"), ("spice", "🌶️"), ("herb", "🌿"),
             ("oil", "🫙"), ("vinegar", "🫙"), ("sauce", "🫙"), ("ketchup", "🍅"),
             ("mustard", "🌭"), ("mayo", "🫙"), ("dressing", "🫙"),
             ("chocolate", "🍫"), ("candy", "🍬"), ("cookie", "🍪"), ("cake", "🎂"),
@@ -41,21 +51,6 @@ extension Item {
         for (keyword, emoji) in nameLookup {
             if n.contains(keyword) { return emoji }
         }
-
-        // Category fallback
-        if cat.contains("dairy") { return "🥛" }
-        if cat.contains("meat") || cat.contains("poultry") { return "🥩" }
-        if cat.contains("seafood") || cat.contains("fish") { return "🐟" }
-        if cat.contains("produce") || cat.contains("fruit") { return "🍎" }
-        if cat.contains("vegetable") { return "🥦" }
-        if cat.contains("bakery") || cat.contains("bread") { return "🍞" }
-        if cat.contains("beverage") || cat.contains("drink") { return "🥤" }
-        if cat.contains("snack") { return "🍪" }
-        if cat.contains("frozen") { return "🧊" }
-        if cat.contains("condiment") || cat.contains("sauce") { return "🫙" }
-        if cat.contains("cereal") || cat.contains("grain") { return "🌾" }
-        if cat.contains("cleaning") || cat.contains("household") { return "🧼" }
-        if cat.contains("personal") || cat.contains("health") { return "🪥" }
 
         return "🛒"
     }

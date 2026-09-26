@@ -282,14 +282,96 @@ struct FreeLimitsTests {
 }
 
 struct MonetizationCopyTests {
+    private static let bannedProClaims = [
+        "instacart",
+        "one-tap reorder",
+        "one-tap instacart",
+        "restock essentials before you run out",
+    ]
+
     @Test func storeKitNamesRealUnlocks() throws {
-        let testsDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-        let storekit = testsDir.deletingLastPathComponent().appendingPathComponent("Saman/Saman.storekit")
-        let text = try String(contentsOf: storekit, encoding: .utf8)
+        let text = try String(contentsOf: storeKitURL, encoding: .utf8)
         #expect(!text.contains("premium pantry and recipe features"))
         #expect(!text.contains("support development"))
         #expect(text.contains("\(FreeLimits.pantryItemCap) pantry"))
         #expect(text.contains("Lists"))
         #expect(text.contains("\(FreeLimits.extractPerDay) per day") || text.contains("\(FreeLimits.extractPerDay)/day"))
+    }
+
+    @Test func paywallBenefitsAreTheRealUnlocks() {
+        #expect(FreeLimits.proBenefits.count == 2)
+        #expect(FreeLimits.proBenefits.map(\.title) == [
+            "Unlimited pantry items",
+            "Unlimited shopping lists",
+        ])
+        #expect(!FreeLimits.proMarketingStrings.joined(separator: "\n").lowercased().contains("unlimited pantries"))
+        #expect(FreeLimits.proUnlocksSummary.contains("\(FreeLimits.pantryItemCap) pantry"))
+        #expect(FreeLimits.proUnlocksSummary.contains("everyone"))
+        for string in FreeLimits.proMarketingStrings {
+            let lower = string.lowercased()
+            for banned in Self.bannedProClaims {
+                #expect(!lower.contains(banned), "Pro copy leaked \(banned): \(string)")
+            }
+        }
+    }
+
+    @Test func shippedSourcesOmitRetiredGroceryDeliveryClaims() throws {
+        let samanRoot = repoRoot.appendingPathComponent("Saman")
+        for (file, text) in try sourceFiles(under: samanRoot) {
+            let lower = text.lowercased()
+            for banned in Self.bannedProClaims {
+                #expect(!lower.contains(banned), "\(file.path) still contains \(banned)")
+            }
+        }
+    }
+
+    @Test func paywallDoesNotRenderRemoteOfferingCopy() throws {
+        let paywall = try String(contentsOf: samanRoot.appendingPathComponent("Features/Settings/PaywallView.swift"), encoding: .utf8)
+        #expect(!paywall.contains("import RevenueCatUI"))
+        #expect(!paywall.contains("PaywallView()"))
+        #expect(paywall.contains("FreeLimits.proBenefits"))
+        #expect(paywall.contains("FreeLimits.proUnlocksSummary"))
+    }
+
+    private var repoRoot: URL {
+        URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+    }
+
+    private var samanRoot: URL { repoRoot.appendingPathComponent("Saman") }
+
+    private var storeKitURL: URL { samanRoot.appendingPathComponent("Saman.storekit") }
+
+    private func sourceFiles(under root: URL) throws -> [(URL, String)] {
+        var files: [(URL, String)] = []
+        let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey])
+        while let url = enumerator?.nextObject() as? URL {
+            guard url.pathExtension == "swift" || url.pathExtension == "storekit" else { continue }
+            files.append((url, try String(contentsOf: url, encoding: .utf8)))
+        }
+        return files
+    }
+}
+
+struct ScanEntryTests {
+    @Test func scanLivesInsideAddItemNotHomeOrPantry() throws {
+        let saman = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman")
+        let home = try String(contentsOf: saman.appendingPathComponent("Features/Home/HomeView.swift"), encoding: .utf8)
+        let pantry = try String(contentsOf: saman.appendingPathComponent("Features/Inventory/InventoryView.swift"), encoding: .utf8)
+        let addItem = try String(contentsOf: saman.appendingPathComponent("Features/Inventory/AddItemView.swift"), encoding: .utf8)
+        let scanner = try String(contentsOf: saman.appendingPathComponent("Features/Scanner/ScannerView.swift"), encoding: .utf8)
+
+        #expect(!home.contains("ScannerView"))
+        #expect(!home.contains("barcode.viewfinder"))
+        #expect(!home.contains("See all pantry items"))
+        #expect(!home.contains("InventoryView()"))
+        #expect(!pantry.contains("ScannerView"))
+        #expect(!pantry.contains("barcode.viewfinder"))
+        #expect(addItem.contains("ScannerView"))
+        #expect(addItem.contains("barcode.viewfinder"))
+        #expect(!scanner.contains("AddItemView"))
+        #expect(!scanner.contains("showAddItem"))
     }
 }

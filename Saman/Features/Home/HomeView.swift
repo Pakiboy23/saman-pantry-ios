@@ -12,7 +12,6 @@ struct HomeView: View {
     @State private var showCapture  = false
     @State private var showAdd      = false
     @State private var showPaywall  = false
-    @State private var showScanner  = false
     @State private var showSettings = false
 
     // MARK: - Derived
@@ -44,7 +43,6 @@ struct HomeView: View {
             .sheet(isPresented: $showCapture)  { RecipeCaptureView() }
             .sheet(isPresented: $showAdd)       { AddItemView() }
             .sheet(isPresented: $showPaywall)   { SamaanPaywallView() }
-            .sheet(isPresented: $showScanner)   { ScannerView() }
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
         .accessibilityIdentifier("screenshot.home")
@@ -70,12 +68,6 @@ struct HomeView: View {
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel("Settings")
-            Button { showScanner = true } label: {
-                Image(systemName: "barcode.viewfinder")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.inkKohl)
-                    .frame(width: 36, height: 36)
-            }
             Button {
                 if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
                     showAdd = true
@@ -175,18 +167,6 @@ struct HomeView: View {
                         HomeLowStockRow(item: item)
                             .padding(.horizontal, Samaan.Space.md)
                             .padding(.bottom, 4)
-                    }
-                    NavigationLink(destination: InventoryView()) {
-                        HStack {
-                            Text("See all pantry items")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color.brandSaag)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.brandSaag.opacity(0.6))
-                        }
-                        .padding(.horizontal, Samaan.Space.md)
-                        .padding(.top, 4)
                     }
                 }
 

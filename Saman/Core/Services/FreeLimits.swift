@@ -31,6 +31,38 @@ enum FreeLimits {
     static let proActiveSummary =
         "Unlimited pantry items and extra lists from Lists. Recipe extract is \(extractPerDay) per day."
 
+    /// Source-controlled paywall bullets. Do not load feature copy from the
+    /// RevenueCat offering — the remote paywall still advertises a retired
+    /// grocery-delivery reorder claim that this app does not ship.
+    struct ProBenefit: Equatable, Sendable {
+        let title: String
+        let subtitle: String
+    }
+
+    static let paywallTitle = "Saman Pro"
+    static let paywallSubtitle = "The full kitchen, unlocked."
+    static let paywallCallToAction = "Get Saman Pro"
+    static let paywallRenewalDisclaimer = "Subscription renews automatically. Cancel anytime."
+    static let paywallLifetimeDisclaimer = "One-time purchase. No subscription."
+
+    static let proBenefits: [ProBenefit] = [
+        ProBenefit(
+            title: "Unlimited pantry items",
+            subtitle: "Track every staple in the kitchen."
+        ),
+        ProBenefit(
+            title: "Unlimited shopping lists",
+            subtitle: "Keep weekly, festival, and bulk lists organized."
+        ),
+    ]
+
+    static var proMarketingStrings: [String] {
+        [freePlanSummary, proUnlocksSummary, proActiveSummary,
+         paywallTitle, paywallSubtitle, paywallCallToAction,
+         paywallRenewalDisclaimer, paywallLifetimeDisclaimer]
+            + proBenefits.flatMap { [$0.title, $0.subtitle] }
+    }
+
     static var quotaExceededMessage: String {
         "That's today's \(extractPerDay) recipes. Try again tomorrow."
     }

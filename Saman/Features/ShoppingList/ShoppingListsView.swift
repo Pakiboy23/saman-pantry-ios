@@ -125,15 +125,9 @@ private struct ShoppingListCard: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(list.isCompleted ? Color.inkKohlSoft : Color.inkKohl)
                     .strikethrough(list.isCompleted)
-                HStack(spacing: 4) {
-                    if let store = list.store {
-                        Text(store.name)
-                        Text("·")
-                    }
-                    Text(list.isCompleted ? "Completed" : "\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
-                }
-                .font(.system(size: 12))
-                .foregroundStyle(Color.inkKohlSoft)
+                Text(list.isCompleted ? "Completed" : "\(list.pendingCount) item\(list.pendingCount == 1 ? "" : "s") left")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.inkKohlSoft)
             }
 
             Spacer()
