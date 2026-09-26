@@ -256,6 +256,74 @@ struct GuestAccountGateTests {
     }
 }
 
+struct PurchaseSessionBindingTests {
+    @Test func signedInAccountIdentifiesRevenueCat() {
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: "user-a",
+                revenueCatIsAnonymous: false,
+                skipsAuth: false
+            ) == .identify("user-a")
+        )
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: "user-a",
+                revenueCatIsAnonymous: true,
+                skipsAuth: false
+            ) == .identify("user-a")
+        )
+    }
+
+    @Test func leftoverIdentifiedUserLogsOutWhenSessionEnds() {
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: nil,
+                revenueCatIsAnonymous: false,
+                skipsAuth: false
+            ) == .logOut
+        )
+    }
+
+    @Test func anonymousGuestKeepsOwnPurchases() {
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: nil,
+                revenueCatIsAnonymous: true,
+                skipsAuth: false
+            ) == .ignore
+        )
+    }
+
+    @Test func screenshotAuthSkipDoesNotTouchRevenueCat() {
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: nil,
+                revenueCatIsAnonymous: false,
+                skipsAuth: true
+            ) == .ignore
+        )
+        #expect(
+            PurchaseSessionBinding.action(
+                currentUserID: "ui-testing",
+                revenueCatIsAnonymous: false,
+                skipsAuth: true
+            ) == .ignore
+        )
+    }
+
+    @Test func appBindsPurchasesOnSessionEndAndInitialCheck() throws {
+        let app = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/SamaanApp.swift")
+        let text = try String(contentsOf: app, encoding: .utf8)
+        #expect(text.contains("bindPurchases(to: userID)"))
+        #expect(text.contains("bindPurchases(to: appEnv.auth.currentUserID)"))
+        #expect(text.contains("appEnv.purchases.logOutAppUser()"))
+        #expect(text.contains("PurchaseSessionBinding.action"))
+    }
+}
+
 struct FreeLimitsTests {
     @Test func pantryCapBlocksFreeUserAtLimit() {
         #expect(FreeLimits.canAddPantryItem(existingCount: 29, isPro: false) == true)

@@ -33,16 +33,35 @@ struct SamaanApp: App {
                 .environment(\.appEnv, appEnv)
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.currentUserID) { _, userID in
-                    if ScreenshotLaunchConfiguration.current.skipsAuth { return }
-                    if let userID {
-                        appEnv.purchases.setAppUserID(userID)
-                    }
+                    bindPurchases(to: userID)
+                }
+                .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
+                    guard checked else { return }
+                    bindPurchases(to: appEnv.auth.currentUserID)
                 }
                 .onOpenURL { url in
                     Task { await appEnv.auth.handleAuthURL(url) }
                 }
         }
         .modelContainer(appEnv.modelContainer)
+    }
+
+    /// Identify RevenueCat with the signed-in account, or log out an
+    /// identified leftover after sign-out / a vanished session. Leave an
+    /// anonymous guest alone so their own purchase survives relaunch.
+    private func bindPurchases(to userID: String?) {
+        switch PurchaseSessionBinding.action(
+            currentUserID: userID,
+            revenueCatIsAnonymous: appEnv.purchases.isAnonymous,
+            skipsAuth: ScreenshotLaunchConfiguration.current.skipsAuth
+        ) {
+        case .identify(let id):
+            appEnv.purchases.setAppUserID(id)
+        case .logOut:
+            appEnv.purchases.logOutAppUser()
+        case .ignore:
+            break
+        }
     }
 
     // MARK: - RevenueCat
