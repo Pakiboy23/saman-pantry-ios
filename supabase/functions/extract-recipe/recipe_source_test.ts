@@ -348,3 +348,16 @@ Deno.test("a private URL never calls fetch", async () => {
   assertEquals(called, false);
   assertEquals((error as SourceError).code, "url_not_allowed");
 });
+
+Deno.test("parseModelRecipe tolerates fences, prose, and flags empty recipes", async () => {
+  const { parseModelRecipe } = await import("./recipe_source.ts");
+  const good = '{"title":"Dal","attribution":null,"ingredients":[{"ingredient":"lentils","original_phrase":"1 cup masoor","amount":1,"unit":"cup","vague":false}],"steps":["Boil {gently}"],"notes":null}';
+  const fenced = parseModelRecipe("```json\n" + good + "\n```");
+  assertEquals(typeof fenced === "object" && fenced?.title, "Dal");
+  const prose = parseModelRecipe("Here is the recipe you asked for:\n\n" + good + "\n\nEnjoy!");
+  assertEquals(typeof prose === "object" && prose?.ingredients.length, 1);
+  assertEquals(parseModelRecipe('{"error":"no_recipe"}'), "no_recipe");
+  assertEquals(parseModelRecipe('{"title":null,"attribution":"X","ingredients":[],"steps":[],"notes":null}'), "no_recipe");
+  assertEquals(parseModelRecipe("I could not find a recipe on this page."), null);
+  assertEquals(parseModelRecipe('{"title":"Cut off","ingredients":[{"ingredient":"salt"'), null);
+});
