@@ -166,7 +166,8 @@ export async function assertResolvedPublic(
   let addresses: string[] = [];
   try {
     addresses = await resolve(host);
-  } catch {
+  } catch (error) {
+    console.error("dns resolve failed:", host, errorLabel(error));
     throw new SourceError(FETCH_FAILED, "url_fetch_failed", 422);
   }
   if (addresses.length === 0) throw new SourceError(FETCH_FAILED, "url_fetch_failed", 422);
@@ -337,6 +338,7 @@ function makeSafeFetch(ctx: FetchCtx, assertSafe: (url: URL) => Promise<void>): 
         });
       } catch (error) {
         if (error instanceof SourceError) throw error;
+        console.error("source fetch failed:", current.hostname, errorLabel(error));
         throw new SourceError(FETCH_FAILED, "url_fetch_failed", 422);
       }
       if (isRedirect(response.status)) {
@@ -348,6 +350,7 @@ function makeSafeFetch(ctx: FetchCtx, assertSafe: (url: URL) => Promise<void>): 
       }
       if (!response.ok) {
         await response.body?.cancel();
+        console.error("source fetch status:", current.hostname, response.status);
         throw new SourceError(FETCH_FAILED, "url_fetch_failed", 422);
       }
       if (!contentTypeAllowed(response.headers.get("content-type"))) {
@@ -363,6 +366,11 @@ function makeSafeFetch(ctx: FetchCtx, assertSafe: (url: URL) => Promise<void>): 
     }
     throw new SourceError(FETCH_FAILED, "url_fetch_failed", 422);
   };
+}
+
+function errorLabel(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`.slice(0, 200);
+  return String(error).slice(0, 200);
 }
 
 function isRedirect(status: number): boolean {
@@ -1010,4 +1018,40 @@ function matchJsonEnd(source: string, start: number): number {
     }
   }
   return -1;
+}
+
+// Model output is supposed to be one bare JSON object, but page text can make
+// it wrap the object in prose or code fences. Pull out the first balanced
+// {...} and accept it only if it is a usable recipe. Returns "no_recipe" when
+// the model says the source has no recipe or returns one with no ingredients.
+export function parseModelRecipe(rawText: string): StructuredRecipe | "no_recipe" | null {
+  const text = rawText.replaceAll("```json", "").replaceAll("```", "").trim();
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    const start = text.indexOf("{");
+    if (start < 0) return null;
+    const end = matchJsonEnd(text, start);
+    if (end < 0) return null;
+    try {
+      parsed = JSON.parse(text.slice(start, end));
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(parsed)) parsed = parsed[0];
+  if (!parsed || typeof parsed !== "object") return null;
+  const obj = parsed as Record<string, unknown>;
+  if (obj.error === "no_recipe") return "no_recipe";
+  const title = typeof obj.title === "string" ? obj.title.trim() : "";
+  const ingredients = Array.isArray(obj.ingredients) ? obj.ingredients : [];
+  if (!title || ingredients.length === 0) return "no_recipe";
+  return {
+    title,
+    attribution: typeof obj.attribution === "string" ? obj.attribution : null,
+    ingredients: ingredients as StructuredIngredient[],
+    steps: Array.isArray(obj.steps) ? obj.steps.filter((step): step is string => typeof step === "string") : [],
+    notes: typeof obj.notes === "string" ? obj.notes : null,
+  };
 }

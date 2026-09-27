@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  parseModelRecipe,
   parseRecipeURL,
   resolveRecipeSource,
   SourceError,
-  type StructuredRecipe,
 } from "./recipe_source.ts";
 
 // Recipe extraction is proxied so the Anthropic key never ships in the iOS
@@ -82,6 +82,8 @@ Deno.serve(async (request) => {
     return json({ error: "A recipe transcript or link is required." }, 400);
   }
 
+  let slotId: number | null = null;
+
   async function takeQuotaSlot(): Promise<Response | null> {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count, error: countError } = await admin
@@ -105,9 +107,12 @@ Deno.serve(async (request) => {
     // Consume the slot before calling Anthropic so parallel retries cannot
     // burst past the daily cap. A provider failure still counts. URL fetches
     // that never reach this line do not.
-    const { error: insertError } = await admin
+    const { data: slotRow, error: insertError } = await admin
       .from("recipe_extraction_events")
-      .insert({ user_id: userId });
+      .insert({ user_id: userId })
+      .select("id")
+      .single();
+    slotId = (slotRow as { id?: number } | null)?.id ?? null;
     if (insertError) {
       console.error("quota insert failed:", insertError.message);
       return json({ error: "Could not record extraction." }, 500);
@@ -140,7 +145,12 @@ Deno.serve(async (request) => {
     }
 
     const userText = `Recipe source:\n\n${source.text}\n\nReturn the structured recipe as JSON.`;
-    return await extractWithModel(apiKey, userText, pageSystemPrompt);
+    const response = await extractWithModel(apiKey, userText, pageSystemPrompt);
+    if (response.status === 422 && slotId !== null) {
+      // The page had no usable recipe: same as a failed fetch, no slot used.
+      await admin.from("recipe_extraction_events").delete().eq("id", slotId);
+    }
+    return response;
   }
 
   const slot = await takeQuotaSlot();
@@ -160,7 +170,7 @@ async function extractWithModel(apiKey: string, userText: string, system: string
     },
     body: JSON.stringify({
       model: anthropicModel,
-      max_tokens: 2000,
+      max_tokens: 4096,
       system,
       messages: [{ role: "user", content: userText }],
     }),
@@ -176,14 +186,21 @@ async function extractWithModel(apiKey: string, userText: string, system: string
     return json({ error: "Recipe extraction returned no content." }, 502);
   }
 
-  const rawJson = rawText.replaceAll("```json", "").replaceAll("```", "").trim();
-
-  try {
-    const recipe = JSON.parse(rawJson) as StructuredRecipe;
-    return json({ recipe, raw_json: rawJson });
-  } catch {
+  const recipe = parseModelRecipe(rawText);
+  if (recipe === "no_recipe") {
+    return json(
+      {
+        error: "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that.",
+        code: "no_recipe_text",
+      },
+      422,
+    );
+  }
+  if (!recipe) {
+    console.error("model returned unparseable output; stop_reason:", providerPayload.stop_reason ?? "unknown");
     return json({ error: "Recipe extraction returned invalid JSON." }, 502);
   }
+  return json({ recipe, raw_json: JSON.stringify(recipe) });
 }
 
 function json(body: unknown, status = 200): Response {
@@ -227,6 +244,7 @@ For every ingredient, original_phrase holds the source's exact phrasing, code-sw
 RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
 ingredient is the English shopping term so it can go on a list (haldi -> turmeric, pyaaz -> onion, zeera/jeera -> cumin, lehsun -> garlic, adrak -> ginger, tamatar -> tomato, dhaniya -> cilantro/coriander, chawal -> rice, doodh -> milk, cheeni -> sugar, elaichi -> cardamom, namak -> salt, laal mirch -> red chili, gobi -> cauliflower, aloo -> potato, dahi -> yogurt). original_phrase still keeps the original word.
 If a channel or author is given, use it as attribution. Otherwise attribution is null.
+If the source lists several recipes, return only the single main recipe (the first complete one with ingredients). If the source has no recipe with ingredients, return exactly {"error":"no_recipe"}.
 
 Return ONLY valid JSON matching this schema, no prose, no markdown fences:
 {"title":"string - recipe name","attribution":"string|null","ingredients":[{"ingredient":"string - English grocery-list term","original_phrase":"string - source's exact words","amount":"number|null - ONLY if a real quantity was written, else null","unit":"string|null","vague":"boolean - true if measurement was approximate"}],"steps":["string - step from the source, no invented precision"],"notes":"string|null"}
