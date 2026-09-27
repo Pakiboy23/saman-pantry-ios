@@ -110,7 +110,7 @@ if [[ "$SKIP_PAYWALL" -eq 0 ]]; then
 fi
 
 print_plan() {
-  echo "Saman Pantry — App Store screenshot capture"
+  echo "Samaan Pantry: App Store screenshot capture"
   echo "  project:     ${PROJECT} / scheme ${SCHEME}"
   echo "  bundle id:   ${BUNDLE_ID}"
   echo "  preferred:   ${DEVICE_NAME}"

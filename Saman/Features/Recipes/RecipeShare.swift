@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 /// universal link or an iOS Share Extension.
 enum RecipeShareText {
     static let appStoreURL = "https://apps.apple.com/us/app/id6761982454"
-    static let footerTitle = "Saved with Saman Pantry"
+    static let footerTitle = "Saved with Samaan Pantry"
 
     static func format(
         title: String,

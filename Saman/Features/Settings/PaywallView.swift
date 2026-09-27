@@ -1,7 +1,7 @@
 import SwiftUI
 import RevenueCat
 
-/// Local Saman Pro paywall. Feature bullets come from `FreeLimits`, not from
+/// Local Samaan Pro paywall. Feature bullets come from `FreeLimits`, not from
 /// RevenueCatUI's remote `PaywallView` — that offering still lists a retired
 /// grocery-delivery reorder claim this app does not ship.
 struct SamaanPaywallView: View {
