@@ -19,9 +19,4 @@ final class Store {
         self.createdAt = Date()
         self.updatedAt = Date()
     }
-
-    func markDirty() {
-        isDirty = true
-        updatedAt = Date()
-    }
 }

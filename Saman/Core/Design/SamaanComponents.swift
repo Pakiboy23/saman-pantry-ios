@@ -5,7 +5,6 @@ import SwiftUI
 struct SamaanHeader: View {
     var subtitle: String = "Your pantry, organised"
     var trailingAction: (() -> Void)? = nil
-    var trailingIcon: String = "plus"
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -20,7 +19,7 @@ struct SamaanHeader: View {
             Spacer()
             if let action = trailingAction {
                 Button(action: action) {
-                    Image(systemName: trailingIcon)
+                    Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.surfaceDoodh)
                         .frame(width: 36, height: 36)

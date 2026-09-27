@@ -117,7 +117,7 @@ private struct ShoppingListCard: View {
                     .frame(width: 46, height: 46)
                 Image(systemName: list.isCompleted ? "checkmark.circle.fill" : "cart")
                     .font(.system(size: 20))
-                    .foregroundStyle(list.isCompleted ? Color.brandSaag : Color.brandSaag)
+                    .foregroundStyle(Color.brandSaag)
             }
 
             VStack(alignment: .leading, spacing: 3) {
