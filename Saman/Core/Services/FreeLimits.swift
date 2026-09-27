@@ -39,9 +39,9 @@ enum FreeLimits {
         let subtitle: String
     }
 
-    static let paywallTitle = "Saman Pro"
+    static let paywallTitle = "Samaan Pro"
     static let paywallSubtitle = "The full kitchen, unlocked."
-    static let paywallCallToAction = "Get Saman Pro"
+    static let paywallCallToAction = "Get Samaan Pro"
     static let paywallRenewalDisclaimer = "Subscription renews automatically. Cancel anytime."
     static let paywallLifetimeDisclaimer = "One-time purchase. No subscription."
 

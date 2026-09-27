@@ -102,7 +102,7 @@ final class PurchaseService {
     }
 
     /// StoreKit restore for the free Settings surface (Guideline 3.1.1).
-    /// Returns whether the `Saman Pro` entitlement is active after restore.
+    /// Returns whether the `Saman Pro` entitlement (RevenueCat ID, unchanged; shown to users as Samaan Pro) is active after restore.
     @discardableResult
     func restorePurchases() async throws -> Bool {
         let info = try await Purchases.shared.restorePurchases()
