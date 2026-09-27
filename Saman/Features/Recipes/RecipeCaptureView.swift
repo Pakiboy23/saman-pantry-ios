@@ -432,7 +432,7 @@ struct RecipeCaptureView: View {
                 presentError(error.localizedDescription, title: "Paste the caption")
             case .urlNotAllowed, .urlFetchFailed, .noRecipeText:
                 presentError(error.localizedDescription, title: "Couldn't open that link")
-            case .apiError, .noContent, .parseError, .serviceError:
+            case .apiError, .serviceError:
                 presentError(error.localizedDescription)
             }
         } catch {

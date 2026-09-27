@@ -29,9 +29,4 @@ final class Product {
         self.createdAt = Date()
         self.updatedAt = Date()
     }
-
-    func markDirty() {
-        isDirty = true
-        updatedAt = Date()
-    }
 }

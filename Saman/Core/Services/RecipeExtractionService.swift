@@ -118,17 +118,13 @@ final class RecipeExtractionService {
     }
 
     enum ExtractionError: LocalizedError {
-        case apiError, noContent, parseError, serviceError(String), quotaExceeded, unauthorized
+        case apiError, serviceError(String), quotaExceeded, unauthorized
         case instagramCaptionUnavailable, urlNotAllowed, urlFetchFailed, noRecipeText
 
         var errorDescription: String? {
             switch self {
             case .apiError:
                 return "Couldn't reach the extraction service. Check your connection and try again."
-            case .noContent:
-                return "Got an empty response. Please try again."
-            case .parseError:
-                return "Couldn't parse the recipe. Try a cleaner transcript."
             case .serviceError(let message):
                 return message
             case .quotaExceeded:

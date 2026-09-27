@@ -203,7 +203,6 @@ struct ItemDetailView: View {
             .background(Color.surfaceDoodh)
         }
         .onAppear { hasExpiry = item.expiryDate != nil }
-        .onChange(of: item.name) { _, _ in persist() }
         .confirmationDialog(
             "Delete \(item.name)?",
             isPresented: $showDeleteConfirm,
