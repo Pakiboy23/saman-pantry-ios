@@ -579,7 +579,7 @@ struct AnalyticsTests {
         #expect(AnalyticsEvent.allCases.map(\.rawValue).sorted() == [
             "app_open", "guest_start", "item_added", "list_item_bought",
             "pantry_restocked", "paywall_viewed", "purchase_started",
-            "recipe_extracted", "recipe_saved", "signup",
+            "recipe_extracted", "recipe_saved", "recipe_shared", "signup",
         ])
     }
 

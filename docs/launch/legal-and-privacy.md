@@ -28,8 +28,11 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
   and recipes you enter; subscription/purchase status.
 - **Where it goes / processors:**
   - **Supabase** — stores your account and your kitchen data (hosting/backend).
-  - **Anthropic** — receives the recipe transcript text you choose to capture, to structure it
-    into ingredients. (After the Edge Function move, the path is app → our server → Anthropic.)
+  - **Anthropic** — receives the recipe text you choose to capture, to structure it
+    into ingredients. That text is a transcript, or the page / video description / captions
+    fetched from a link you paste. A page that already has a complete schema.org Recipe is
+    structured on our server and is not sent to Anthropic. Path: app → our server → Anthropic
+    when the model is needed. YouTube Data API, when configured, receives only the video id.
   - **RevenueCat / Apple** — process and verify subscriptions; receive your user ID.
 - **What we do NOT do:** no advertising, no cross-app tracking, no selling data, no analytics
   SDKs. (Only claim this if it stays true — there are currently no analytics SDKs in the build.)

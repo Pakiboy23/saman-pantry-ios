@@ -73,8 +73,11 @@ This account is pre-confirmed; sign in directly, no email step needed.
 If you prefer to create a new account, note that sign-up sends a confirmation
 email that must be clicked before sign-in. Use the demo account to avoid this.
 
-AI feature: "Capture a recipe" sends the pasted transcript to Anthropic via our
-Supabase Edge Function to structure it into ingredients. No third-party tracking.
+AI feature: "Capture a recipe" sends the pasted transcript or link to our
+Supabase Edge Function. The function may read a public recipe page, a YouTube
+title/description/captions, or an Instagram caption, then sends that text to
+Anthropic unless the page already has a complete schema.org Recipe. No
+third-party tracking.
 
 Camera is used only for barcode scanning when adding an item.
 Subscriptions are managed via RevenueCat; Restore Purchases is on the free
@@ -97,10 +100,10 @@ Capture from a Mac Simulator (real PNGs only, no mockups):
 `./scripts/capture-app-store-screenshots.sh`.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
-- Data collected: Email, User ID, Other User Content (pantry/recipes), Purchase History.
-- All "linked to you," none "used for tracking."
-- Purpose: App Functionality (+ Purchases for purchase history).
-- Third parties receiving data: Supabase (backend), Anthropic (recipe structuring), RevenueCat (purchases).
+- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links), Purchase History, Product Interaction (anonymous install id, event name, app version).
+- Linked to you: email, user id, other user content, purchase history. Product interaction is not linked. None of it is used for tracking.
+- Purpose: App Functionality (+ Purchases for purchase history; Analytics for product interaction).
+- Third parties receiving data: Supabase (backend), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
 
 ## Category & age
 - Primary: Food & Drink. Secondary: Productivity.

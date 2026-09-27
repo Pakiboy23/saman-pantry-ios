@@ -11,6 +11,7 @@ struct RecipeDetailView: View {
     @State private var showAddedBanner = false
     @State private var showEditor = false
     @State private var showDeleteConfirm = false
+    @State private var shareOffer: RecipeShareOffer?
 
     var body: some View {
         ScrollView {
@@ -38,7 +39,8 @@ struct RecipeDetailView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                shareButton
                 Button { showEditor = true } label: {
                     Image(systemName: "pencil")
                         .foregroundStyle(Color.brandSaag)
@@ -52,7 +54,10 @@ struct RecipeDetailView: View {
                 .accessibilityLabel("Delete Recipe")
             }
         }
-        .sheet(isPresented: $showEditor, onDismiss: { parseExtracted() }) {
+        .sheet(isPresented: $showEditor, onDismiss: {
+            parseExtracted()
+            refreshShareOffer()
+        }) {
             RecipeEditView(recipe: recipe)
         }
         .confirmationDialog(
@@ -66,7 +71,10 @@ struct RecipeDetailView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
-        .onAppear { parseExtracted() }
+        .onAppear {
+            parseExtracted()
+            refreshShareOffer()
+        }
         .overlay(alignment: .top) {
             if showAddedBanner {
                 addedBanner
@@ -204,6 +212,52 @@ struct RecipeDetailView: View {
             .padding(.top, 4)
     }
 
+    @ViewBuilder
+    private var shareButton: some View {
+        if let payload = shareOffer?.imagePayload, let preview = shareOffer?.preview {
+            ShareLink(item: payload, preview: SharePreview(Text(recipe.title), image: preview)) {
+                shareIcon
+            }
+            .modifier(RecipeShareTracking())
+        } else {
+            ShareLink(
+                item: currentShareText(),
+                subject: Text(recipe.title),
+                message: Text(RecipeShareText.footerTitle)
+            ) {
+                shareIcon
+            }
+            .modifier(RecipeShareTracking())
+        }
+    }
+
+    private var shareIcon: some View {
+        Image(systemName: "square.and.arrow.up")
+            .foregroundStyle(Color.brandSaag)
+    }
+
+    private func currentShareText() -> String {
+        RecipeShareText.format(
+            title: recipe.title,
+            attribution: recipe.attribution ?? extracted?.attribution,
+            ingredients: extracted?.ingredients ?? [],
+            steps: extracted?.steps ?? [],
+            notes: extracted?.notes,
+            transcript: recipe.rawTranscript
+        )
+    }
+
+    private func refreshShareOffer() {
+        shareOffer = RecipeShareOffer.make(
+            title: recipe.title,
+            attribution: recipe.attribution ?? extracted?.attribution,
+            ingredients: extracted?.ingredients ?? [],
+            steps: extracted?.steps ?? [],
+            notes: extracted?.notes,
+            transcript: recipe.rawTranscript
+        )
+    }
+
     private func parseExtracted() {
         guard let json = recipe.extractedJSON,
               let data = json.data(using: .utf8),
@@ -227,6 +281,17 @@ struct RecipeDetailView: View {
         withAnimation { showAddedBanner = true }
         try? await Task.sleep(nanoseconds: 2_500_000_000)
         withAnimation { showAddedBanner = false }
+    }
+}
+
+private struct RecipeShareTracking: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .accessibilityLabel("Share Recipe")
+            .accessibilityIdentifier("recipe.share")
+            .simultaneousGesture(TapGesture().onEnded {
+                Analytics.track(.recipeShared)
+            })
     }
 }
 

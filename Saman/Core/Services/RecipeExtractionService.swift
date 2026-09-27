@@ -62,6 +62,14 @@ final class RecipeExtractionService {
     private let endpoint = URL(string: Config.recipeExtractionEndpoint)!
 
     func extract(transcript: String) async throws -> ExtractionResult {
+        try await perform(RequestBody(transcript: transcript, url: nil))
+    }
+
+    func extract(url: String) async throws -> ExtractionResult {
+        try await perform(RequestBody(transcript: nil, url: url))
+    }
+
+    private func perform(_ body: RequestBody) async throws -> ExtractionResult {
         let token: String
         do {
             token = try await SupabaseClient.shared.auth.session.accessToken
@@ -73,35 +81,107 @@ final class RecipeExtractionService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.httpBody = try JSONEncoder().encode(RequestBody(transcript: transcript))
+        request.httpBody = try JSONEncoder().encode(body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ExtractionError.apiError }
-        if http.statusCode == 401 { throw ExtractionError.unauthorized }
-        if http.statusCode == 402 { throw ExtractionError.quotaExceeded }
         guard (200...299).contains(http.statusCode) else {
-            if let error = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data), !error.message.isEmpty {
-                throw ExtractionError.serviceError(error.message)
-            }
-            throw ExtractionError.apiError
+            throw failure(status: http.statusCode, data: data)
         }
 
         let serviceResp = try JSONDecoder().decode(EdgeFunctionResponse.self, from: data)
         return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON)
     }
 
-    enum ExtractionError: LocalizedError {
-        case apiError, noContent, parseError, serviceError(String), quotaExceeded, unauthorized
-        var errorDescription: String? {
-            switch self {
-            case .apiError:   return "Couldn't reach the extraction service. Check your connection and try again."
-            case .noContent:  return "Got an empty response. Please try again."
-            case .parseError: return "Couldn't parse the recipe. Try a cleaner transcript."
-            case .serviceError(let message): return message
-            case .quotaExceeded: return FreeLimits.quotaExceededMessage
-            case .unauthorized: return "Please sign in again, then retry."
+    private func failure(status: Int, data: Data) -> ExtractionError {
+        let body = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data)
+        if status == 401 { return .unauthorized }
+        if status == 402 { return .quotaExceeded }
+        if let code = body?.code, let known = KnownExtractionCode(rawValue: code) {
+            switch known {
+            case .quotaExceeded:
+                return .quotaExceeded
+            case .instagramCaptionUnavailable:
+                return .instagramCaptionUnavailable
+            case .urlNotAllowed:
+                return .urlNotAllowed
+            case .urlFetchFailed:
+                return .urlFetchFailed
+            case .noRecipeText:
+                return .noRecipeText
             }
         }
+        if let message = body?.message, !message.isEmpty {
+            return .serviceError(message)
+        }
+        return .apiError
+    }
+
+    enum ExtractionError: LocalizedError {
+        case apiError, noContent, parseError, serviceError(String), quotaExceeded, unauthorized
+        case instagramCaptionUnavailable, urlNotAllowed, urlFetchFailed, noRecipeText
+
+        var errorDescription: String? {
+            switch self {
+            case .apiError:
+                return "Couldn't reach the extraction service. Check your connection and try again."
+            case .noContent:
+                return "Got an empty response. Please try again."
+            case .parseError:
+                return "Couldn't parse the recipe. Try a cleaner transcript."
+            case .serviceError(let message):
+                return message
+            case .quotaExceeded:
+                return FreeLimits.quotaExceededMessage
+            case .unauthorized:
+                return "Please sign in again, then retry."
+            case .instagramCaptionUnavailable:
+                return "Couldn't read the caption on this Instagram link. Paste the caption text instead and I'll pull the recipe from that."
+            case .urlNotAllowed:
+                return "That link isn't one I can open. Paste a public http or https recipe link."
+            case .urlFetchFailed:
+                return "Couldn't open that link. Check it and try again, or paste the recipe text."
+            case .noRecipeText:
+                return "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that."
+            }
+        }
+    }
+}
+
+// MARK: - Link field
+
+enum RecipeLinkInput {
+    /// A single http(s) link. A bare YouTube, Instagram, or www paste gets https.
+    static func normalized(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.contains(where: \.isWhitespace) else { return nil }
+        let withScheme = ensureScheme(trimmed)
+        guard let url = URL(string: withScheme),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host,
+              !host.isEmpty else { return nil }
+        return withScheme
+    }
+
+    static func hostLabel(_ raw: String) -> String? {
+        guard let host = URL(string: raw)?.host?.lowercased(), !host.isEmpty else { return nil }
+        if host.hasPrefix("www.") { return String(host.dropFirst(4)) }
+        return host
+    }
+
+    private static func ensureScheme(_ value: String) -> String {
+        if value.contains("://") { return value }
+        let lower = value.lowercased()
+        let prefixes = [
+            "youtu.be/", "youtube.com/", "www.youtube.com/", "m.youtube.com/",
+            "instagram.com/", "www.instagram.com/", "www.",
+        ]
+        if prefixes.contains(where: { lower.hasPrefix($0) }) {
+            return "https://" + value
+        }
+        return value
     }
 }
 
@@ -109,7 +189,26 @@ final class RecipeExtractionService {
 
 private extension RecipeExtractionService {
     struct RequestBody: Encodable {
-        let transcript: String
+        var transcript: String?
+        var url: String?
+
+        enum CodingKeys: String, CodingKey {
+            case transcript, url
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeIfPresent(transcript, forKey: .transcript)
+            try container.encodeIfPresent(url, forKey: .url)
+        }
+    }
+
+    enum KnownExtractionCode: String {
+        case quotaExceeded = "quota_exceeded"
+        case instagramCaptionUnavailable = "instagram_caption_unavailable"
+        case urlNotAllowed = "url_not_allowed"
+        case urlFetchFailed = "url_fetch_failed"
+        case noRecipeText = "no_recipe_text"
     }
 
     struct EdgeFunctionResponse: Decodable {
@@ -124,10 +223,12 @@ private extension RecipeExtractionService {
 
     struct ExtractionErrorResponse: Decodable {
         let message: String
+        let code: String?
 
         enum CodingKeys: String, CodingKey {
             case message
             case error
+            case code
         }
 
         init(from decoder: Decoder) throws {
@@ -135,6 +236,7 @@ private extension RecipeExtractionService {
             message = (try? c.decode(String.self, forKey: .message))
                 ?? (try? c.decode(String.self, forKey: .error))
                 ?? "Recipe extraction failed. Please try again."
+            code = try? c.decode(String.self, forKey: .code)
         }
     }
 }

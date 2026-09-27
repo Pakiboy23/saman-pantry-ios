@@ -384,6 +384,9 @@ deno_version = 2
 # extract-recipe reads these from the environment. Left unset, the function
 # returns "not configured" (500) instead of failing to boot; set them as
 # Cloud Agent / shell secrets to exercise real recipe extraction.
+# YOUTUBE_API_KEY is optional and is not listed here. When it is set in the
+# shell or as a Supabase secret, YouTube links use the Data API. When it is
+# absent, the function falls back to the public watch page.
 [edge_runtime.secrets]
 ANTHROPIC_API_KEY = "env(ANTHROPIC_API_KEY)"
 ANTHROPIC_MODEL = "env(ANTHROPIC_MODEL)"
