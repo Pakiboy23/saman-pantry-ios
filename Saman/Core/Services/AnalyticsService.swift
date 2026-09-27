@@ -16,6 +16,7 @@ enum AnalyticsEvent: String, CaseIterable, Sendable {
     case pantryRestocked = "pantry_restocked"
     case recipeSaved = "recipe_saved"
     case recipeExtracted = "recipe_extracted"
+    case recipeShared = "recipe_shared"
     case paywallViewed = "paywall_viewed"
     case purchaseStarted = "purchase_started"
 }

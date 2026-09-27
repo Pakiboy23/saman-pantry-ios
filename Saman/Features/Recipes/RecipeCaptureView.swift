@@ -13,13 +13,18 @@ struct RecipeCaptureView: View {
     @State private var showAIConsent = false
 
     @State private var transcript    = ""
+    @State private var recipeLink    = ""
     @State private var recipeTitle   = ""
     @State private var recipeSource  = ""
     @State private var selections:   [IngredientSelection] = []
     @State private var extractedJSON = ""
     @State private var phase:        Phase = .idle
     @State private var showError     = false
+    @State private var errorTitle    = "Extraction failed"
     @State private var errorMessage  = ""
+    @State private var inlineError: String?
+    @State private var extractingFromLink = false
+    @State private var capturedSource = ""
     @State private var resumeExtractAfterAuth = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
@@ -54,7 +59,12 @@ struct RecipeCaptureView: View {
             _extractedJSON = State(initialValue: "")
         }
         _showError = State(initialValue: false)
+        _errorTitle = State(initialValue: "Extraction failed")
         _errorMessage = State(initialValue: "")
+        _inlineError = State(initialValue: nil)
+        _extractingFromLink = State(initialValue: false)
+        _capturedSource = State(initialValue: "")
+        _recipeLink = State(initialValue: "")
         _resumeExtractAfterAuth = State(initialValue: false)
     }
 
@@ -85,7 +95,7 @@ struct RecipeCaptureView: View {
                     }
                 }
             }
-            .alert("Extraction failed", isPresented: $showError) {
+            .alert(errorTitle, isPresented: $showError) {
                 Button("OK") { }
             } message: {
                 Text(errorMessage)
@@ -106,13 +116,15 @@ struct RecipeCaptureView: View {
                     resumeExtractAfterAuth = false
                 }
             }
+            .onChange(of: recipeLink) { _, _ in inlineError = nil }
+            .onChange(of: transcript) { _, _ in inlineError = nil }
         }
     }
 
     private var navTitle: String {
         switch phase {
         case .idle:       return "Capture Recipe"
-        case .extracting: return "Reading…"
+        case .extracting: return extractingFromLink ? "Opening…" : "Reading…"
         case .reviewing:  return "Review"
         case .adding:     return "Saving…"
         case .done:       return "Done"
@@ -121,45 +133,106 @@ struct RecipeCaptureView: View {
 
     // MARK: - Idle
 
+    private var canExtract: Bool {
+        !recipeLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Paste the recipe transcript below.")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.inkKohl)
-                Text("Code-switched Urdu/Hindi/Punjabi and vague\nmeasurements are fine — even expected.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.inkKohlSoft)
-            }
-            .padding(.horizontal, Samaan.Space.md)
-            .padding(.top, Samaan.Space.md)
-            .padding(.bottom, 12)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Paste a link, or the recipe itself.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.inkKohl)
+                        Text("YouTube, a recipe page, or Instagram.\nOr the words — code-switched, andaza and all.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.inkKohlSoft)
+                    }
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.top, Samaan.Space.md)
+                    .padding(.bottom, 12)
 
-            ZStack(alignment: .topLeading) {
-                if transcript.isEmpty {
-                    Text("Beta listen, chicken karahi bahut easy hai…")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.inkKohlSoft.opacity(0.55))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .allowsHitTesting(false)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("PASTE A LINK")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.inkKohlSoft)
+                            .kerning(0.8)
+                        TextField("YouTube, a recipe site, or Instagram", text: $recipeLink)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.inkKohl)
+                            .textFieldStyle(.plain)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .textContentType(.URL)
+                            .accessibilityIdentifier("recipe.link")
+                        if !recipeLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            && !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text("We'll read the link. Clear it to use the text instead.")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.inkKohlSoft)
+                        }
+                    }
+                    .padding(Samaan.Space.md)
+                    .samaanCard()
+                    .padding(.horizontal, Samaan.Space.md)
+
+                    HStack(spacing: 10) {
+                        Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.6))
+                        Text("or paste the words")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.inkKohlSoft)
+                            .fixedSize()
+                        Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.6))
+                    }
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.vertical, 14)
+
+                    ZStack(alignment: .topLeading) {
+                        if transcript.isEmpty {
+                            Text("Beta listen, chicken karahi bahut easy hai…")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.inkKohlSoft.opacity(0.55))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .allowsHitTesting(false)
+                        }
+                        TextEditor(text: $transcript)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.inkKohl)
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .accessibilityIdentifier("recipe.transcript")
+                    }
+                    .frame(minHeight: 180)
+                    .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                    .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
+                    .padding(.horizontal, Samaan.Space.md)
+
+                    if let inlineError {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.circle")
+                                .foregroundStyle(Color.accentMasala)
+                            Text(inlineError)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.inkKohl)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.accentMasala.opacity(0.12), in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
+                        .padding(.horizontal, Samaan.Space.md)
+                        .padding(.top, 12)
+                    }
                 }
-                TextEditor(text: $transcript)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.inkKohl)
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
             }
-            .frame(minHeight: 220)
-            .background(Color.surfaceMalai, in: RoundedRectangle(cornerRadius: Samaan.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Samaan.Radius.md).stroke(Color.borderAkhrotSoft.opacity(0.5), lineWidth: 1))
-            .padding(.horizontal, Samaan.Space.md)
-
-            Spacer()
 
             Button("Extract Recipe") { Task { await runExtraction() } }
                 .buttonStyle(SamaanPrimaryButtonStyle())
-                .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!canExtract)
+                .accessibilityIdentifier("recipe.extract")
                 .alert(AIProcessingConsent.title, isPresented: $showAIConsent) {
                     Button("Allow and Extract") {
                         hasAIConsent = true
@@ -185,10 +258,16 @@ struct RecipeCaptureView: View {
                 .progressViewStyle(.circular)
                 .tint(Color.brandSaag)
                 .scaleEffect(1.3)
-            Text(phase == .adding ? "Saving to your list…" : "Reading the recipe…")
+            Text(loadingMessage)
                 .font(.system(size: 14))
                 .foregroundStyle(Color.inkKohlSoft)
         }
+    }
+
+    private var loadingMessage: String {
+        if phase == .adding { return "Saving to your list…" }
+        if extractingFromLink { return "Opening the link…" }
+        return "Reading the recipe…"
     }
 
     // MARK: - Review
@@ -297,8 +376,18 @@ struct RecipeCaptureView: View {
     // MARK: - Actions
 
     private func runExtraction() async {
+        let linkRaw = recipeLink.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        let typedLink = RecipeLinkInput.normalized(linkRaw)
+        if !linkRaw.isEmpty && typedLink == nil {
+            presentError(
+                "That doesn't look like a link. Paste a full YouTube, recipe, or Instagram URL.",
+                title: "Check the link"
+            )
+            return
+        }
+        let link = typedLink ?? (linkRaw.isEmpty ? RecipeLinkInput.normalized(text) : nil)
+        guard link != nil || !text.isEmpty else { return }
         if !hasAIConsent {
             showAIConsent = true
             return
@@ -307,28 +396,57 @@ struct RecipeCaptureView: View {
             resumeExtractAfterAuth = true
             return
         }
+        extractingFromLink = link != nil
         phase = .extracting
         do {
-            let result = try await RecipeExtractionService.shared.extract(transcript: text)
-            recipeTitle  = result.recipe.title
-            recipeSource = result.recipe.attribution ?? ""
+            let result: ExtractionResult
+            if let link {
+                result = try await RecipeExtractionService.shared.extract(url: link)
+                capturedSource = link
+            } else {
+                result = try await RecipeExtractionService.shared.extract(transcript: text)
+                capturedSource = text
+            }
+            recipeTitle = result.recipe.title
+            if let attribution = result.recipe.attribution?.trimmingCharacters(in: .whitespacesAndNewlines), !attribution.isEmpty {
+                recipeSource = attribution
+            } else if let link, let host = RecipeLinkInput.hostLabel(link) {
+                recipeSource = host
+            } else {
+                recipeSource = ""
+            }
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
             Analytics.track(.recipeExtracted)
             phase = .reviewing
-        } catch RecipeExtractionService.ExtractionError.quotaExceeded {
-            errorMessage = RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription
-            showError = true
-            phase = .idle
-        } catch RecipeExtractionService.ExtractionError.unauthorized {
-            resumeExtractAfterAuth = true
-            appEnv.requireAccount()
-            phase = .idle
+        } catch let error as RecipeExtractionService.ExtractionError {
+            switch error {
+            case .unauthorized:
+                resumeExtractAfterAuth = true
+                appEnv.requireAccount()
+                extractingFromLink = false
+                phase = .idle
+            case .quotaExceeded:
+                presentError(error.localizedDescription, title: "Try again tomorrow")
+            case .instagramCaptionUnavailable:
+                presentError(error.localizedDescription, title: "Paste the caption")
+            case .urlNotAllowed, .urlFetchFailed, .noRecipeText:
+                presentError(error.localizedDescription, title: "Couldn't open that link")
+            case .apiError, .noContent, .parseError, .serviceError:
+                presentError(error.localizedDescription)
+            }
         } catch {
-            errorMessage = error.localizedDescription
-            showError    = true
-            phase        = .idle
+            presentError(error.localizedDescription)
         }
+    }
+
+    private func presentError(_ message: String, title: String = "Extraction failed") {
+        errorTitle = title
+        errorMessage = message
+        inlineError = message
+        showError = true
+        extractingFromLink = false
+        phase = .idle
     }
 
     private func pushToList() async {
@@ -353,7 +471,8 @@ struct RecipeCaptureView: View {
             }
         }
 
-        let recipe = Recipe(title: recipeTitle, rawTranscript: transcript, extractedJSON: finalJSON, attribution: attribution)
+        let sourceText = capturedSource.isEmpty ? transcript : capturedSource
+        let recipe = Recipe(title: recipeTitle, rawTranscript: sourceText, extractedJSON: finalJSON, attribution: attribution)
         context.insert(recipe)
 
         try? context.save()
@@ -368,7 +487,7 @@ struct RecipeCaptureView: View {
 enum AIProcessingConsent {
     static let storageKey = "samaan.consent.anthropicExtraction.v1"
     static let title = "Send this recipe to Anthropic?"
-    static let message = "To pull out the ingredients and steps, Saman sends the recipe text or link you paste to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
+    static let message = "To pull out the ingredients and steps, Saman sends the recipe text or link you paste to our server. If it isn't already a structured recipe, that text — a page, a video description, or captions — goes to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
 }
 
 // MARK: - Ingredient row
