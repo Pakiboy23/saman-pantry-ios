@@ -23,7 +23,7 @@ hosted pages, not a to-do to invent new URLs.
 ## 1. Privacy Policy  (required by App Store Connect + paywall)
 Must accurately describe **actual** data behavior (App Privacy label must match this):
 
-- **Who:** Samaan Technologies LLC, contact email.
+- **Who:** Saman Technologies LLC (dba Samaan Technologies), contact email.
 - **What we collect:** account email; an internal user ID; the pantry items, shopping lists,
   and recipes you enter; subscription/purchase status.
 - **Where it goes / processors:**
