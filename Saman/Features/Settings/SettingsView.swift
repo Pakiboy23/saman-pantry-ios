@@ -232,7 +232,11 @@ struct SettingsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .confirmationDialog("Sign out of Samaan?", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
                 Button("Sign Out", role: .destructive) {
-                    Task { await appEnv.auth.signOut(); appEnv.clearLocalStore() }
+                    Task {
+                        await appEnv.flushPendingSync()
+                        await appEnv.auth.signOut()
+                        appEnv.clearLocalStore()
+                    }
                 }
             }
             .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
