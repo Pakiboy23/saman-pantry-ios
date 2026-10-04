@@ -27,6 +27,10 @@ struct RecipeCaptureView: View {
     @State private var capturedSource = ""
     @State private var capturedSourceKind: RecipeSourceKind = .transcript
     @State private var resumeExtractAfterAuth = false
+    @StateObject private var transcriber = RecipeAudioTranscriber()
+    @State private var showAudioPicker = false
+    @State private var transcribingAudio = false
+    @State private var resumeFromAudio = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -68,6 +72,10 @@ struct RecipeCaptureView: View {
         _capturedSourceKind = State(initialValue: .transcript)
         _recipeLink = State(initialValue: "")
         _resumeExtractAfterAuth = State(initialValue: false)
+        _transcriber = StateObject(wrappedValue: RecipeAudioTranscriber())
+        _showAudioPicker = State(initialValue: false)
+        _transcribingAudio = State(initialValue: false)
+        _resumeFromAudio = State(initialValue: false)
     }
 
     // MARK: - Body
@@ -111,22 +119,44 @@ struct RecipeCaptureView: View {
             .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
                 guard signedIn, resumeExtractAfterAuth else { return }
                 resumeExtractAfterAuth = false
-                Task { await runExtraction() }
+                let audio = resumeFromAudio
+                resumeFromAudio = false
+                Task { await runExtraction(fromAudio: audio) }
             }
             .onChange(of: appEnv.isAuthPresented) { _, presented in
                 if !presented && !appEnv.auth.isSignedIn {
                     resumeExtractAfterAuth = false
+                    resumeFromAudio = false
                 }
             }
             .onChange(of: recipeLink) { _, _ in inlineError = nil }
             .onChange(of: transcript) { _, _ in inlineError = nil }
+            .fileImporter(
+                isPresented: $showAudioPicker,
+                allowedContentTypes: RecipeAudioFile.acceptedTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    Task { await transcribePickedFile(url) }
+                case .failure:
+                    presentError(
+                        "Couldn't open that recording. Try another audio file, or record it in the app.",
+                        title: "Couldn't open the recording"
+                    )
+                }
+            }
+            .onDisappear {
+                transcriber.cancelRecording()
+            }
         }
     }
 
     private var navTitle: String {
         switch phase {
         case .idle:       return "Capture Recipe"
-        case .extracting: return extractingFromLink ? "Opening…" : "Reading…"
+        case .extracting: return transcribingAudio ? "Transcribing…" : (extractingFromLink ? "Opening…" : "Reading…")
         case .reviewing:  return "Review"
         case .adding:     return "Saving…"
         case .done:       return "Done"
@@ -145,16 +175,30 @@ struct RecipeCaptureView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Paste a link, or the recipe itself.")
+                        Text("Record it, paste a link, or paste the words.")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Color.inkKohl)
-                        Text("YouTube, a recipe page, or Instagram.\nOr the words — code-switched, andaza and all.")
+                        Text("YouTube, a recipe page, or Instagram.\nOr say the recipe. Code-switched, andaza and all.")
                             .font(.system(size: 13))
                             .foregroundStyle(Color.inkKohlSoft)
                     }
                     .padding(.horizontal, Samaan.Space.md)
                     .padding(.top, Samaan.Space.md)
                     .padding(.bottom, 12)
+
+                    audioCapture
+                        .padding(.horizontal, Samaan.Space.md)
+
+                    HStack(spacing: 10) {
+                        Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.6))
+                        Text("or paste a link")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.inkKohlSoft)
+                            .fixedSize()
+                        Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.6))
+                    }
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.vertical, 14)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PASTE A LINK")
@@ -233,17 +277,19 @@ struct RecipeCaptureView: View {
 
             Button("Extract Recipe") { Task { await runExtraction() } }
                 .buttonStyle(SamaanPrimaryButtonStyle())
-                .disabled(!canExtract)
+                .disabled(!canExtract || transcriber.isRecording)
                 .accessibilityIdentifier("recipe.extract")
                 .alert(AIProcessingConsent.title, isPresented: $showAIConsent) {
                     Button("Allow and Extract") {
                         hasAIConsent = true
-                        Task { await runExtraction() }
+                        let audio = resumeFromAudio
+                        resumeFromAudio = false
+                        Task { await runExtraction(fromAudio: audio) }
                     }
                     Button("Read Privacy Policy") {
                         if let url = URL(string: Config.privacyPolicyURL) { openURL(url) }
                     }
-                    Button("Cancel", role: .cancel) { }
+                    Button("Cancel", role: .cancel) { resumeFromAudio = false }
                 } message: {
                     Text(AIProcessingConsent.message)
                 }
@@ -268,6 +314,7 @@ struct RecipeCaptureView: View {
 
     private var loadingMessage: String {
         if phase == .adding { return "Saving to your list…" }
+        if transcribingAudio { return "Turning your recording into text…" }
         if extractingFromLink { return "Opening the link…" }
         return "Reading the recipe…"
     }
@@ -377,27 +424,113 @@ struct RecipeCaptureView: View {
 
     // MARK: - Actions
 
-    private func runExtraction() async {
-        let linkRaw = recipeLink.trimmingCharacters(in: .whitespacesAndNewlines)
-        let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        let typedLink = RecipeLinkInput.normalized(linkRaw)
-        if !linkRaw.isEmpty && typedLink == nil {
+    private var audioCapture: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SAY IT")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.inkKohlSoft)
+                .kerning(0.8)
+            Button(transcriber.isRecording ? "Stop and read the recipe" : "Record a recipe") {
+                Task { await toggleRecording() }
+            }
+            .buttonStyle(SamaanPrimaryButtonStyle())
+            .accessibilityIdentifier(transcriber.isRecording ? "recipe.record.stop" : "recipe.record")
+            Button("Choose a recording") { showAudioPicker = true }
+                .buttonStyle(SamaanSecondaryButtonStyle())
+                .disabled(transcriber.isRecording)
+                .accessibilityIdentifier("recipe.pickAudio")
+            if transcriber.isRecording {
+                Text(transcriber.partialTranscript.isEmpty
+                     ? "Listening. Tap stop when you're done."
+                     : transcriber.partialTranscript)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.inkKohlSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("recipe.recording.partial")
+            }
+        }
+        .padding(Samaan.Space.md)
+        .samaanCard()
+    }
+
+    private func toggleRecording() async {
+        if transcriber.isRecording {
+            do {
+                let text = try await transcriber.stopRecording()
+                transcript = text
+                await runExtraction(fromAudio: true)
+            } catch {
+                presentError(error.localizedDescription, title: "Didn't catch that")
+            }
+            return
+        }
+        do {
+            try await transcriber.startRecording()
+        } catch {
+            presentError(error.localizedDescription, title: "Can't record")
+        }
+    }
+
+    private func transcribePickedFile(_ url: URL) async {
+        transcribingAudio = true
+        phase = .extracting
+        let copy: URL
+        do {
+            copy = try RecipeAudioTranscriber.temporaryCopy(of: url)
+        } catch {
+            transcribingAudio = false
+            presentError(error.localizedDescription, title: "Couldn't open the recording")
+            return
+        }
+        let text: String
+        do {
+            defer { try? FileManager.default.removeItem(at: copy) }
+            text = try await transcriber.transcribeFile(at: copy)
+        } catch {
+            transcribingAudio = false
+            presentError(error.localizedDescription, title: "Couldn't transcribe that")
+            return
+        }
+        transcribingAudio = false
+        phase = .idle
+        transcript = text
+        await runExtraction(fromAudio: true)
+    }
+
+    private func runExtraction(fromAudio: Bool = false) async {
+        let audio = fromAudio || resumeFromAudio
+        if audio {
+            recipeLink = ""
+        }
+        let link: String?
+        let text: String
+        switch RecipeCaptureRoute.route(linkRaw: recipeLink, transcriptRaw: transcript, fromAudio: audio) {
+        case .empty:
+            return
+        case .invalidLink:
             presentError(
                 "That doesn't look like a link. Paste a full YouTube, recipe, or Instagram URL.",
                 title: "Check the link"
             )
             return
+        case .url(let value):
+            link = value
+            text = ""
+        case .transcript(let value):
+            link = nil
+            text = value
         }
-        let link = typedLink ?? (linkRaw.isEmpty ? RecipeLinkInput.normalized(text) : nil)
-        guard link != nil || !text.isEmpty else { return }
         if !hasAIConsent {
+            resumeFromAudio = audio
             showAIConsent = true
             return
         }
         if !appEnv.requireAccount() {
+            resumeFromAudio = audio
             resumeExtractAfterAuth = true
             return
         }
+        resumeFromAudio = false
         extractingFromLink = link != nil
         phase = .extracting
         do {
@@ -426,6 +559,7 @@ struct RecipeCaptureView: View {
         } catch let error as RecipeExtractionService.ExtractionError {
             switch error {
             case .unauthorized:
+                resumeFromAudio = audio
                 resumeExtractAfterAuth = true
                 appEnv.requireAccount()
                 extractingFromLink = false
@@ -497,7 +631,7 @@ struct RecipeCaptureView: View {
 enum AIProcessingConsent {
     static let storageKey = "samaan.consent.anthropicExtraction.v1"
     static let title = "Send this recipe to Anthropic?"
-    static let message = "To pull out the ingredients and steps, Saman sends the recipe text or link you paste to our server. If it isn't already a structured recipe, that text — a page, a video description, or captions — goes to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
+    static let message = "To pull out the ingredients and steps, Samaan sends the recipe text or link you give it to our server. That includes words you paste, words from a recording made in the app, and words from an audio file you choose. The recording is transcribed on your iPhone and is not uploaded. If it isn't already a structured recipe, that text goes to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
 }
 
 // MARK: - Ingredient row

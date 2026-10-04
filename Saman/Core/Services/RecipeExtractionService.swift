@@ -181,6 +181,38 @@ enum RecipeLinkInput {
     }
 }
 
+
+// MARK: - Capture route
+
+/// Decides whether extract uses a link or the transcript.
+/// A recording or picked audio file always uses the transcript, even if a link is still typed.
+enum RecipeCaptureRoute: Equatable {
+    case url(String)
+    case transcript(String)
+    case invalidLink
+    case empty
+
+    static func route(linkRaw: String, transcriptRaw: String, fromAudio: Bool) -> RecipeCaptureRoute {
+        if fromAudio {
+            guard let text = RecipeAudioTranscript.readyForExtract(transcriptRaw) else { return .empty }
+            return .transcript(text)
+        }
+        let linkField = linkRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = transcriptRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !linkField.isEmpty {
+            guard let link = RecipeLinkInput.normalized(linkField) else { return .invalidLink }
+            return .url(link)
+        }
+        if let link = RecipeLinkInput.normalized(text) {
+            return .url(link)
+        }
+        if let spoken = RecipeAudioTranscript.readyForExtract(text) {
+            return .transcript(spoken)
+        }
+        return .empty
+    }
+}
+
 // MARK: - Private request / response types
 
 private extension RecipeExtractionService {
