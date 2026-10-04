@@ -30,13 +30,16 @@ That is the entire product. Everything else either serves this loop or gets cut.
 
 ## What it is not
 - A meal planner
-- A recipe app
+- A cookbook or recipe discovery product
 - A grocery delivery product
 - A household management system (v1)
 - A generic inventory tracker
 - A sustainability or waste-reduction app
 
 We do not compete with Paprika, Samsung Food, or Whisk. A user can live inside this app without ever planning a meal.
+
+## Family recipe book
+Transcript saves (spoken or pasted words) publish a public card into a signed-in family book, newest first, with no share tap. The book is public on purpose so someone like Sally Smith in Georgia can cook from it. Cards show title, steps, original ingredient phrases, attribution, and who added it. Andaza stays as written. raw_transcript and recordings never appear on a card. URL extracts (YouTube, Instagram, recipe pages) stay on the owner's phone and never enter the book. A second transcript of the same dish is a second card. Readers may add a note; they cannot edit steps. Adding missing ingredients writes only that reader's own list. The owner may remove a card. Reading the book is free and does not use the extract quota. No household mode, no shared list, no new extractor.
 
 
 ## Why this approach
@@ -64,7 +67,7 @@ Household sharing is designed into the data model from day one but is not shippe
 - 30%+ of active users ask to share with a partner or roommate
 - Bidirectional sync is stable in production
 
-Until those conditions are met, household mode stays off the roadmap.
+Until those conditions are met, household mode stays off the roadmap. The family recipe book is not household mode.
 
 
 ## Non-negotiables

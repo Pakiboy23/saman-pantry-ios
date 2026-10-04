@@ -2,9 +2,16 @@ import SwiftUI
 import SwiftData
 
 struct RecipesView: View {
+    private enum Shelf: String, CaseIterable, Identifiable {
+        case yours = "Yours"
+        case familyBook = "Family book"
+        var id: String { rawValue }
+    }
+
     @Environment(\.modelContext) private var context
     @Environment(\.appEnv) private var appEnv
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
+    @State private var shelf: Shelf = .yours
     @State private var showCapture = false
     @State private var pendingDeleteRecipe: Recipe?
     @State private var openSwipeID: UUID?
@@ -12,20 +19,31 @@ struct RecipesView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if recipes.isEmpty {
-                    emptyState
-                } else {
-                    recipeList
+                switch shelf {
+                case .yours:
+                    if recipes.isEmpty {
+                        emptyState
+                    } else {
+                        recipeList
+                    }
+                case .familyBook:
+                    FamilyRecipeBookView()
                 }
             }
             .background(Color.surfaceDoodh)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamaanHeader(
-                        subtitle: recipes.isEmpty
-                            ? "Capture a family recipe"
-                            : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
+                        subtitle: headerSubtitle
                     ) { showCapture = true }
+                    Picker("Recipes shelf", selection: $shelf) {
+                        ForEach(Shelf.allCases) { option in
+                            Text(option.rawValue).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.bottom, 10)
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
                 .background(Color.surfaceDoodh)
@@ -50,6 +68,17 @@ struct RecipesView: View {
         }
     }
 
+    private var headerSubtitle: String {
+        switch shelf {
+        case .yours:
+            return recipes.isEmpty
+                ? "Capture a family recipe"
+                : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
+        case .familyBook:
+            return "Recipes saved from a transcript"
+        }
+    }
+
     // MARK: - Empty state
 
     private var emptyState: some View {
@@ -63,7 +92,7 @@ struct RecipesView: View {
                     Text("Capture a recipe")
                         .font(.cormorant(size: 30))
                         .foregroundStyle(Color.inkKohl)
-                    Text("Paste a link or a spoken recipe — code-switched,\nandaza and all.")
+                    Text("Paste a link or a spoken recipe. Code-switched,\nandaza and all.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
@@ -124,6 +153,13 @@ private struct RecipeRow: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.inkKohl)
                 HStack(spacing: 4) {
+                    if recipe.sourceKindValue == .url {
+                        Text("link")
+                        Text("·")
+                    } else {
+                        Text("in the family book")
+                        Text("·")
+                    }
                     if let attribution = recipe.attribution {
                         Text("from \(attribution)")
                             .italic()
@@ -133,6 +169,7 @@ private struct RecipeRow: View {
                 }
                 .font(.system(size: 12))
                 .foregroundStyle(Color.inkKohlSoft)
+                .lineLimit(1)
             }
             Spacer()
         }
