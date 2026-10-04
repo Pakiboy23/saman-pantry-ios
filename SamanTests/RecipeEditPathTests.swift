@@ -20,6 +20,7 @@ struct RecipeEditPathTests {
         let saveStart = try #require(editSource.range(of: "private func save()"))
         let saveBody = editSource[saveStart.lowerBound...]
         #expect(saveBody.contains("recipe.markDirty()"))
+        #expect(saveBody.contains("appEnv.syncNow()"))
         #expect(!saveBody.contains("isDirty ="))
 
         #expect(detailSource.contains("Text(recipe.title)"))
