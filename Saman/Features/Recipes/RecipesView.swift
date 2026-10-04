@@ -92,7 +92,7 @@ struct RecipesView: View {
                     Text("Capture a recipe")
                         .font(.cormorant(size: 30))
                         .foregroundStyle(Color.inkKohl)
-                    Text("Paste a link or a spoken recipe. Code-switched,\nandaza and all.")
+                    Text("Record it, paste a link, or paste the words. Code-switched,\nandaza and all.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
