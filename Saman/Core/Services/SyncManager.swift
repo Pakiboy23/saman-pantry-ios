@@ -452,11 +452,20 @@ final class SyncManager {
                     existing.rawTranscript = row.rawTranscript
                     existing.extractedJSON = row.extractedJson
                     existing.attribution = row.attribution
+                    existing.sourceKind = row.sourceKind ?? RecipeSourceKind.transcript.rawValue
                     existing.updatedAt = row.updatedAt
                     existing.isDirty = false
                 }
             } else {
-                let recipe = Recipe(id: row.id, title: row.title, rawTranscript: row.rawTranscript, extractedJSON: row.extractedJson, attribution: row.attribution)
+                let kind = RecipeSourceKind(rawValue: row.sourceKind ?? "") ?? .transcript
+                let recipe = Recipe(
+                    id: row.id,
+                    title: row.title,
+                    rawTranscript: row.rawTranscript,
+                    extractedJSON: row.extractedJson,
+                    attribution: row.attribution,
+                    sourceKind: kind
+                )
                 recipe.isDirty = false
                 recipe.updatedAt = row.updatedAt
                 context.insert(recipe)
@@ -537,15 +546,30 @@ private struct ShoppingListItemPayload: Encodable {
 }
 
 private struct RecipePayload: Encodable {
-    let id, userId: UUID; let title: String; let rawTranscript: String; let extractedJson: String?; let attribution: String?; let updatedAt: Date
+    let id, userId: UUID
+    let title: String
+    let rawTranscript: String
+    let extractedJson: String?
+    let attribution: String?
+    let sourceKind: String
+    let updatedAt: Date
     init(_ r: Recipe, userID: UUID) {
-        id = r.id; userId = userID; title = r.title; rawTranscript = r.rawTranscript
-        extractedJson = r.extractedJSON; attribution = r.attribution; updatedAt = r.updatedAt
+        id = r.id
+        userId = userID
+        title = r.title
+        rawTranscript = r.rawTranscript
+        extractedJson = r.extractedJSON
+        attribution = r.attribution
+        sourceKind = r.sourceKindValue.rawValue
+        updatedAt = r.updatedAt
     }
     enum CodingKeys: String, CodingKey {
         case id, title, attribution
-        case userId = "user_id"; case rawTranscript = "raw_transcript"
-        case extractedJson = "extracted_json"; case updatedAt = "updated_at"
+        case userId = "user_id"
+        case rawTranscript = "raw_transcript"
+        case extractedJson = "extracted_json"
+        case sourceKind = "source_kind"
+        case updatedAt = "updated_at"
     }
 }
 
@@ -589,9 +613,18 @@ private struct ShoppingListItemRow: Decodable {
 }
 
 private struct RecipeRow: Decodable {
-    let id: UUID; let title: String; let rawTranscript: String; let extractedJson: String?; let attribution: String?; let updatedAt: Date
+    let id: UUID
+    let title: String
+    let rawTranscript: String
+    let extractedJson: String?
+    let attribution: String?
+    let sourceKind: String?
+    let updatedAt: Date
     enum CodingKeys: String, CodingKey {
         case id, title, attribution
-        case rawTranscript = "raw_transcript"; case extractedJson = "extracted_json"; case updatedAt = "updated_at"
+        case rawTranscript = "raw_transcript"
+        case extractedJson = "extracted_json"
+        case sourceKind = "source_kind"
+        case updatedAt = "updated_at"
     }
 }

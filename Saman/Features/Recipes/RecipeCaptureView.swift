@@ -25,6 +25,7 @@ struct RecipeCaptureView: View {
     @State private var inlineError: String?
     @State private var extractingFromLink = false
     @State private var capturedSource = ""
+    @State private var capturedSourceKind: RecipeSourceKind = .transcript
     @State private var resumeExtractAfterAuth = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
@@ -64,6 +65,7 @@ struct RecipeCaptureView: View {
         _inlineError = State(initialValue: nil)
         _extractingFromLink = State(initialValue: false)
         _capturedSource = State(initialValue: "")
+        _capturedSourceKind = State(initialValue: .transcript)
         _recipeLink = State(initialValue: "")
         _resumeExtractAfterAuth = State(initialValue: false)
     }
@@ -403,9 +405,11 @@ struct RecipeCaptureView: View {
             if let link {
                 result = try await RecipeExtractionService.shared.extract(url: link)
                 capturedSource = link
+                capturedSourceKind = .url
             } else {
                 result = try await RecipeExtractionService.shared.extract(transcript: text)
                 capturedSource = text
+                capturedSourceKind = .transcript
             }
             recipeTitle = result.recipe.title
             if let attribution = result.recipe.attribution?.trimmingCharacters(in: .whitespacesAndNewlines), !attribution.isEmpty {
@@ -472,7 +476,13 @@ struct RecipeCaptureView: View {
         }
 
         let sourceText = capturedSource.isEmpty ? transcript : capturedSource
-        let recipe = Recipe(title: recipeTitle, rawTranscript: sourceText, extractedJSON: finalJSON, attribution: attribution)
+        let recipe = Recipe(
+            title: recipeTitle,
+            rawTranscript: sourceText,
+            extractedJSON: finalJSON,
+            attribution: attribution,
+            sourceKind: capturedSourceKind
+        )
         context.insert(recipe)
 
         try? context.save()

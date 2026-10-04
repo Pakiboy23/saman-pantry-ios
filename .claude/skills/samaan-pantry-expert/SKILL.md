@@ -46,7 +46,7 @@ Already in repo: Pantry tab, mark-bought restock, in-app account deletion, recip
 ## Do not
 
 - Submit while owner-console work (SQL, deploy, revoke key, demo account, redirect URL) is open.
-- Grow recipe CRUD into a cookbook.
+- Grow recipe CRUD into a meal planner or discovery cookbook. The public family recipe book (transcript cards only; see THESIS.md) is intentional.
 - Add household sharing "because the models already have it."
 - Ship "Alert me when below" without a real notification.
 - Restore ReorderView or a mandatory-account splash.
