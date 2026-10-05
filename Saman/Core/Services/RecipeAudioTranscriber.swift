@@ -23,6 +23,125 @@ enum RecipeAudioTranscript {
     }
 }
 
+/// Joins finalized speech segments with the current volatile partial.
+///
+/// On-device `SFSpeechRecognizer` often finalizes after a pause and the next
+/// result's `bestTranscription.formattedString` starts fresh. Assigning that
+/// string straight onto a single `latestText` keeps only the newest segment.
+/// This accumulator keeps every finalized segment and overlays the in-flight one.
+struct RecipeTranscriptAccumulator: Equatable {
+    private(set) var committedSegments: [String] = []
+    private(set) var volatileSegment: String = ""
+    private var lastFinalTaskID: Int?
+
+    var fullText: String {
+        Self.join(segments: committedSegments + (volatileSegment.isEmpty ? [] : [volatileSegment]))
+    }
+
+    /// Live buffer recognition: each task covers one utterance. Partials replace
+    /// the volatile segment; a final appends it onto the committed list.
+    ///
+    /// `taskID` is the recognition task that produced this callback. A second
+    /// `isFinal` from the same task is ignored so the recognizer cannot double
+    /// the last phrase. The same words from a later task are kept — the cook
+    /// may have repeated them after a pause.
+    mutating func applyUtterance(segment: String, isFinal: Bool, taskID: Int = 0) {
+        let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isFinal {
+            if !trimmed.isEmpty {
+                let duplicateFromSameTask = lastFinalTaskID == taskID && committedSegments.last == trimmed
+                if !duplicateFromSameTask {
+                    committedSegments.append(trimmed)
+                    lastFinalTaskID = taskID
+                }
+            }
+            volatileSegment = ""
+        } else {
+            volatileSegment = trimmed
+        }
+    }
+
+    /// Promote the in-flight partial to a committed segment before a task
+    /// restart or an empty final, so an error cannot wipe spoken words.
+    mutating func commitVolatile(taskID: Int = 0) {
+        let trimmed = volatileSegment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        applyUtterance(segment: trimmed, isFinal: true, taskID: taskID)
+    }
+
+    /// URL / file recognition: each callback is usually the transcript so far.
+    /// When a result resets (shorter / unrelated), treat it as a new utterance.
+    mutating func applyCumulative(segment: String, isFinal: Bool) {
+        let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            if isFinal {
+                commitVolatile()
+            }
+            return
+        }
+
+        let committed = Self.join(segments: committedSegments)
+        if committed.isEmpty {
+            if isFinal {
+                // Keep any prior volatile that does not overlap this final.
+                if !volatileSegment.isEmpty,
+                   trimmed != volatileSegment,
+                   !trimmed.hasPrefix(volatileSegment),
+                   !volatileSegment.hasPrefix(trimmed) {
+                    committedSegments.append(volatileSegment)
+                }
+                committedSegments.append(trimmed)
+                volatileSegment = ""
+            } else if !volatileSegment.isEmpty,
+                      !trimmed.hasPrefix(volatileSegment),
+                      !volatileSegment.hasPrefix(trimmed) {
+                // Non-cumulative reset while nothing is committed yet.
+                committedSegments.append(volatileSegment)
+                volatileSegment = trimmed
+            } else {
+                volatileSegment = trimmed
+            }
+            return
+        }
+
+        if trimmed == committed || trimmed.hasPrefix(committed) {
+            let remainder = trimmed.dropFirst(committed.count)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if isFinal {
+                if !remainder.isEmpty {
+                    committedSegments.append(remainder)
+                }
+                volatileSegment = ""
+            } else {
+                volatileSegment = remainder
+            }
+            return
+        }
+
+        if committed.hasPrefix(trimmed), !isFinal {
+            // Recognition corrected downward; keep committed, clear volatile.
+            volatileSegment = ""
+            return
+        }
+
+        // Fresh utterance after a pause (non-cumulative results).
+        applyUtterance(segment: trimmed, isFinal: isFinal)
+    }
+
+    mutating func reset() {
+        committedSegments = []
+        volatileSegment = ""
+        lastFinalTaskID = nil
+    }
+
+    private static func join(segments: [String]) -> String {
+        segments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
 /// Audio types the capture screen can open. Not text, and not a photo.
 enum RecipeAudioFile {
     static let acceptedTypes: [UTType] = [.audio, .mpeg4Audio, .mp3, .wav, .aiff]
@@ -57,6 +176,25 @@ enum RecipeAudioError: LocalizedError {
     }
 }
 
+/// Holds the live recognition request so the audio tap can follow restarts.
+private final class RecognitionRequestSlot: @unchecked Sendable {
+    private let lock = NSLock()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+
+    func set(_ request: SFSpeechAudioBufferRecognitionRequest?) {
+        lock.lock()
+        self.request = request
+        lock.unlock()
+    }
+
+    func append(_ buffer: AVAudioPCMBuffer) {
+        lock.lock()
+        let request = self.request
+        lock.unlock()
+        request?.append(buffer)
+    }
+}
+
 /// Records in the app, or reads an audio file, and returns words from SFSpeechRecognizer.
 /// Recognition stays on device. The recording is not saved onto a recipe or a family-book card.
 @MainActor
@@ -68,11 +206,18 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var recordingGate: ResumeGate<String>?
-    private var latestText = ""
+    private var accumulator = RecipeTranscriptAccumulator()
     private var tapInstalled = false
+    private let requestSlot = RecognitionRequestSlot()
+    private var recordingFileURL: URL?
+    private var recordingFile: AVAudioFile?
+    private var recordingFileBox: RecordingFileBox?
+    private var isStopping = false
+    private var listenGeneration = 0
+    private var consecutiveRestartErrors = 0
 
     func startRecording() async throws {
-        guard !isRecording else { return }
+        guard !isRecording, !isStopping else { return }
         let recognizer = try await prepareRecognizer()
         guard await Self.requestMicrophoneAccess() else { throw RecipeAudioError.microphoneDenied }
 
@@ -84,11 +229,15 @@ final class RecipeAudioTranscriber: ObservableObject {
             throw RecipeAudioError.failed
         }
 
+        accumulator.reset()
+        partialTranscript = ""
+        isStopping = false
+        listenGeneration = 0
+        consecutiveRestartErrors = 0
         let request = SFSpeechAudioBufferRecognitionRequest()
         configure(request)
         recognitionRequest = request
-        latestText = ""
-        partialTranscript = ""
+        requestSlot.set(request)
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -96,8 +245,21 @@ final class RecipeAudioTranscriber: ObservableObject {
         guard format.sampleRate > 0, format.channelCount > 0 else {
             throw RecipeAudioError.microphoneDenied
         }
+
+        // Keep a temp copy of the mic audio so we can re-transcribe the whole
+        // take if live recognition ends empty after a long pause.
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("samaan-recipe-live-\(UUID().uuidString)")
+            .appendingPathExtension("caf")
+        recordingFileURL = fileURL
+        recordingFile = try? AVAudioFile(forWriting: fileURL, settings: format.settings)
+
+        let slot = requestSlot
+        let fileBox = RecordingFileBox(file: recordingFile)
+        recordingFileBox = fileBox
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            request.append(buffer)
+            slot.append(buffer)
+            fileBox.write(buffer)
         }
         tapInstalled = true
         audioEngine = engine
@@ -115,35 +277,64 @@ final class RecipeAudioTranscriber: ObservableObject {
     func stopRecording() async throws -> String {
         guard isRecording else { throw RecipeAudioError.emptyTranscript }
         isRecording = false
+        isStopping = true
+        listenGeneration += 1
         parkEngine()
         recognitionRequest?.endAudio()
         recognitionRequest = nil
-        defer { finishTask() }
-        let produced: String = try await withCheckedThrowingContinuation { continuation in
+        requestSlot.set(nil)
+        defer {
+            clearRecordingFile(delete: true)
+            isStopping = false
+        }
+        // A thrown live result is the empty-after-error case the file
+        // fallback is meant to cover. Do not let it skip that path.
+        let produced: String = (try? await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
             recordingGate = gate
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
-                gate.resume(returning: self.latestText)
+                gate.resume(returning: self.accumulator.fullText)
+            }
+        }) ?? ""
+        // Drop the live task before any file fallback reuses recognitionTask.
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        if let ready = RecipeAudioTranscript.readyForExtract(produced) {
+            finishTask()
+            partialTranscript = ""
+            return ready
+        }
+        // Live session ended empty — try the saved take once.
+        let fallbackURL = recordingFileURL
+        finishTask()
+        if let url = fallbackURL {
+            do {
+                let fromFile = try await transcribeFile(at: url)
+                partialTranscript = ""
+                return fromFile
+            } catch {
+                // Fall through to emptyTranscript below.
             }
         }
-        guard let ready = RecipeAudioTranscript.readyForExtract(produced) else {
-            throw RecipeAudioError.emptyTranscript
-        }
-        partialTranscript = ""
-        return ready
+        throw RecipeAudioError.emptyTranscript
     }
 
     func cancelRecording() {
         guard isRecording || audioEngine != nil || recognitionTask != nil else { return }
         isRecording = false
+        isStopping = true
+        listenGeneration += 1
         recordingGate?.resume(returning: "")
         recordingGate = nil
         parkEngine()
         recognitionRequest = nil
+        requestSlot.set(nil)
         finishTask()
+        clearRecordingFile(delete: true)
         partialTranscript = ""
-        latestText = ""
+        accumulator.reset()
+        isStopping = false
     }
 
     func transcribeFile(at url: URL) async throws -> String {
@@ -153,13 +344,23 @@ final class RecipeAudioTranscriber: ObservableObject {
         configure(request)
         let text: String = try await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
+            let fileAccumulator = TranscriptAccumulatorBox()
             recognitionTask = recognizer.recognitionTask(with: request) { result, error in
-                if let result, result.isFinal {
-                    gate.resume(returning: result.bestTranscription.formattedString)
-                    return
+                if let result {
+                    let segment = result.bestTranscription.formattedString
+                    let soFar = fileAccumulator.applyCumulative(segment: segment, isFinal: result.isFinal)
+                    if result.isFinal {
+                        gate.resume(returning: soFar)
+                        return
+                    }
                 }
                 if let error {
-                    gate.resume(throwing: error)
+                    let soFar = fileAccumulator.fullText
+                    if RecipeAudioTranscript.readyForExtract(soFar) != nil {
+                        gate.resume(returning: soFar)
+                    } else {
+                        gate.resume(throwing: error)
+                    }
                 }
             }
             Task { @MainActor in
@@ -202,27 +403,60 @@ final class RecipeAudioTranscriber: ObservableObject {
     }
 
     private func listen(recognizer: SFSpeechRecognizer, request: SFSpeechAudioBufferRecognitionRequest) {
+        listenGeneration += 1
+        let generation = listenGeneration
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             let text = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             Task { @MainActor in
                 guard let self else { return }
+                guard generation == self.listenGeneration else { return }
                 if let text {
-                    self.latestText = text
-                    self.partialTranscript = text
-                    if isFinal {
-                        self.recordingGate?.resume(returning: text)
-                    }
+                    self.accumulator.applyUtterance(segment: text, isFinal: isFinal, taskID: generation)
+                    self.partialTranscript = self.accumulator.fullText
                 }
-                if let error, !isFinal {
-                    if RecipeAudioTranscript.readyForExtract(self.latestText) != nil {
-                        self.recordingGate?.resume(returning: self.latestText)
+                if isFinal {
+                    self.consecutiveRestartErrors = 0
+                    if self.isRecording, !self.isStopping {
+                        // Recognizer finished an utterance after a pause. Keep
+                        // the mic open and start a fresh task so later sentences
+                        // are not lost.
+                        self.restartListening(with: recognizer)
+                    } else {
+                        self.recordingGate?.resume(returning: self.accumulator.fullText)
+                    }
+                    return
+                }
+                if let error {
+                    if self.isRecording, !self.isStopping {
+                        // Keep the in-flight sentence before the task dies.
+                        self.accumulator.commitVolatile(taskID: generation)
+                        self.partialTranscript = self.accumulator.fullText
+                        if self.consecutiveRestartErrors < 3 {
+                            self.consecutiveRestartErrors += 1
+                            self.restartListening(with: recognizer)
+                        }
+                    } else if RecipeAudioTranscript.readyForExtract(self.accumulator.fullText) != nil {
+                        self.recordingGate?.resume(returning: self.accumulator.fullText)
                     } else if self.recordingGate != nil {
                         self.recordingGate?.resume(throwing: self.friendly(error))
                     }
                 }
             }
         }
+    }
+
+    private func restartListening(with recognizer: SFSpeechRecognizer) {
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        // Invalidate in-flight callbacks from the cancelled task before the
+        // next listen() takes a new generation.
+        listenGeneration += 1
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        configure(request)
+        recognitionRequest = request
+        requestSlot.set(request)
+        listen(recognizer: recognizer, request: request)
     }
 
     private func parkEngine() {
@@ -232,6 +466,10 @@ final class RecipeAudioTranscriber: ObservableObject {
         }
         audioEngine?.stop()
         audioEngine = nil
+        // Close the writer so a fallback file transcription can open it.
+        recordingFileBox?.close()
+        recordingFileBox = nil
+        recordingFile = nil
     }
 
     private func finishTask() {
@@ -243,7 +481,19 @@ final class RecipeAudioTranscriber: ObservableObject {
     private func teardownEngine() {
         parkEngine()
         recognitionRequest = nil
+        requestSlot.set(nil)
         finishTask()
+        clearRecordingFile(delete: true)
+    }
+
+    private func clearRecordingFile(delete: Bool) {
+        recordingFileBox?.close()
+        recordingFileBox = nil
+        recordingFile = nil
+        if delete, let url = recordingFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        recordingFileURL = nil
     }
 
     private func configure(_ request: SFSpeechRecognitionRequest) {
@@ -286,6 +536,49 @@ final class RecipeAudioTranscriber: ObservableObject {
 
     private static func requestMicrophoneAccess() async -> Bool {
         await AVAudioApplication.requestRecordPermission()
+    }
+}
+
+
+/// Thread-safe box around `RecipeTranscriptAccumulator` for recognition callbacks.
+private final class TranscriptAccumulatorBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var accumulator = RecipeTranscriptAccumulator()
+
+    var fullText: String {
+        lock.lock()
+        defer { lock.unlock() }
+        return accumulator.fullText
+    }
+
+    @discardableResult
+    func applyCumulative(segment: String, isFinal: Bool) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        accumulator.applyCumulative(segment: segment, isFinal: isFinal)
+        return accumulator.fullText
+    }
+}
+/// Writes mic buffers from the audio tap without touching MainActor state.
+private final class RecordingFileBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var file: AVAudioFile?
+
+    init(file: AVAudioFile?) {
+        self.file = file
+    }
+
+    func write(_ buffer: AVAudioPCMBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let file else { return }
+        try? file.write(from: buffer)
+    }
+
+    func close() {
+        lock.lock()
+        file = nil
+        lock.unlock()
     }
 }
 

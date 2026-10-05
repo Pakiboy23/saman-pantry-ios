@@ -93,4 +93,97 @@ struct RecipeAudioTranscriptTests {
         #expect(capture.contains("extract(transcript:"))
         #expect(capture.contains("extract(url:"))
     }
+
+    // MARK: - Transcript accumulation (live recording + file)
+
+    @Test func utteranceAccumulatorKeepsEarlierSegmentsAfterAPause() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: false, taskID: 1)
+        #expect(accumulator.fullText == "chicken karahi bahut easy hai")
+
+        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: true, taskID: 1)
+        #expect(accumulator.fullText == "chicken karahi bahut easy hai")
+
+        // Next recognizer task starts fresh after silence — must not wipe the first sentence.
+        accumulator.applyUtterance(segment: "do tablespoon oil", isFinal: false, taskID: 2)
+        #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil")
+
+        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: false, taskID: 2)
+        #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil garam masala")
+
+        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: true, taskID: 2)
+        #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil garam masala")
+    }
+
+    @Test func utteranceAccumulatorDoesNotDuplicateIdenticalFinalFromTheSameTask() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
+        #expect(accumulator.fullText == "put haldi")
+        #expect(accumulator.committedSegments == ["put haldi"])
+    }
+
+    @Test func utteranceAccumulatorKeepsRepeatedPhraseFromALaterTask() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 2)
+        #expect(accumulator.fullText == "put haldi put haldi")
+        #expect(accumulator.committedSegments == ["put haldi", "put haldi"])
+    }
+
+    @Test func cumulativeFileResultsGrowWithinOneTask() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyCumulative(segment: "put oil", isFinal: false)
+        accumulator.applyCumulative(segment: "put oil in the pan", isFinal: false)
+        #expect(accumulator.fullText == "put oil in the pan")
+
+        accumulator.applyCumulative(segment: "put oil in the pan", isFinal: true)
+        #expect(accumulator.fullText == "put oil in the pan")
+        #expect(accumulator.committedSegments == ["put oil in the pan"])
+    }
+
+    @Test func cumulativeFileResultsAppendWhenRecognizerResets() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyCumulative(segment: "first heat the oil", isFinal: true)
+        #expect(accumulator.fullText == "first heat the oil")
+
+        // A later segment that does not extend the committed text (reset-style).
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: false)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: true)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+    }
+
+    @Test func commitVolatileKeepsInFlightWordsBeforeARestart() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "first heat the oil", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "then add the chicken", isFinal: false, taskID: 2)
+        accumulator.commitVolatile(taskID: 2)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+        accumulator.applyUtterance(segment: "and the tomatoes", isFinal: true, taskID: 3)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken and the tomatoes")
+    }
+
+    @Test func cumulativeFileResetWhileNothingCommittedKeepsEarlierSpan() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyCumulative(segment: "first heat the oil", isFinal: false)
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: false)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: true)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+    }
+
+    @Test func replacingOnlyLatestSegmentIsTheBugWeFixed() {
+        // Mimic the old bug: assigning formattedString overwrites prior speech.
+        var broken = ""
+        broken = "chicken karahi bahut easy hai"
+        broken = "do tablespoon oil"
+        #expect(broken == "do tablespoon oil")
+
+        var fixed = RecipeTranscriptAccumulator()
+        fixed.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: true)
+        fixed.applyUtterance(segment: "do tablespoon oil", isFinal: true)
+        #expect(fixed.fullText == "chicken karahi bahut easy hai do tablespoon oil")
+    }
 }
