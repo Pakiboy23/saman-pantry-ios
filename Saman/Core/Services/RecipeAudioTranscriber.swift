@@ -61,20 +61,43 @@ struct RecipeTranscriptAccumulator: Equatable {
         }
     }
 
+    /// Promote the in-flight partial to a committed segment before a task
+    /// restart or an empty final, so an error cannot wipe spoken words.
+    mutating func commitVolatile(taskID: Int = 0) {
+        let trimmed = volatileSegment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        applyUtterance(segment: trimmed, isFinal: true, taskID: taskID)
+    }
+
     /// URL / file recognition: each callback is usually the transcript so far.
     /// When a result resets (shorter / unrelated), treat it as a new utterance.
     mutating func applyCumulative(segment: String, isFinal: Bool) {
         let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            if isFinal { volatileSegment = "" }
+            if isFinal {
+                commitVolatile()
+            }
             return
         }
 
         let committed = Self.join(segments: committedSegments)
         if committed.isEmpty {
             if isFinal {
-                committedSegments = [trimmed]
+                // Keep any prior volatile that does not overlap this final.
+                if !volatileSegment.isEmpty,
+                   trimmed != volatileSegment,
+                   !trimmed.hasPrefix(volatileSegment),
+                   !volatileSegment.hasPrefix(trimmed) {
+                    committedSegments.append(volatileSegment)
+                }
+                committedSegments.append(trimmed)
                 volatileSegment = ""
+            } else if !volatileSegment.isEmpty,
+                      !trimmed.hasPrefix(volatileSegment),
+                      !volatileSegment.hasPrefix(trimmed) {
+                // Non-cumulative reset while nothing is committed yet.
+                committedSegments.append(volatileSegment)
+                volatileSegment = trimmed
             } else {
                 volatileSegment = trimmed
             }
@@ -194,7 +217,7 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var consecutiveRestartErrors = 0
 
     func startRecording() async throws {
-        guard !isRecording else { return }
+        guard !isRecording, !isStopping else { return }
         let recognizer = try await prepareRecognizer()
         guard await Self.requestMicrophoneAccess() else { throw RecipeAudioError.microphoneDenied }
 
@@ -255,6 +278,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         guard isRecording else { throw RecipeAudioError.emptyTranscript }
         isRecording = false
         isStopping = true
+        listenGeneration += 1
         parkEngine()
         recognitionRequest?.endAudio()
         recognitionRequest = nil
@@ -300,6 +324,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         guard isRecording || audioEngine != nil || recognitionTask != nil else { return }
         isRecording = false
         isStopping = true
+        listenGeneration += 1
         recordingGate?.resume(returning: "")
         recordingGate = nil
         parkEngine()
@@ -404,6 +429,9 @@ final class RecipeAudioTranscriber: ObservableObject {
                 }
                 if let error {
                     if self.isRecording, !self.isStopping {
+                        // Keep the in-flight sentence before the task dies.
+                        self.accumulator.commitVolatile(taskID: generation)
+                        self.partialTranscript = self.accumulator.fullText
                         if self.consecutiveRestartErrors < 3 {
                             self.consecutiveRestartErrors += 1
                             self.restartListening(with: recognizer)

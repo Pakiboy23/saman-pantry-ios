@@ -155,6 +155,25 @@ struct RecipeAudioTranscriptTests {
         #expect(accumulator.fullText == "first heat the oil then add the chicken")
     }
 
+    @Test func commitVolatileKeepsInFlightWordsBeforeARestart() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "first heat the oil", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "then add the chicken", isFinal: false, taskID: 2)
+        accumulator.commitVolatile(taskID: 2)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+        accumulator.applyUtterance(segment: "and the tomatoes", isFinal: true, taskID: 3)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken and the tomatoes")
+    }
+
+    @Test func cumulativeFileResetWhileNothingCommittedKeepsEarlierSpan() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyCumulative(segment: "first heat the oil", isFinal: false)
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: false)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+        accumulator.applyCumulative(segment: "then add the chicken", isFinal: true)
+        #expect(accumulator.fullText == "first heat the oil then add the chicken")
+    }
+
     @Test func replacingOnlyLatestSegmentIsTheBugWeFixed() {
         // Mimic the old bug: assigning formattedString overwrites prior speech.
         var broken = ""
