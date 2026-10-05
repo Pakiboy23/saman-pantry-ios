@@ -98,29 +98,37 @@ struct RecipeAudioTranscriptTests {
 
     @Test func utteranceAccumulatorKeepsEarlierSegmentsAfterAPause() {
         var accumulator = RecipeTranscriptAccumulator()
-        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: false)
+        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: false, taskID: 1)
         #expect(accumulator.fullText == "chicken karahi bahut easy hai")
 
-        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: true)
+        accumulator.applyUtterance(segment: "chicken karahi bahut easy hai", isFinal: true, taskID: 1)
         #expect(accumulator.fullText == "chicken karahi bahut easy hai")
 
         // Next recognizer task starts fresh after silence — must not wipe the first sentence.
-        accumulator.applyUtterance(segment: "do tablespoon oil", isFinal: false)
+        accumulator.applyUtterance(segment: "do tablespoon oil", isFinal: false, taskID: 2)
         #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil")
 
-        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: false)
+        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: false, taskID: 2)
         #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil garam masala")
 
-        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: true)
+        accumulator.applyUtterance(segment: "do tablespoon oil garam masala", isFinal: true, taskID: 2)
         #expect(accumulator.fullText == "chicken karahi bahut easy hai do tablespoon oil garam masala")
     }
 
-    @Test func utteranceAccumulatorDoesNotDuplicateIdenticalFinal() {
+    @Test func utteranceAccumulatorDoesNotDuplicateIdenticalFinalFromTheSameTask() {
         var accumulator = RecipeTranscriptAccumulator()
-        accumulator.applyUtterance(segment: "put haldi", isFinal: true)
-        accumulator.applyUtterance(segment: "put haldi", isFinal: true)
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
         #expect(accumulator.fullText == "put haldi")
         #expect(accumulator.committedSegments == ["put haldi"])
+    }
+
+    @Test func utteranceAccumulatorKeepsRepeatedPhraseFromALaterTask() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 1)
+        accumulator.applyUtterance(segment: "put haldi", isFinal: true, taskID: 2)
+        #expect(accumulator.fullText == "put haldi put haldi")
+        #expect(accumulator.committedSegments == ["put haldi", "put haldi"])
     }
 
     @Test func cumulativeFileResultsGrowWithinOneTask() {

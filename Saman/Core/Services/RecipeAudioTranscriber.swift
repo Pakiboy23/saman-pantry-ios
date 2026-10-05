@@ -32,6 +32,7 @@ enum RecipeAudioTranscript {
 struct RecipeTranscriptAccumulator: Equatable {
     private(set) var committedSegments: [String] = []
     private(set) var volatileSegment: String = ""
+    private var lastFinalTaskID: Int?
 
     var fullText: String {
         Self.join(segments: committedSegments + (volatileSegment.isEmpty ? [] : [volatileSegment]))
@@ -39,11 +40,20 @@ struct RecipeTranscriptAccumulator: Equatable {
 
     /// Live buffer recognition: each task covers one utterance. Partials replace
     /// the volatile segment; a final appends it onto the committed list.
-    mutating func applyUtterance(segment: String, isFinal: Bool) {
+    ///
+    /// `taskID` is the recognition task that produced this callback. A second
+    /// `isFinal` from the same task is ignored so the recognizer cannot double
+    /// the last phrase. The same words from a later task are kept — the cook
+    /// may have repeated them after a pause.
+    mutating func applyUtterance(segment: String, isFinal: Bool, taskID: Int = 0) {
         let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
         if isFinal {
-            if !trimmed.isEmpty, committedSegments.last != trimmed {
-                committedSegments.append(trimmed)
+            if !trimmed.isEmpty {
+                let duplicateFromSameTask = lastFinalTaskID == taskID && committedSegments.last == trimmed
+                if !duplicateFromSameTask {
+                    committedSegments.append(trimmed)
+                    lastFinalTaskID = taskID
+                }
             }
             volatileSegment = ""
         } else {
@@ -98,6 +108,7 @@ struct RecipeTranscriptAccumulator: Equatable {
     mutating func reset() {
         committedSegments = []
         volatileSegment = ""
+        lastFinalTaskID = nil
     }
 
     private static func join(segments: [String]) -> String {
@@ -179,6 +190,8 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var recordingFile: AVAudioFile?
     private var recordingFileBox: RecordingFileBox?
     private var isStopping = false
+    private var listenGeneration = 0
+    private var consecutiveRestartErrors = 0
 
     func startRecording() async throws {
         guard !isRecording else { return }
@@ -196,6 +209,8 @@ final class RecipeAudioTranscriber: ObservableObject {
         accumulator.reset()
         partialTranscript = ""
         isStopping = false
+        listenGeneration = 0
+        consecutiveRestartErrors = 0
         let request = SFSpeechAudioBufferRecognitionRequest()
         configure(request)
         recognitionRequest = request
@@ -248,14 +263,16 @@ final class RecipeAudioTranscriber: ObservableObject {
             clearRecordingFile(delete: true)
             isStopping = false
         }
-        let produced: String = try await withCheckedThrowingContinuation { continuation in
+        // A thrown live result is the empty-after-error case the file
+        // fallback is meant to cover. Do not let it skip that path.
+        let produced: String = (try? await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
             recordingGate = gate
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 gate.resume(returning: self.accumulator.fullText)
             }
-        }
+        }) ?? ""
         // Drop the live task before any file fallback reuses recognitionTask.
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -361,16 +378,20 @@ final class RecipeAudioTranscriber: ObservableObject {
     }
 
     private func listen(recognizer: SFSpeechRecognizer, request: SFSpeechAudioBufferRecognitionRequest) {
+        listenGeneration += 1
+        let generation = listenGeneration
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             let text = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             Task { @MainActor in
                 guard let self else { return }
+                guard generation == self.listenGeneration else { return }
                 if let text {
-                    self.accumulator.applyUtterance(segment: text, isFinal: isFinal)
+                    self.accumulator.applyUtterance(segment: text, isFinal: isFinal, taskID: generation)
                     self.partialTranscript = self.accumulator.fullText
                 }
                 if isFinal {
+                    self.consecutiveRestartErrors = 0
                     if self.isRecording, !self.isStopping {
                         // Recognizer finished an utterance after a pause. Keep
                         // the mic open and start a fresh task so later sentences
@@ -383,7 +404,10 @@ final class RecipeAudioTranscriber: ObservableObject {
                 }
                 if let error {
                     if self.isRecording, !self.isStopping {
-                        self.restartListening(with: recognizer)
+                        if self.consecutiveRestartErrors < 3 {
+                            self.consecutiveRestartErrors += 1
+                            self.restartListening(with: recognizer)
+                        }
                     } else if RecipeAudioTranscript.readyForExtract(self.accumulator.fullText) != nil {
                         self.recordingGate?.resume(returning: self.accumulator.fullText)
                     } else if self.recordingGate != nil {
@@ -395,7 +419,11 @@ final class RecipeAudioTranscriber: ObservableObject {
     }
 
     private func restartListening(with recognizer: SFSpeechRecognizer) {
+        recognitionTask?.cancel()
         recognitionTask = nil
+        // Invalidate in-flight callbacks from the cancelled task before the
+        // next listen() takes a new generation.
+        listenGeneration += 1
         let request = SFSpeechAudioBufferRecognitionRequest()
         configure(request)
         recognitionRequest = request
