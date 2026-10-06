@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert@1";
+import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert@1";
 import {
   assertResolvedPublic,
   captionsToText,
@@ -6,6 +6,8 @@ import {
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
+  MAX_INSTRUCTION_CHARS,
+  MAX_RESPONSE_BYTES,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -172,6 +174,80 @@ Deno.test("incomplete JSON-LD is not treated as a finished recipe", () => {
     {"@type":"Recipe","name":"Chai","recipeIngredient":["2 cups doodh"]}
   </script>`;
   assertEquals(recipeFromJsonLd(html), null);
+});
+
+function instructionPage(instructions: unknown): string {
+  return `<script type="application/ld+json">${JSON.stringify({
+    "@type": "Recipe",
+    name: "Rice",
+    recipeIngredient: ["1 cup rice"],
+    recipeInstructions: instructions,
+  })}</script>`;
+}
+
+for (const [format, children] of [
+  ["strings", Array(1000).fill("x")],
+  ["objects", Array(1000).fill({ "@type": "HowToStep", text: "x" })],
+  ["multiline strings", Array(1000).fill("x\nx")],
+] as const) {
+  Deno.test(`JSON-LD rejects heading amplification with ${format} before returning a recipe`, async () => {
+    const html = instructionPage({
+      "@type": "HowToSection",
+      name: "H".repeat(1000),
+      itemListElement: children,
+    });
+    assertEquals(new TextEncoder().encode(html).length < MAX_RESPONSE_BYTES, true);
+    const error = await assertRejects(
+      () => resolveRecipeSource("https://recipes.example/rice", ctx(() =>
+        Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+      )),
+      SourceError,
+    );
+    assertEquals(error.code, "url_fetch_failed");
+    assertEquals(error.status, 422);
+  });
+}
+
+Deno.test("instruction budget includes prefixes and is shared by nested and sibling sections", () => {
+  const line = "x".repeat(MAX_INSTRUCTION_CHARS / 2 - "Cook: ".length);
+  const instructions = [
+    { "@type": "HowToSection", name: "Cook", itemListElement: [line] },
+    {
+      "@type": "HowToSection",
+      name: "Outer",
+      recipeInstructions: {
+        "@type": "HowToSection",
+        name: "Cook",
+        itemListElement: [{ "@type": "HowToStep", text: line }],
+      },
+    },
+  ];
+  const recipe = recipeFromJsonLd(instructionPage(instructions));
+  if (!recipe) throw new Error("expected a recipe at the limit");
+  assertEquals(recipe.steps, [`Cook: ${line}`, `Cook: ${line}`]);
+  // Exercise the existing HTTP response shape, including the required raw copy.
+  const response = JSON.parse(JSON.stringify({ recipe, raw_json: JSON.stringify(recipe) }));
+  assertEquals(JSON.parse(response.raw_json), response.recipe);
+  assertThrows(
+    () => recipeFromJsonLd(instructionPage([...instructions, "x"])),
+    SourceError,
+  );
+});
+
+Deno.test("instruction budget rejects a single oversized heading or unsectioned step", () => {
+  for (const instructions of [
+    { "@type": "HowToSection", name: "H".repeat(MAX_INSTRUCTION_CHARS), itemListElement: ["x"] },
+    "x".repeat(MAX_INSTRUCTION_CHARS + 1),
+    { "@type": "HowToStep", text: "x".repeat(MAX_INSTRUCTION_CHARS + 1) },
+  ]) {
+    assertThrows(() => recipeFromJsonLd(instructionPage(instructions)), SourceError);
+  }
+});
+
+Deno.test("nonempty instructions cannot bypass the budget with many tiny steps", () => {
+  const steps = Array(MAX_INSTRUCTION_CHARS).fill("x");
+  assertEquals(recipeFromJsonLd(instructionPage(steps))?.steps.length, MAX_INSTRUCTION_CHARS);
+  assertThrows(() => recipeFromJsonLd(instructionPage([...steps, "x"])), SourceError);
 });
 
 Deno.test("a complete JSON-LD page does not need the model text", async () => {
