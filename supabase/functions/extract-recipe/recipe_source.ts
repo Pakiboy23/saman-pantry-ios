@@ -675,12 +675,39 @@ export function recipeFromJsonLd(html: string): StructuredRecipe | null {
   return null;
 }
 
+// Scan disjoint script ranges. If an opening or closing delimiter is missing,
+// consume the remainder once instead of retrying every nested <script prefix.
+function* scriptRanges(html: string): Generator<{
+  start: number;
+  openEnd: number;
+  closeStart: number;
+  end: number;
+}> {
+  const opening = /<script\b/gi;
+  const closing = /<\/script>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html)) !== null) {
+    const openEnd = html.indexOf(">", opening.lastIndex);
+    if (openEnd < 0) {
+      yield { start: match.index, openEnd, closeStart: -1, end: html.length };
+      return;
+    }
+    closing.lastIndex = openEnd + 1;
+    const close = closing.exec(html);
+    const end = close ? closing.lastIndex : html.length;
+    yield { start: match.index, openEnd, closeStart: close?.index ?? -1, end };
+    if (!close) return;
+    opening.lastIndex = end;
+  }
+}
+
 function extractJsonLdBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
-  const re = /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(html)) !== null) {
-    const raw = match[1].trim();
+  for (const script of scriptRanges(html)) {
+    if (script.closeStart < 0) continue;
+    const tag = html.slice(script.start, script.openEnd);
+    if (!/type\s*=\s*["']application\/ld\+json["']/i.test(tag)) continue;
+    const raw = html.slice(script.openEnd + 1, script.closeStart).trim();
     const parsed = parseJsonLd(raw) ?? parseJsonLd(decodeHtml(raw));
     if (parsed !== null) blocks.push(parsed);
   }
@@ -912,9 +939,15 @@ function cleanIngredientName(rest: string, original: string): string {
 }
 
 export function htmlToText(html: string): string {
-  let text = html
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+  const withoutComments = html.replace(/<!--[\s\S]*?-->/g, " ");
+  const parts: string[] = [];
+  let cursor = 0;
+  for (const script of scriptRanges(withoutComments)) {
+    parts.push(withoutComments.slice(cursor, script.start), " ");
+    cursor = script.end;
+  }
+  parts.push(withoutComments.slice(cursor));
+  let text = parts.join("")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
     .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, " ")

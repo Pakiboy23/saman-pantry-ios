@@ -6,6 +6,7 @@ import {
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
+  MAX_RESPONSE_BYTES,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -172,6 +173,63 @@ Deno.test("incomplete JSON-LD is not treated as a finished recipe", () => {
     {"@type":"Recipe","name":"Chai","recipeIngredient":["2 cups doodh"]}
   </script>`;
   assertEquals(recipeFromJsonLd(html), null);
+});
+
+Deno.test("JSON-LD scanning preserves case, quotes, attributes, and entity decoding", () => {
+  const html = KARAHI_JSON_LD
+    .replace('<script type="application/ld+json">', "<ScRiPt id='recipe' TYPE = 'APPLICATION/LD+JSON' defer>")
+    .replace("</script>", "</ScRiPt>")
+    .replaceAll('"', "&quot;");
+  assertEquals(recipeFromJsonLd(html), recipeFromJsonLd(KARAHI_JSON_LD));
+});
+
+Deno.test("JSON-LD scanning skips unrelated, invalid, and incomplete blocks", () => {
+  const prefix = `<script type="text/javascript">{"@type":"Recipe"}</script>
+    <script type="application/ld+json">not JSON</script>
+    <script type="application/ld+json">{"@type":"Recipe","name":"Incomplete"}</script>`;
+  assertEquals(recipeFromJsonLd(prefix + KARAHI_JSON_LD), recipeFromJsonLd(KARAHI_JSON_LD));
+  assertEquals(recipeFromJsonLd(KARAHI_JSON_LD.split("</script>")[0]), null);
+});
+
+Deno.test("script-looking text inside a script is not another JSON-LD block", () => {
+  assertEquals(recipeFromJsonLd("<script>" + KARAHI_JSON_LD + "</script>"), null);
+});
+
+Deno.test("malformed script pages stay within a bounded parsing budget", async () => {
+  const fragments = [
+    "<script ",
+    '<script type="application/ld+json">',
+    '<SCRIPT type="application/ld+json"></scriptx>',
+  ];
+  for (const fragment of fragments) {
+    const html = fragment.repeat(Math.floor(MAX_RESPONSE_BYTES / fragment.length));
+    const started = performance.now();
+    assertEquals(recipeFromJsonLd(html), null);
+    assertEquals(htmlToText(html), "");
+    // A generous absolute ceiling avoids noisy timing ratios while detecting
+    // overlapping suffix scans on a page within the production download cap.
+    assertEquals(performance.now() - started < 1000, true, fragment);
+    const error = await assertRejects(
+      () => resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+        Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+      )),
+      SourceError,
+    );
+    assertEquals((error as SourceError).code, "no_recipe_text");
+  }
+});
+
+Deno.test("text fallback keeps visible content before an unfinished script", async () => {
+  const visible = "Ingredients: 1 kg mutton, 2 tsp haldi. Fry the onion, then simmer.";
+  for (const tail of ["<script ".repeat(1000), '<script type="application/ld+json">private script text']) {
+    const html = `<p>${visible}</p>${tail}`;
+    assertEquals(htmlToText(html), visible);
+    const resolved = await resolveRecipeSource("https://recipes.example/aloo", ctx(() =>
+      Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+    ));
+    if (resolved.kind !== "text") throw new Error("expected text");
+    assertEquals(resolved.text, `URL: https://recipes.example/aloo\n\n${visible}`);
+  }
 });
 
 Deno.test("a complete JSON-LD page does not need the model text", async () => {
