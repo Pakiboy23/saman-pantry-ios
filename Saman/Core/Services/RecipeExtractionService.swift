@@ -35,7 +35,7 @@ struct ExtractedIngredient: Codable {
 
     var amountLabel: String {
         guard let a = amount, let u = unit else { return "—" }
-        let s = a.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(a))" : "\(a)"
+        let s = Int(exactly: a).map { String($0) } ?? String(a)
         return "\(s) \(u)"
     }
 }

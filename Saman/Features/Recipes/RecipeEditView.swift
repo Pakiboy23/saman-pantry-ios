@@ -232,7 +232,7 @@ struct RecipeEditView: View {
 
     private static func amountText(_ amount: Double?) -> String {
         guard let a = amount else { return "" }
-        return a.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(a)) : String(a)
+        return Int(exactly: a).map { String($0) } ?? String(a)
     }
 }
 
