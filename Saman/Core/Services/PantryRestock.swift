@@ -81,7 +81,8 @@ enum PantryProductLink {
                 pantryItems: pantryItems,
                 in: context
             )
-            let qty = max(1, Int((ing.amount ?? 1.0).rounded(.up)))
+            // Unrepresentable quantities use the same default as missing amounts.
+            let qty = max(1, Int(exactly: (ing.amount ?? 1.0).rounded(.up)) ?? 1)
             let unit = ing.unit ?? "unit"
             context.insert(ShoppingListItem(quantity: qty, unit: unit, product: product, shoppingList: list))
         }
