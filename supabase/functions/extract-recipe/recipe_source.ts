@@ -10,6 +10,7 @@ export const MAX_RESPONSE_BYTES = 3_000_000;
 export const FETCH_TIMEOUT_MS = 12_000;
 export const MAX_REDIRECTS = 4;
 export const MAX_SOURCE_CHARS = 12_000;
+export const MAX_INSTRUCTION_CHARS = 12_000;
 
 const NOT_ALLOWED =
   "That link isn't one I can open. Paste a public http or https recipe link.";
@@ -750,23 +751,42 @@ function ingredientLines(value: unknown): string[] {
 
 function instructionLines(value: unknown): string[] {
   const out: string[] = [];
-  collectInstructions(value, out, null);
+  let chars = 0;
+  collectInstructions(value, (line, section) => {
+    // Check before repeating a heading. One budget covers all sections and
+    // both step formats, bounding instruction text in the recipe and raw_json.
+    // Every emitted line is nonempty, so this also bounds the step count.
+    const length = line.length + (section ? section.length + 2 : 0);
+    if (length > MAX_INSTRUCTION_CHARS - chars) {
+      throw new SourceError(
+        "That recipe is too large to read. Paste the recipe text instead.",
+        "url_fetch_failed",
+        422,
+      );
+    }
+    chars += length;
+    out.push(section ? `${section}: ${line}` : line);
+  }, null);
   return out;
 }
 
-function collectInstructions(value: unknown, out: string[], section: string | null): void {
+function collectInstructions(
+  value: unknown,
+  append: (line: string, section: string | null) => void,
+  section: string | null,
+): void {
   if (value == null) return;
   if (typeof value === "string") {
     const text = stripTags(decodeHtml(value)).trim();
     for (const part of text.split(/\n+/)) {
       const line = part.trim();
       if (!line) continue;
-      out.push(section ? `${section}: ${line}` : line);
+      append(line, section);
     }
     return;
   }
   if (Array.isArray(value)) {
-    for (const item of value) collectInstructions(item, out, section);
+    for (const item of value) collectInstructions(item, append, section);
     return;
   }
   if (typeof value !== "object") return;
@@ -774,16 +794,16 @@ function collectInstructions(value: unknown, out: string[], section: string | nu
   const typeStr = typeText(obj["@type"]);
   if (/howtosection/i.test(typeStr)) {
     const name = stringVal(obj.name);
-    collectInstructions(obj.itemListElement ?? obj.recipeInstructions, out, name);
+    collectInstructions(obj.itemListElement ?? obj.recipeInstructions, append, name);
     return;
   }
   const text = stringVal(obj.text) ?? (obj.text == null ? stringVal(obj.name) : null);
   if (text && (/howto/i.test(typeStr) || obj.text != null)) {
     const clean = stripTags(text).trim();
-    if (clean) out.push(section ? `${section}: ${clean}` : clean);
+    if (clean) append(clean, section);
     return;
   }
-  if (obj.itemListElement) collectInstructions(obj.itemListElement, out, section);
+  if (obj.itemListElement) collectInstructions(obj.itemListElement, append, section);
 }
 
 function typeText(type: unknown): string {
