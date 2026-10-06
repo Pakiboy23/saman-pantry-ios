@@ -6,6 +6,7 @@ import {
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
+  MAX_RESPONSE_BYTES,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -196,6 +197,59 @@ Deno.test("a page without JSON-LD sends cleaned text and drops scripts", async (
     assertEquals(resolved.text.includes("mutton"), true);
     assertEquals(resolved.source, "web");
   }
+});
+
+Deno.test("HTML cleanup preserves text around mixed-case blocks and adjacent blocks", () => {
+  for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    const html = `İ before<${tag.toUpperCase()} data-value="x">hidden</${tag.toUpperCase()}>` +
+      `<${tag}>also hidden</${tag}>after`;
+    assertEquals(htmlToText(html), "İ before after", tag);
+  }
+  assertEquals(htmlToText("before<!-- hidden --><!-- hidden too -->after"), "before after");
+  assertEquals(htmlToText("<scripture>visible</scripture>"), "visible");
+  assertEquals(htmlToText("<p>one &amp; two</p><p>three<br>four</p>"), "one & two\n three\nfour");
+});
+
+Deno.test("HTML cleanup discards unterminated blocks including repeated incomplete openers", () => {
+  for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    for (const opener of [`<${tag}>`, `<${tag} `]) {
+      assertEquals(htmlToText(`visible${opener.repeat(1000)}hidden`), "visible", opener);
+    }
+  }
+  assertEquals(htmlToText(`visible${"<!--".repeat(1000)}hidden`), "visible");
+});
+
+Deno.test("JSON-LD scanning skips invalid scripts and resumes after each closed block", () => {
+  const html = `<script>const nested = '<script type="application/ld+json">';</script>` +
+    `<script type="application/ld+json">invalid JSON</script>` +
+    KARAHI_JSON_LD.replaceAll("script", "SCRIPT");
+  assertEquals(recipeFromJsonLd(html)?.title, "Chicken Karahi");
+  const unclosed = KARAHI_JSON_LD.slice(0, KARAHI_JSON_LD.indexOf("</script>"));
+  assertEquals(recipeFromJsonLd(unclosed), null);
+});
+
+Deno.test("response-cap pages with unclosed scripts resolve without exposing script text", async () => {
+  const prefix = "<p>Ingredients: 1 cup lentils. Boil in water, then simmer until tender.</p>";
+  for (const opener of ["<script>", '<script type="application/ld+json">', "<script "]) {
+    const html = prefix + opener.repeat(Math.floor((MAX_RESPONSE_BYTES - prefix.length) / opener.length));
+    const resolved = await resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+      Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+    ));
+    assertEquals(resolved.kind, "text");
+    if (resolved.kind === "text") {
+      assertEquals(resolved.text, "URL: https://recipes.example/malformed\n\nIngredients: 1 cup lentils. Boil in water, then simmer until tender.");
+    }
+  }
+});
+
+Deno.test("a page containing only an unclosed script reports no recipe", async () => {
+  const error = await assertRejects(
+    () => resolveRecipeSource("https://recipes.example/empty", ctx(() =>
+      Promise.resolve(new Response('<script type="application/ld+json">' + "<script>".repeat(1000)))
+    )),
+    SourceError,
+  );
+  assertEquals((error as SourceError).code, "no_recipe_text");
 });
 
 Deno.test("ingredient lines keep real quantities and refuse invented ones", () => {
