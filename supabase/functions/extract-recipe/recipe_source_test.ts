@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
 import {
   assertResolvedPublic,
   captionsToText,
@@ -6,6 +6,7 @@ import {
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
+  MAX_SOURCE_CHARS,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -217,6 +218,50 @@ Deno.test("ingredient lines keep real quantities and refuse invented ones", () =
   assertEquals(handful.ingredient, "cilantro");
   assertEquals(handful.vague, true);
   assertEquals(handful.original_phrase, "a handful of cilantro");
+});
+
+Deno.test("HTML tag removal preserves text, formatting, and malformed brackets", () => {
+  const cases = [
+    ["", ""],
+    ["Plain text &amp; salt", "Plain text & salt"],
+    ["<p>Heat<br>oil</p><p>Add <b>salt</b>.</p>", "Heat\noil\n Add salt ."],
+    ["<", "<"],
+    ["<>", "<>"],
+    ["before <<x>after", "before after"],
+    ["before <>after <x <y", "before <>after <x <y"],
+    ["&lt;b&gt;salt&lt;/b&gt;", "<b>salt</b>"],
+  ];
+  for (const [html, expected] of cases) {
+    assertEquals(htmlToText(html), expected, html);
+  }
+});
+
+Deno.test("unfinished tags reach the web fallback and output cap without excessive CPU work", async () => {
+  const html = "Ingredients: salt. Simmer. " + "<x ".repeat(40_000);
+  const start = performance.now();
+  const resolved = await resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+    Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+  ));
+  const elapsed = performance.now() - start;
+  assertEquals(resolved.kind, "text");
+  if (resolved.kind !== "text") throw new Error("expected text");
+  assertEquals(resolved.text, (`URL: https://recipes.example/malformed\n\n${html}`).slice(0, MAX_SOURCE_CHARS));
+  // A generous ceiling for a 120 KB page; the old suffix rescans take seconds.
+  assert(elapsed < 1000, `Malformed HTML took ${elapsed} ms`);
+});
+
+Deno.test("unfinished tags in structured instructions and captions remain text", () => {
+  const text = "Simmer. " + "<x ".repeat(40_000);
+  const start = performance.now();
+  const recipe = recipeFromJsonLd(`<script type="application/ld+json">${JSON.stringify({
+    "@type": "Recipe",
+    name: "Dal",
+    recipeIngredient: ["1 cup lentils"],
+    recipeInstructions: text,
+  })}</script>`);
+  assertEquals(recipe?.steps, [text.trim()]);
+  assertEquals(captionsToText(`<transcript><text>${text}</text></transcript>`), text.trim());
+  assert(performance.now() - start < 1000, "Malformed recipe text took excessive CPU time");
 });
 
 const WATCH_HTML = `
