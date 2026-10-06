@@ -13,7 +13,7 @@ import {
 // Pro. This function does not read RevenueCat.
 // The iOS client must show "try tomorrow" on 402 — do not open the Pro
 // paywall until a higher Pro cap actually exists here.
-// Counted in recipe_extraction_events (service role only; see 004).
+// Counted in recipe_extraction_events (service role only; see 004 and 009).
 //
 // Body is { transcript } and/or { url }. A transcript that is only an http(s)
 // link is read as a URL. Text transcripts still consume a slot before the
@@ -30,7 +30,6 @@ const corsHeaders = {
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
 const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
-const DAILY_LIMIT = 5; // Keep in sync with FreeLimits.extractPerDay. Not Pro-aware.
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -82,41 +81,32 @@ Deno.serve(async (request) => {
     return json({ error: "A recipe transcript or link is required." }, 400);
   }
 
-  let slotId: number | null = null;
+  let slotId: string | null = null;
 
   async function takeQuotaSlot(): Promise<Response | null> {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count, error: countError } = await admin
-      .from("recipe_extraction_events")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", since);
+    // The RPC locks admissions for this user through counting and insertion.
+    // A provider failure still counts; URL fetches that fail before here do not.
+    const { data: reservedSlotId, error } = await admin.rpc(
+      "reserve_recipe_extraction",
+      { p_user_id: userId },
+    );
 
-    if (countError) {
-      console.error("quota count failed:", countError.message);
+    if (error) {
+      console.error("quota reservation failed:", error.message);
       return json({ error: "Could not check extraction quota." }, 500);
     }
 
-    if ((count ?? 0) >= DAILY_LIMIT) {
+    if (reservedSlotId === null) {
       return json(
         { error: "Daily recipe extraction limit reached.", code: "quota_exceeded" },
         402,
       );
     }
 
-    // Consume the slot before calling Anthropic so parallel retries cannot
-    // burst past the daily cap. A provider failure still counts. URL fetches
-    // that never reach this line do not.
-    const { data: slotRow, error: insertError } = await admin
-      .from("recipe_extraction_events")
-      .insert({ user_id: userId })
-      .select("id")
-      .single();
-    slotId = (slotRow as { id?: number } | null)?.id ?? null;
-    if (insertError) {
-      console.error("quota insert failed:", insertError.message);
+    if (typeof reservedSlotId !== "string" || !reservedSlotId) {
       return json({ error: "Could not record extraction." }, 500);
     }
+    slotId = reservedSlotId;
     return null;
   }
 
