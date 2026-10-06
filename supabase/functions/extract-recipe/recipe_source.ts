@@ -925,10 +925,12 @@ export function htmlToText(html: string): string {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n")
     .replace(/<[^>]+>/g, " ");
+  // Collapse runs first so removing whitespace before newlines cannot rescan
+  // overlapping suffixes of a long space/tab run when no newline follows.
   text = decodeHtml(text)
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   return text;
 }

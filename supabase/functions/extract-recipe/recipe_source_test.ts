@@ -6,6 +6,7 @@ import {
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
+  MAX_RESPONSE_BYTES,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -196,6 +197,41 @@ Deno.test("a page without JSON-LD sends cleaned text and drops scripts", async (
     assertEquals(resolved.text.includes("mutton"), true);
     assertEquals(resolved.source, "web");
   }
+});
+
+Deno.test("HTML whitespace normalization preserves line breaks and single tabs", () => {
+  const cases = [
+    ["  a\t b \t\n\n \t\n c  ", "a b\n\n c"],
+    ["a\tb\tc", "a\tb\tc"],
+    ["a\t\nb \n c", "a\nb\n c"],
+    ["a \t\r\nb", "a \r\nb"],
+    ["<p>Ingredients:  1 cup rice&nbsp;&#9;</p><p>Boil<br>Serve</p>", "Ingredients: 1 cup rice\n Boil\nServe"],
+  ];
+  for (const [html, expected] of cases) {
+    assertEquals(htmlToText(html), expected);
+  }
+});
+
+Deno.test("HTML normalization handles long whitespace runs without a newline", () => {
+  for (const whitespace of [" ", "\t", " \t"]) {
+    const run = whitespace.repeat(100_000);
+    assertEquals(htmlToText(`a${run}b`), "a b");
+    assertEquals(htmlToText(`a${run}\nb`), "a\nb");
+    assertEquals(htmlToText(`a${run}`), "a");
+  }
+});
+
+Deno.test("a whitespace-only HTML response at the byte cap returns no recipe", async () => {
+  const error = await assertRejects(
+    () => resolveRecipeSource("https://recipes.example/blank", ctx(() =>
+      Promise.resolve(new Response(" ".repeat(MAX_RESPONSE_BYTES), {
+        headers: { "content-type": "text/html" },
+      }))
+    )),
+    SourceError,
+  );
+  assertEquals(error.code, "no_recipe_text");
+  assertEquals(error.status, 422);
 });
 
 Deno.test("ingredient lines keep real quantities and refuse invented ones", () => {
