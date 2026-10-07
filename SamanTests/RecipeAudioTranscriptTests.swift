@@ -289,7 +289,7 @@ struct RecipeAudioTranscriptTests {
         let link = RecipeExtractionService.ExtractionError.noRecipeText(.url)
         #expect(voice.captureAlertTitle == "Couldn't find a recipe")
         #expect(voice.localizedDescription == "I only caught part of that. Try recording again, or type the ingredients and steps.")
-        #expect(voice.localizedDescription?.contains("link") == false)
+        #expect(voice.localizedDescription.contains("link") == false)
         #expect(link.captureAlertTitle == "Couldn't open that link")
         #expect(link.localizedDescription == "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that.")
     }

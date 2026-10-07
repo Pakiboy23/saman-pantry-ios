@@ -373,10 +373,10 @@ final class RecipeAudioTranscriber: ObservableObject {
         let recognizer = try await prepareRecognizer()
         guard await Self.requestMicrophoneAccess() else { throw RecipeAudioError.microphoneDenied }
 
-        let session = AVAudioSession.sharedInstance()
+        let audioSession = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.record, mode: .measurement, options: [])
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            try audioSession.setCategory(.record, mode: .measurement, options: [])
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             throw RecipeAudioError.failed
         }
