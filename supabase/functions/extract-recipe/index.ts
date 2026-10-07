@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  parseModelRecipe,
+  classifyModelRecipe,
   parseRecipeURL,
   resolveRecipeSource,
   SourceError,
@@ -30,6 +30,12 @@ const corsHeaders = {
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
 const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
+const TRANSCRIPT_NO_RECIPE =
+  "I only caught part of that. Try recording again, or type the ingredients and steps.";
+const LINK_NO_RECIPE =
+  "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that.";
+
+type ExtractRoute = "transcript" | "url";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -135,7 +141,7 @@ Deno.serve(async (request) => {
     }
 
     const userText = `Recipe source:\n\n${source.text}\n\nReturn the structured recipe as JSON.`;
-    const response = await extractWithModel(apiKey, userText, pageSystemPrompt);
+    const response = await extractWithModel(apiKey, userText, pageSystemPrompt, "url");
     if (response.status === 422 && slotId !== null) {
       // The page had no usable recipe: same as a failed fetch, no slot used.
       await admin.from("recipe_extraction_events").delete().eq("id", slotId);
@@ -147,10 +153,15 @@ Deno.serve(async (request) => {
   if (slot) return slot;
 
   const userText = `Transcript:\n\n${transcript}\n\nReturn the structured recipe as JSON.`;
-  return await extractWithModel(apiKey, userText, systemPrompt);
+  return await extractWithModel(apiKey, userText, systemPrompt, "transcript");
 });
 
-async function extractWithModel(apiKey: string, userText: string, system: string): Promise<Response> {
+async function extractWithModel(
+  apiKey: string,
+  userText: string,
+  system: string,
+  route: ExtractRoute,
+): Promise<Response> {
   const anthropicResponse = await fetch(anthropicEndpoint, {
     method: "POST",
     headers: {
@@ -166,31 +177,122 @@ async function extractWithModel(apiKey: string, userText: string, system: string
     }),
   });
 
+  const replyBody = await anthropicResponse.text();
+  let providerPayload: {
+    stop_reason?: string;
+    model?: string;
+    content?: { type?: string; text?: string }[];
+  } = {};
+  try {
+    providerPayload = replyBody ? JSON.parse(replyBody) : {};
+  } catch {
+    providerPayload = {};
+  }
+  const stopReason = typeof providerPayload.stop_reason === "string" ? providerPayload.stop_reason : null;
+  const model = typeof providerPayload.model === "string" ? providerPayload.model : anthropicModel;
+  const rawText = providerPayload.content?.find((block) => block.type === "text")?.text ?? "";
+
   if (!anthropicResponse.ok) {
-    return json({ error: "Recipe extraction provider failed." }, 502);
+    logModelCall({
+      status: anthropicResponse.status,
+      stopReason,
+      model,
+      inputLength: userText.length,
+      replyExcerpt: replyExcerpt(replyBody),
+      outcome: "provider_error",
+      noRecipeReason: null,
+    });
+    return json({ error: "Recipe extraction provider failed.", source: route }, 502);
   }
 
-  const providerPayload = await anthropicResponse.json();
-  const rawText = providerPayload.content?.find((block: { type?: string; text?: string }) => block.type === "text")?.text;
   if (!rawText) {
-    return json({ error: "Recipe extraction returned no content." }, 502);
+    logModelCall({
+      status: anthropicResponse.status,
+      stopReason,
+      model,
+      inputLength: userText.length,
+      replyExcerpt: replyExcerpt(replyBody),
+      outcome: "empty_reply",
+      noRecipeReason: null,
+    });
+    return json({ error: "Recipe extraction returned no content.", source: route }, 502);
   }
 
-  const recipe = parseModelRecipe(rawText);
-  if (recipe === "no_recipe") {
-    return json(
-      {
-        error: "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that.",
-        code: "no_recipe_text",
-      },
-      422,
-    );
+  const classified = classifyModelRecipe(rawText);
+  switch (classified.outcome) {
+    case "no_recipe":
+      logModelCall({
+        status: anthropicResponse.status,
+        stopReason,
+        model,
+        inputLength: userText.length,
+        replyExcerpt: replyExcerpt(rawText),
+        outcome: "no_recipe_text",
+        noRecipeReason: classified.reason,
+      });
+      return json(
+        {
+          error: route === "transcript" ? TRANSCRIPT_NO_RECIPE : LINK_NO_RECIPE,
+          code: "no_recipe_text",
+          source: route,
+        },
+        422,
+      );
+    case "unparseable":
+      logModelCall({
+        status: anthropicResponse.status,
+        stopReason,
+        model,
+        inputLength: userText.length,
+        replyExcerpt: replyExcerpt(rawText),
+        outcome: "unparseable",
+        noRecipeReason: null,
+      });
+      return json({ error: "Recipe extraction returned invalid JSON.", source: route }, 502);
+    case "recipe":
+      logModelCall({
+        status: anthropicResponse.status,
+        stopReason,
+        model,
+        inputLength: userText.length,
+        replyExcerpt: replyExcerpt(rawText),
+        outcome: "recipe",
+        noRecipeReason: null,
+      });
+      return json({ recipe: classified.recipe, raw_json: JSON.stringify(classified.recipe) });
+    default: {
+      const unreachable: never = classified;
+      return unreachable;
+    }
   }
-  if (!recipe) {
-    console.error("model returned unparseable output; stop_reason:", providerPayload.stop_reason ?? "unknown");
-    return json({ error: "Recipe extraction returned invalid JSON." }, 502);
-  }
-  return json({ recipe, raw_json: JSON.stringify(recipe) });
+}
+
+function logModelCall(entry: {
+  status: number;
+  stopReason: string | null;
+  model: string;
+  inputLength: number;
+  replyExcerpt: string;
+  outcome: string;
+  noRecipeReason: string | null;
+}) {
+  console.log(JSON.stringify({
+    event: "extract_recipe_model",
+    anthropic_status: entry.status,
+    stop_reason: entry.stopReason,
+    model: entry.model,
+    input_length: entry.inputLength,
+    reply_excerpt: entry.replyExcerpt,
+    outcome: entry.outcome,
+    no_recipe_reason: entry.noRecipeReason,
+  }));
+}
+
+function replyExcerpt(text: string): string {
+  const collapsed = text.replace(/\s+/g, " ").trim()
+    .replace(/sk-ant-[A-Za-z0-9_-]+/gi, "[redacted]")
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]");
+  return collapsed.length <= 200 ? collapsed : collapsed.slice(0, 200);
 }
 
 function json(body: unknown, status = 200): Response {
