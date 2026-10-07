@@ -461,11 +461,17 @@ struct RecipeCaptureView: View {
         .samaanCard()
     }
 
-    /// Cancels any in-flight capture task and starts a new one, unless the view has been dismissed.
+    /// Starts one capture action at a time; repeated taps leave the active action running.
     private func startCaptureTask(_ action: @escaping @MainActor () async -> Void) {
-        guard captureIsActive else { return }
-        captureTask?.cancel()
-        captureTask = Task { await action() }
+        guard captureIsActive, captureTask == nil else { return }
+        let generation = captureGeneration
+        captureTask = Task {
+            defer {
+                // A cancelled task must not clear a newer capture's task handle.
+                if captureGeneration == generation { captureTask = nil }
+            }
+            await action()
+        }
     }
 
     /// Stops recording and any running capture task, and resets transcription state before dismissal.
