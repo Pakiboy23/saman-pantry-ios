@@ -455,6 +455,7 @@ Deno.test("parseModelRecipe tolerates fences, prose, and flags empty recipes", a
   });
 });
 
+/** `htmlToText` keeps visible text and block breaks while tolerating malformed angle brackets. */
 Deno.test("HTML tag removal preserves text, formatting, and malformed brackets", () => {
   const cases = [
     ["", ""],
@@ -471,6 +472,7 @@ Deno.test("HTML tag removal preserves text, formatting, and malformed brackets",
   }
 });
 
+/** A page with many unterminated tags still resolves quickly and respects the source size cap. */
 Deno.test("unfinished tags reach the web fallback and output cap without excessive CPU work", async () => {
   const html = "Ingredients: salt. Simmer. " + "<x ".repeat(40_000);
   const start = performance.now();
@@ -485,6 +487,7 @@ Deno.test("unfinished tags reach the web fallback and output cap without excessi
   assert(elapsed < 1000, `Malformed HTML took ${elapsed} ms`);
 });
 
+/** Long runs of unterminated tags in JSON-LD instructions and captions are rejected or kept as plain text quickly. */
 Deno.test("unfinished tags in structured instructions and captions remain text", () => {
   const text = "Simmer. " + "<x ".repeat(40_000);
   const start = performance.now();
@@ -499,6 +502,7 @@ Deno.test("unfinished tags in structured instructions and captions remain text",
 });
 
 
+/** `recipeFromJsonLd` finds the block regardless of tag casing, quote style, extra attributes, or entity-encoded quotes. */
 Deno.test("JSON-LD scanning preserves case, quotes, attributes, and entity decoding", () => {
   const html = KARAHI_JSON_LD
     .replace('<script type="application/ld+json">', "<ScRiPt id='recipe' TYPE = 'APPLICATION/LD+JSON' defer>")
@@ -507,6 +511,7 @@ Deno.test("JSON-LD scanning preserves case, quotes, attributes, and entity decod
   assertEquals(recipeFromJsonLd(html), recipeFromJsonLd(KARAHI_JSON_LD));
 });
 
+/** Non-LD scripts, invalid JSON, and an incomplete recipe node are skipped in favor of the real block. */
 Deno.test("JSON-LD scanning skips unrelated, invalid, and incomplete blocks", () => {
   const prefix = `<script type="text/javascript">{"@type":"Recipe"}</script>
     <script type="application/ld+json">not JSON</script>
@@ -515,10 +520,12 @@ Deno.test("JSON-LD scanning skips unrelated, invalid, and incomplete blocks", ()
   assertEquals(recipeFromJsonLd(KARAHI_JSON_LD.split("</script>")[0]), null);
 });
 
+/** Text inside a script tag that merely looks like another `<script>` must not be parsed as its own block. */
 Deno.test("script-looking text inside a script is not another JSON-LD block", () => {
   assertEquals(recipeFromJsonLd("<script>" + KARAHI_JSON_LD + "</script>"), null);
 });
 
+/** Pages filled with malformed `<script>` fragments up to the response cap still parse within a fixed time budget. */
 Deno.test("malformed script pages stay within a bounded parsing budget", async () => {
   const fragments = [
     "<script ",
@@ -543,6 +550,7 @@ Deno.test("malformed script pages stay within a bounded parsing budget", async (
   }
 });
 
+/** Visible text ahead of an unterminated `<script>` block is kept by both `htmlToText` and the text fallback. */
 Deno.test("text fallback keeps visible content before an unfinished script", async () => {
   const visible = "Ingredients: 1 kg mutton, 2 tsp haldi. Fry the onion, then simmer.";
   for (const tail of ["<script ".repeat(1000), '<script type="application/ld+json">private script text']) {
@@ -557,6 +565,7 @@ Deno.test("text fallback keeps visible content before an unfinished script", asy
 });
 
 
+/** `htmlToText` collapses runs of spaces/tabs but keeps line breaks and lone tabs intact. */
 Deno.test("HTML whitespace normalization preserves line breaks and single tabs", () => {
   const cases = [
     ["  a\t b \t\n\n \t\n c  ", "a b\n\n c"],
@@ -570,6 +579,7 @@ Deno.test("HTML whitespace normalization preserves line breaks and single tabs",
   }
 });
 
+/** Very long whitespace-only runs collapse to a single space without touching adjacent newlines. */
 Deno.test("HTML normalization handles long whitespace runs without a newline", () => {
   for (const whitespace of [" ", "\t", " \t"]) {
     const run = whitespace.repeat(100_000);
@@ -579,6 +589,7 @@ Deno.test("HTML normalization handles long whitespace runs without a newline", (
   }
 });
 
+/** A response that is only whitespace, even at the max byte cap, reports no recipe text. */
 Deno.test("a whitespace-only HTML response at the byte cap returns no recipe", async () => {
   const error = await assertRejects(
     () => resolveRecipeSource("https://recipes.example/blank", ctx(() =>
@@ -593,6 +604,7 @@ Deno.test("a whitespace-only HTML response at the byte cap returns no recipe", a
 });
 
 
+/** Hidden-block tags are stripped regardless of case, and adjacent blocks don't swallow surrounding text. */
 Deno.test("HTML cleanup preserves text around mixed-case blocks and adjacent blocks", () => {
   for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
     const html = `İ before<${tag.toUpperCase()} data-value="x">hidden</${tag.toUpperCase()}>` +
@@ -604,6 +616,7 @@ Deno.test("HTML cleanup preserves text around mixed-case blocks and adjacent blo
   assertEquals(htmlToText("<p>one &amp; two</p><p>three<br>four</p>"), "one & two\n three\nfour");
 });
 
+/** Unterminated hidden-block tags, even repeated many times, are discarded instead of leaking as text. */
 Deno.test("HTML cleanup discards unterminated blocks including repeated incomplete openers", () => {
   for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
     for (const opener of [`<${tag}>`, `<${tag} `]) {
@@ -613,6 +626,7 @@ Deno.test("HTML cleanup discards unterminated blocks including repeated incomple
   assertEquals(htmlToText(`visible${"<!--".repeat(1000)}hidden`), "visible");
 });
 
+/** Scanning resumes after each closed script block, skipping invalid ones, but fails on a truly unclosed block. */
 Deno.test("JSON-LD scanning skips invalid scripts and resumes after each closed block", () => {
   const html = `<script>const nested = '<script type="application/ld+json">';</script>` +
     `<script type="application/ld+json">invalid JSON</script>` +
@@ -622,6 +636,7 @@ Deno.test("JSON-LD scanning skips invalid scripts and resumes after each closed 
   assertEquals(recipeFromJsonLd(unclosed), null);
 });
 
+/** A page at the response cap with trailing unclosed script tags still yields clean visible text. */
 Deno.test("response-cap pages with unclosed scripts resolve without exposing script text", async () => {
   const prefix = "<p>Ingredients: 1 cup lentils. Boil in water, then simmer until tender.</p>";
   for (const opener of ["<script>", '<script type="application/ld+json">', "<script "]) {
@@ -636,6 +651,7 @@ Deno.test("response-cap pages with unclosed scripts resolve without exposing scr
   }
 });
 
+/** A page consisting solely of an unclosed script tag has no extractable text and reports no recipe. */
 Deno.test("a page containing only an unclosed script reports no recipe", async () => {
   const error = await assertRejects(
     () => resolveRecipeSource("https://recipes.example/empty", ctx(() =>

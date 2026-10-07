@@ -102,6 +102,7 @@ struct RecipeTranscriptAccumulator: Equatable {
         return false
     }
 
+    /// Splits on whitespace, strips surrounding punctuation, and lowercases each word.
     private static func words(_ value: String) -> [String] {
         value.split(whereSeparator: \.isWhitespace)
             .map { String($0).trimmingCharacters(in: .punctuationCharacters).lowercased() }
@@ -276,6 +277,7 @@ struct RecipeRecognitionSession {
         accumulator.reset()
     }
 
+    /// Feeds one recognizer callback into the session and reports what the caller should do next.
     mutating func applyCallback(
         generation taskGeneration: Int, text: String?, isFinal: Bool, failed: Bool,
         audioRange: Range<TimeInterval>? = nil
@@ -396,6 +398,7 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var isPreparing = false
     private let speechAccess: () async -> Bool
 
+    /// `speechAccess` is injectable so tests can control the permission prompt timing.
     init(speechAccess: (() async -> Bool)? = nil) {
         self.speechAccess = speechAccess ?? { await Self.requestSpeechAccess() }
     }
@@ -407,6 +410,7 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var recordingFileBox: RecordingFileBox?
     private var isStopping = false
 
+    /// Requests permissions and starts live microphone recognition, ignoring the call if busy.
     func startRecording() async throws {
         guard !isRecording, !isStopping, !isPreparing, fileGate == nil else { return }
         operationID = UUID()
@@ -478,6 +482,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         listen(recognizer: recognizer, request: request)
     }
 
+    /// Ends live recognition and reconciles it against the saved take before returning the transcript.
     func stopRecording() async throws -> String {
         guard isRecording else { throw RecipeAudioError.emptyTranscript }
         let operation = operationID
@@ -530,6 +535,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         throw RecipeAudioError.emptyTranscript
     }
 
+    /// Tears down any in-flight recording, file transcription, or pending permission request.
     func cancelRecording() {
         // Invalidate even a permission request that has not created an engine yet.
         operationID = UUID()
@@ -550,17 +556,20 @@ final class RecipeAudioTranscriber: ObservableObject {
         isStopping = false
     }
 
+    /// Transcribes an audio file end to end, starting a new cancellable operation.
     func transcribeFile(at url: URL) async throws -> String {
         guard !isRecording, !isStopping, !isPreparing, fileGate == nil else { throw RecipeAudioError.failed }
         operationID = UUID()
         return try await transcribeFile(at: url, operation: operationID, timeoutNanoseconds: 90_000_000_000)
     }
 
+    /// Throws if the task was cancelled or a newer operation has superseded this one.
     private func checkOperation(_ operation: UUID) throws {
         try Task.checkCancellation()
         guard operation == operationID else { throw CancellationError() }
     }
 
+    /// Runs file recognition for a specific operation, failing fast if it is cancelled or superseded.
     private func transcribeFile(at url: URL, operation: UUID, timeoutNanoseconds: UInt64) async throws -> String {
         try checkOperation(operation)
         isPreparing = true
@@ -630,6 +639,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         return dest
     }
 
+    /// Requests speech access and returns an available on-device recognizer, or throws.
     private func prepareRecognizer(operation: UUID) async throws -> SFSpeechRecognizer {
         let allowed = await speechAccess()
         try checkOperation(operation)
@@ -798,6 +808,7 @@ private final class TranscriptAccumulatorBox: @unchecked Sendable {
         return accumulator.fullText
     }
 
+    /// Thread-safe forwarder to the wrapped accumulator; returns the updated full text.
     @discardableResult
     func applyCumulative(segment: String, isFinal: Bool, audioRange: Range<TimeInterval>?) -> String {
         lock.lock()

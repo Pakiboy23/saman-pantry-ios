@@ -461,12 +461,14 @@ struct RecipeCaptureView: View {
         .samaanCard()
     }
 
+    /// Cancels any in-flight capture task and starts a new one, unless the view has been dismissed.
     private func startCaptureTask(_ action: @escaping @MainActor () async -> Void) {
         guard captureIsActive else { return }
         captureTask?.cancel()
         captureTask = Task { await action() }
     }
 
+    /// Stops recording and any running capture task, and resets transcription state before dismissal.
     private func cancelCapture() {
         captureIsActive = false
         captureGeneration = UUID()
@@ -479,6 +481,7 @@ struct RecipeCaptureView: View {
         }
     }
 
+    /// Resumes an extraction that was deferred for sign-in, once auth has finished and the view is active.
     private func resumePendingExtraction() {
         guard captureIsActive, !appEnv.isAuthPresented,
               appEnv.auth.isSignedIn, resumeExtractAfterAuth else { return }
@@ -488,10 +491,12 @@ struct RecipeCaptureView: View {
         startCaptureTask { await runExtraction(fromAudio: audio) }
     }
 
+    /// True when the view is still active and `generation` matches the current capture attempt.
     private func acceptsCapture(_ generation: UUID) -> Bool {
         captureIsActive && captureGeneration == generation && !Task.isCancelled
     }
 
+    /// Starts or stops microphone recording, then kicks off extraction once a recording finishes.
     private func toggleRecording() async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }
@@ -522,6 +527,7 @@ struct RecipeCaptureView: View {
         }
     }
 
+    /// Copies and transcribes a picked audio file, then extracts a recipe from the result.
     private func transcribePickedFile(_ url: URL) async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }
@@ -552,6 +558,7 @@ struct RecipeCaptureView: View {
         await runExtraction(fromAudio: true)
     }
 
+    /// Validates the link or transcript, ensures consent and sign-in, then calls the extraction service.
     private func runExtraction(fromAudio: Bool = false) async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }

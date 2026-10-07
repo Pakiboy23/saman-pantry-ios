@@ -615,6 +615,7 @@ function pickCaptionUrl(tracks: CaptionTrack[]): string | null {
   return usable[0].baseUrl ?? null;
 }
 
+/** Converts a YouTube timed-text/caption response (JSON or XML) into plain text. */
 export function captionsToText(body: string): string {
   const trimmed = body.trim();
   if (!trimmed) return "";
@@ -676,6 +677,7 @@ export function recipeFromJsonLd(html: string): StructuredRecipe | null {
   return null;
 }
 
+/** Finds closed `<script type="application/ld+json">` blocks and parses each one's JSON body. */
 function extractJsonLdBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
   for (const block of htmlBlocks(html, "script")) {
@@ -932,9 +934,12 @@ function cleanIngredientName(rest: string, original: string): string {
   return name;
 }
 
-// Scan disjoint blocks. A missing terminator consumes the rest of the input,
-// so repeated opening tags cannot trigger overlapping suffix searches.
-// Only fixed tag names from the callers below are used in these expressions.
+/**
+ * Yields the start/content/end offsets of each `<tag>...</tag>` (or `<!-- -->`) block in `html`.
+ * Scan disjoint blocks. A missing terminator consumes the rest of the input,
+ * so repeated opening tags cannot trigger overlapping suffix searches.
+ * Only fixed tag names from the callers below are used in these expressions.
+ */
 function* htmlBlocks(html: string, tag: string) {
   const comment = tag === "!--";
   const opening = new RegExp(comment ? "<!--" : `<${tag}\\b`, "gi");
@@ -953,6 +958,7 @@ function* htmlBlocks(html: string, tag: string) {
   }
 }
 
+/** Strips hidden blocks (scripts, styles, comments, etc.) and tags from HTML, leaving readable text. */
 export function htmlToText(html: string): string {
   let text = html;
   for (const tag of ["!--", "script", "style", "noscript", "svg", "nav", "footer", "header"]) {
@@ -1010,6 +1016,7 @@ function codepoint(code: number): string {
   }
 }
 
+/** Replaces each well-formed `<...>` tag with a space, leaving an unterminated trailing tag as text. */
 function removeTags(value: string): string {
   const parts: string[] = [];
   let cursor = 0;
@@ -1029,6 +1036,7 @@ function removeTags(value: string): string {
   return parts.join("");
 }
 
+/** Removes tags from `value` and collapses surrounding whitespace into a single trimmed string. */
 function stripTags(value: string): string {
   return removeTags(value).replace(/\s+/g, " ").trim();
 }

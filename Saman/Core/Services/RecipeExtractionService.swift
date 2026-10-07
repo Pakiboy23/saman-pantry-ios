@@ -69,6 +69,7 @@ final class RecipeExtractionService {
         try await perform(RequestBody(transcript: nil, url: url), route: .url)
     }
 
+    /// Sends the extraction request with an auth token and decodes the recipe, mapping failures to `ExtractionError`.
     private func perform(_ body: RequestBody, route: RecipeExtractionRoute) async throws -> ExtractionResult {
         let token: String
         do {
@@ -94,6 +95,7 @@ final class RecipeExtractionService {
         return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON)
     }
 
+    /// Maps an HTTP error status and response body to the matching `ExtractionError`.
     static func failure(status: Int, data: Data, route: RecipeExtractionRoute) -> ExtractionError {
         let body = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data)
         if status == 401 { return .unauthorized }

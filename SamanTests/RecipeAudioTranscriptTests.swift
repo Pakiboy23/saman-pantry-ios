@@ -225,6 +225,7 @@ struct RecipeAudioTranscriptTests {
         #expect(!RecipeTranscriptAccumulator.continuesSameUtterance("Heat the oil", "Eat the rice"))
     }
 
+    /// Overlapping audio ranges mark a correction, so the final wording wins even when the opening word changes.
     @Test func sameAudioCorrectionsReplaceWordsEvenWhenTheOpeningChanges() {
         var accumulator = RecipeTranscriptAccumulator()
         accumulator.applyUtterance(segment: "Heat the oil until hot", isFinal: false, audioRange: 0..<2)
@@ -234,6 +235,7 @@ struct RecipeAudioTranscriptTests {
         #expect(accumulator.committedSegments.count == 1)
     }
 
+    /// Non-overlapping audio ranges keep both utterances, even if they share an opening or are identical.
     @Test func laterAudioKeepsSharedOpeningsAndIdenticalInstructions() {
         for final in [false, true] {
             for next in ["Add the chicken", "Add the oil", "Add the oil slowly"] {
@@ -245,6 +247,7 @@ struct RecipeAudioTranscriptTests {
         }
     }
 
+    /// Without audio timestamps, the word-based fallback still keeps two steps that share an opening.
     @Test func missingTimestampsDoNotDiscardSharedOpeningInstructions() {
         for final in [false, true] {
             var accumulator = RecipeTranscriptAccumulator()
@@ -256,6 +259,7 @@ struct RecipeAudioTranscriptTests {
         #expect(RecipeTranscriptAccumulator.continuesSameUtterance("Heat the oil", "Heat the"))
     }
 
+    /// `applyCumulative` with audio ranges resolves file-result corrections the same way as live utterances.
     @Test func fileCorrectionsAndLaterUtterancesUseAudioTiming() {
         var accumulator = RecipeTranscriptAccumulator()
         accumulator.applyCumulative(segment: "Add the coil", isFinal: false, audioRange: 0..<1)
@@ -264,6 +268,7 @@ struct RecipeAudioTranscriptTests {
         #expect(accumulator.fullText == "Add the oil Add the chicken")
     }
 
+    /// An empty final result must not erase the last non-empty partial.
     @Test func emptyFinalKeepsTheLastPartial() {
         var session = RecipeRecognitionSession()
         session.start()
@@ -273,6 +278,7 @@ struct RecipeAudioTranscriptTests {
         #expect(session.applyCallback(generation: generation, text: "", isFinal: true, failed: false) == .finish("Add salt"))
     }
 
+    /// Cancelling while the speech-access prompt is pending must stop recording or file import once it resolves.
     @MainActor @Test func cancellationDuringPermissionWaitStopsRecordingAndFileImport() async {
         for importFile in [false, true] {
             var permission: CheckedContinuation<Bool, Never>?
@@ -432,6 +438,7 @@ struct RecipeAudioTranscriptTests {
         #expect(RecipeTranscriptReconciliation.choose(live: live, fromFile: live, duration: 8) == live)
     }
 
+    /// `failure` prefers the server-reported source over the caller's route, falling back when absent or unknown.
     @MainActor @Test func noRecipeResponseUsesServerRouteWithLegacyFallback() {
         let cases: [(String, RecipeExtractionRoute, String)] = [
             (#"{"code":"no_recipe_text","error":"No recipe"}"#, .transcript, "Couldn't find a recipe"),
@@ -446,6 +453,7 @@ struct RecipeAudioTranscriptTests {
         }
     }
 
+    /// A final segment that only adds punctuation should replace the partial, not duplicate it.
     @Test func punctuationCorrectionsDoNotCreateDuplicateInstructions() {
         var accumulator = RecipeTranscriptAccumulator()
         accumulator.applyUtterance(segment: "Add the oil", isFinal: false)
