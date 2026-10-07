@@ -198,7 +198,6 @@ async function extractWithModel(
       stopReason,
       model,
       inputLength: userText.length,
-      replyExcerpt: replyExcerpt(replyBody),
       outcome: "provider_error",
       noRecipeReason: null,
     });
@@ -211,7 +210,6 @@ async function extractWithModel(
       stopReason,
       model,
       inputLength: userText.length,
-      replyExcerpt: replyExcerpt(replyBody),
       outcome: "empty_reply",
       noRecipeReason: null,
     });
@@ -226,7 +224,6 @@ async function extractWithModel(
         stopReason,
         model,
         inputLength: userText.length,
-        replyExcerpt: replyExcerpt(rawText),
         outcome: "no_recipe_text",
         noRecipeReason: classified.reason,
       });
@@ -244,7 +241,6 @@ async function extractWithModel(
         stopReason,
         model,
         inputLength: userText.length,
-        replyExcerpt: replyExcerpt(rawText),
         outcome: "unparseable",
         noRecipeReason: null,
       });
@@ -255,7 +251,6 @@ async function extractWithModel(
         stopReason,
         model,
         inputLength: userText.length,
-        replyExcerpt: replyExcerpt(rawText),
         outcome: "recipe",
         noRecipeReason: null,
       });
@@ -272,7 +267,6 @@ function logModelCall(entry: {
   stopReason: string | null;
   model: string;
   inputLength: number;
-  replyExcerpt: string;
   outcome: string;
   noRecipeReason: string | null;
 }) {
@@ -282,17 +276,9 @@ function logModelCall(entry: {
     stop_reason: entry.stopReason,
     model: entry.model,
     input_length: entry.inputLength,
-    reply_excerpt: entry.replyExcerpt,
     outcome: entry.outcome,
     no_recipe_reason: entry.noRecipeReason,
   }));
-}
-
-function replyExcerpt(text: string): string {
-  const collapsed = text.replace(/\s+/g, " ").trim()
-    .replace(/sk-ant-[A-Za-z0-9_-]+/gi, "[redacted]")
-    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]");
-  return collapsed.length <= 200 ? collapsed : collapsed.slice(0, 200);
 }
 
 function json(body: unknown, status = 200): Response {

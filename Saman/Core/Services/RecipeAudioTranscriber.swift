@@ -82,6 +82,18 @@ struct RecipeTranscriptAccumulator: Equatable {
         }
         if shared >= 2 { return true }
         if shared >= 1, min(prevWords.count, nextWords.count) <= 3 { return true }
+        // A one-word partial can gain or correct its opening sound as it grows
+        // ("Eat" -> "Heat the"). Require a matching word tail so an unrelated
+        // short utterance is still committed instead of silently replaced.
+        if prevWords.count == 1, nextWords.count > 1 {
+            let previousWord = prevWords[0]
+            let nextWord = nextWords[0]
+            if min(previousWord.count, nextWord.count) >= 3 {
+                return previousWord == nextWord.dropFirst()
+                    || previousWord.dropFirst() == nextWord
+                    || previousWord.dropFirst() == nextWord.dropFirst()
+            }
+        }
         return false
     }
 
@@ -223,7 +235,6 @@ struct RecipeRecognitionSession {
 
     mutating func start() {
         accumulator.reset()
-        generation = 0
         isRecording = true
         isStopping = false
         consecutiveRestartErrors = 0
@@ -262,6 +273,7 @@ struct RecipeRecognitionSession {
                 return .restart(transcript)
             }
             isStopping = false
+            generation += 1
             return .finish(transcript)
         }
         if failed {
@@ -276,6 +288,7 @@ struct RecipeRecognitionSession {
             }
             let transcript = accumulator.fullText
             isStopping = false
+            generation += 1
             if RecipeAudioTranscript.readyForExtract(transcript) != nil {
                 return .finish(transcript)
             }
@@ -381,7 +394,7 @@ final class RecipeAudioTranscriber: ObservableObject {
             throw RecipeAudioError.failed
         }
 
-        session.start()
+        self.session.start()
         partialTranscript = ""
         isStopping = false
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -456,7 +469,8 @@ final class RecipeAudioTranscriber: ObservableObject {
         let duration = fileURL.map(Self.audioDuration(of:)) ?? 0
         var fromFile: String?
         if let url = fileURL {
-            fromFile = try? await transcribeFile(at: url)
+            // Reconciliation is best effort; imports retain the longer default.
+            fromFile = try? await transcribeFile(at: url, timeoutNanoseconds: 5_000_000_000)
         }
         let chosen = RecipeTranscriptReconciliation.choose(live: live, fromFile: fromFile, duration: duration)
         partialTranscript = ""
@@ -482,11 +496,15 @@ final class RecipeAudioTranscriber: ObservableObject {
         isStopping = false
     }
 
-    func transcribeFile(at url: URL) async throws -> String {
+    func transcribeFile(at url: URL, timeoutNanoseconds: UInt64 = 90_000_000_000) async throws -> String {
         guard !isRecording else { throw RecipeAudioError.failed }
         let recognizer = try await prepareRecognizer()
         let request = SFSpeechURLRecognitionRequest(url: url)
         configure(request)
+        defer {
+            recognitionTask?.cancel()
+            recognitionTask = nil
+        }
         let text: String = try await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
             let fileAccumulator = TranscriptAccumulatorBox()
@@ -509,12 +527,10 @@ final class RecipeAudioTranscriber: ObservableObject {
                 }
             }
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 90_000_000_000)
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
                 gate.resume(throwing: RecipeAudioError.failed)
             }
         }
-        recognitionTask?.cancel()
-        recognitionTask = nil
         guard let ready = RecipeAudioTranscript.readyForExtract(text) else {
             throw RecipeAudioError.emptyTranscript
         }

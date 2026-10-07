@@ -207,6 +207,78 @@ struct RecipeAudioTranscriptTests {
         #expect(accumulator.fullText == "Heat the oil and add the chicken")
     }
 
+    @Test func openingWordCorrectionReplacesThePartial() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "Eat", isFinal: false, taskID: 1)
+        accumulator.applyUtterance(segment: "Heat the", isFinal: false, taskID: 1)
+        accumulator.applyUtterance(segment: "Heat the oil", isFinal: true, taskID: 1)
+        #expect(accumulator.fullText == "Heat the oil")
+        #expect(accumulator.committedSegments == ["Heat the oil"])
+    }
+
+    @Test func unrelatedShortUtteranceKeepsThePreviousWords() {
+        var accumulator = RecipeTranscriptAccumulator()
+        accumulator.applyUtterance(segment: "Oil", isFinal: false, taskID: 1)
+        accumulator.applyUtterance(segment: "Add the chicken", isFinal: false, taskID: 1)
+        #expect(accumulator.fullText == "Oil Add the chicken")
+        #expect(accumulator.committedSegments == ["Oil"])
+        #expect(!RecipeTranscriptAccumulator.continuesSameUtterance("Heat the oil", "Eat the rice"))
+    }
+
+    @Test func sharedWordRewritesStillReplaceThePartial() {
+        #expect(RecipeTranscriptAccumulator.continuesSameUtterance("Heat the oil until hot", "Heat the ghee until melted"))
+        #expect(RecipeTranscriptAccumulator.continuesSameUtterance("Add oil", "Add ghee to the pan"))
+        #expect(RecipeTranscriptAccumulator.continuesSameUtterance("Heat the oil", "Heat the"))
+    }
+
+    @Test func completedStopRetiresFinalAndFailedTasks() {
+        for failed in [false, true] {
+            for text in ["Heat the oil", ""] {
+                var session = RecipeRecognitionSession()
+                session.start()
+                let generation = session.openTask()
+                let stopID = session.beginStop()
+                let effect = session.applyCallback(
+                    generation: generation, text: text, isFinal: !failed, failed: failed
+                )
+                if failed && text.isEmpty {
+                    #expect(effect == .failed)
+                } else {
+                    #expect(effect == .finish(text))
+                }
+                #expect(session.generation > generation)
+                #expect(!session.isStopping)
+                let saved = session.accumulator
+                #expect(session.applyCallback(
+                    generation: generation, text: "late partial", isFinal: false, failed: false
+                ) == .ignored)
+                #expect(session.applyCallback(
+                    generation: generation, text: "late final", isFinal: true, failed: false
+                ) == .ignored)
+                #expect(session.accumulator == saved)
+                #expect(session.finishStopWithoutFinal(stopID: stopID) == nil)
+            }
+        }
+    }
+
+    @Test func newTakeDoesNotReuseCancelledTaskGeneration() {
+        var session = RecipeRecognitionSession()
+        session.start()
+        let oldGeneration = session.openTask()
+        session.cancel()
+        let retiredGeneration = session.generation
+        session.start()
+        #expect(session.generation == retiredGeneration)
+        let newGeneration = session.openTask()
+        #expect(newGeneration > retiredGeneration)
+        #expect(session.applyCallback(
+            generation: oldGeneration, text: "previous take", isFinal: true, failed: false
+        ) == .ignored)
+        #expect(session.applyCallback(
+            generation: newGeneration, text: "new take", isFinal: false, failed: false
+        ) == .updated("new take"))
+    }
+
     @Test func stopWithoutAFinalKeepsFirstSentenceAndLastPartial() {
         var session = RecipeRecognitionSession()
         session.start()

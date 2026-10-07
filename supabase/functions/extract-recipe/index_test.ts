@@ -152,13 +152,13 @@ Deno.test("transcript no_recipe_text logs the model call and uses voice copy", a
   assertEquals(entry.outcome, "no_recipe_text");
   assertEquals(entry.no_recipe_reason, "explicit_no_recipe");
   assertEquals(entry.input_length > 0, true);
-  assertEquals(entry.reply_excerpt.length <= 200, true);
-  assertEquals(entry.reply_excerpt.includes("sk-ant-secretvalue"), false);
-  assertEquals(entry.reply_excerpt.includes("[redacted]"), true);
+  assertEquals("reply_excerpt" in entry, false);
+  assertEquals(result.logs.join("\n").includes("sk-ant-secretvalue"), false);
+  assertEquals(result.logs.join("\n").includes("But some of it"), false);
   assertEquals(result.logs.join("\n").includes("synthetic-provider-key"), false);
 });
 
-Deno.test("a recipe reply still logs status, stop reason, model, and excerpt", async () => {
+Deno.test("a recipe reply logs structural diagnostics without recipe text", async () => {
   const result = await exercise({
     reservation: slotId,
     anthropic: {
@@ -177,7 +177,10 @@ Deno.test("a recipe reply still logs status, stop reason, model, and excerpt", a
   assertEquals(entry.model, "claude-sonnet-4-6");
   assertEquals(entry.outcome, "recipe");
   assertEquals(entry.no_recipe_reason, null);
-  assertEquals(entry.reply_excerpt.includes("Daal"), true);
+  assertEquals(entry.input_length > 0, true);
+  assertEquals("reply_excerpt" in entry, false);
+  assertEquals(result.logs.join("\n").includes("Daal"), false);
+  assertEquals(result.logs.join("\n").includes("lentils"), false);
 });
 
 Deno.test("provider HTTP failures log the status without the API key", async () => {
@@ -190,6 +193,8 @@ Deno.test("provider HTTP failures log the status without the API key", async () 
   assertEquals(entry.anthropic_status, 529);
   assertEquals(entry.outcome, "provider_error");
   assertEquals(entry.stop_reason, null);
+  assertEquals("reply_excerpt" in entry, false);
+  assertEquals(result.logs.join("\n").includes("overloaded"), false);
   assertEquals(result.logs.join("\n").includes("synthetic-provider-key"), false);
 });
 
