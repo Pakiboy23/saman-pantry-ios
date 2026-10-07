@@ -77,4 +77,31 @@ struct PantryRestockTests {
         #expect(haldi.quantity == 2)
         #expect(haldi.product == nil)
     }
+
+    @Test(arguments: [
+        (Double(Int.max), 1),
+        (Double(Int.min).nextDown, 1),
+        (Double.greatestFiniteMagnitude, 1),
+        (Double.infinity, 1),
+        (Double.nan, 1),
+        (0.5, 1),
+        (1.5, 2),
+        (2.0, 2),
+    ])
+    func ingredientQuantitiesCanBeAddedToList(amount: Double, expected: Int) throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let list = ShoppingList(name: "Rice")
+        context.insert(list)
+        PantryProductLink.appendIngredients([
+            ExtractedIngredient(
+                ingredient: "rice", originalPhrase: "rice", amount: amount, unit: "kg", vague: false
+            ),
+        ], to: list, in: context)
+        try context.save()
+
+        let rows = try context.fetch(FetchDescriptor<ShoppingListItem>())
+        #expect(rows.count == 1)
+        #expect(rows.first?.quantity == expected)
+    }
 }

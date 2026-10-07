@@ -35,7 +35,7 @@ struct ExtractedIngredient: Codable {
 
     var amountLabel: String {
         guard let a = amount, let u = unit else { return "—" }
-        let s = a.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(a))" : "\(a)"
+        let s = Int(exactly: a).map { String($0) } ?? String(a)
         return "\(s) \(u)"
     }
 }
@@ -62,20 +62,22 @@ final class RecipeExtractionService {
     private let endpoint = URL(string: Config.recipeExtractionEndpoint)!
 
     func extract(transcript: String) async throws -> ExtractionResult {
-        try await perform(RequestBody(transcript: transcript, url: nil))
+        try await perform(RequestBody(transcript: transcript, url: nil), route: .transcript)
     }
 
     func extract(url: String) async throws -> ExtractionResult {
-        try await perform(RequestBody(transcript: nil, url: url))
+        try await perform(RequestBody(transcript: nil, url: url), route: .url)
     }
 
-    private func perform(_ body: RequestBody) async throws -> ExtractionResult {
+    /// Sends the extraction request with an auth token and decodes the recipe, mapping failures to `ExtractionError`.
+    private func perform(_ body: RequestBody, route: RecipeExtractionRoute) async throws -> ExtractionResult {
         let token: String
         do {
             token = try await SupabaseClient.shared.auth.session.accessToken
         } catch {
             throw ExtractionError.unauthorized
         }
+        try Task.checkCancellation()
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -86,14 +88,15 @@ final class RecipeExtractionService {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ExtractionError.apiError }
         guard (200...299).contains(http.statusCode) else {
-            throw failure(status: http.statusCode, data: data)
+            throw Self.failure(status: http.statusCode, data: data, route: route)
         }
 
         let serviceResp = try JSONDecoder().decode(EdgeFunctionResponse.self, from: data)
         return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON)
     }
 
-    private func failure(status: Int, data: Data) -> ExtractionError {
+    /// Maps an HTTP error status and response body to the matching `ExtractionError`.
+    static func failure(status: Int, data: Data, route: RecipeExtractionRoute) -> ExtractionError {
         let body = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data)
         if status == 401 { return .unauthorized }
         if status == 402 { return .quotaExceeded }
@@ -108,7 +111,7 @@ final class RecipeExtractionService {
             case .urlFetchFailed:
                 return .urlFetchFailed
             case .noRecipeText:
-                return .noRecipeText
+                return .noRecipeText(resolvedRoute(from: body?.source, fallback: route))
             }
         }
         if let message = body?.message, !message.isEmpty {
@@ -117,9 +120,38 @@ final class RecipeExtractionService {
         return .apiError
     }
 
+    /// Server `source` wins when the deployed function sends it. Older
+    /// functions omit it, so the route this call actually used is the fallback.
+    private static func resolvedRoute(from source: String?, fallback: RecipeExtractionRoute) -> RecipeExtractionRoute {
+        switch source {
+        case RecipeExtractionRoute.url.rawValue:
+            return .url
+        case RecipeExtractionRoute.transcript.rawValue:
+            return .transcript
+        default:
+            return fallback
+        }
+    }
+
     enum ExtractionError: LocalizedError {
         case apiError, serviceError(String), quotaExceeded, unauthorized
-        case instagramCaptionUnavailable, urlNotAllowed, urlFetchFailed, noRecipeText
+        case instagramCaptionUnavailable, urlNotAllowed, urlFetchFailed
+        case noRecipeText(RecipeExtractionRoute)
+
+        var captureAlertTitle: String {
+            switch self {
+            case .quotaExceeded:
+                return "Try again tomorrow"
+            case .instagramCaptionUnavailable:
+                return "Paste the caption"
+            case .urlNotAllowed, .urlFetchFailed, .noRecipeText(.url):
+                return "Couldn't open that link"
+            case .noRecipeText(.transcript):
+                return "Couldn't find a recipe"
+            case .apiError, .serviceError, .unauthorized:
+                return "Extraction failed"
+            }
+        }
 
         var errorDescription: String? {
             switch self {
@@ -137,11 +169,18 @@ final class RecipeExtractionService {
                 return "That link isn't one I can open. Paste a public http or https recipe link."
             case .urlFetchFailed:
                 return "Couldn't open that link. Check it and try again, or paste the recipe text."
-            case .noRecipeText:
+            case .noRecipeText(.transcript):
+                return "I only caught part of that. Try recording again, or type the ingredients and steps."
+            case .noRecipeText(.url):
                 return "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that."
             }
         }
     }
+}
+
+enum RecipeExtractionRoute: String, Equatable {
+    case transcript
+    case url
 }
 
 // MARK: - Link field
@@ -252,11 +291,13 @@ private extension RecipeExtractionService {
     struct ExtractionErrorResponse: Decodable {
         let message: String
         let code: String?
+        let source: String?
 
         enum CodingKeys: String, CodingKey {
             case message
             case error
             case code
+            case source
         }
 
         init(from decoder: Decoder) throws {
@@ -265,6 +306,7 @@ private extension RecipeExtractionService {
                 ?? (try? c.decode(String.self, forKey: .error))
                 ?? "Recipe extraction failed. Please try again."
             code = try? c.decode(String.self, forKey: .code)
+            source = try c.decodeIfPresent(String.self, forKey: .source)
         }
     }
 }

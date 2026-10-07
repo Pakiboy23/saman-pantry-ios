@@ -13,6 +13,7 @@ final class AuthService {
     var errorMessage: String?
     var isLoading = false
 
+    private var isSigningOut = false
     private let supabase: SupabaseClient
 
     init(supabase: SupabaseClient = .shared) {
@@ -33,36 +34,48 @@ final class AuthService {
             return
         }
         for await (event, session) in supabase.auth.authStateChanges {
-            switch event {
-            case .initialSession:
-                isSignedIn = session != nil
-                currentUserID = session?.user.id.uuidString
-                hasCheckedInitialSession = true
-            case .signedIn, .tokenRefreshed:
-                isSignedIn = session != nil
-                currentUserID = session?.user.id.uuidString
-                pendingEmailConfirmation = false
-                pendingPasswordReset = false
-            case .userUpdated:
-                isSignedIn = session != nil
-                currentUserID = session?.user.id.uuidString
-                pendingEmailConfirmation = false
-                pendingPasswordReset = false
-                isRecoveringPassword = false
-            case .passwordRecovery:
-                // A recovery session is a real session. Do not treat it as a
-                // sign-out — the app has to show the set-new-password form.
-                isSignedIn = session != nil
-                currentUserID = session?.user.id.uuidString
-                isRecoveringPassword = true
-                pendingPasswordReset = false
-            case .signedOut, .userDeleted:
-                isSignedIn = false
-                currentUserID = nil
-                isRecoveringPassword = false
-            default:
-                break
-            }
+            handleAuthStateChange(event, session: session)
+        }
+    }
+
+    func handleAuthStateChange(_ event: AuthChangeEvent, session: Session?) {
+        if event == .initialSession { hasCheckedInitialSession = true }
+        if let session {
+            // Events can be buffered across sign-out or an account switch. Only
+            // the SDK's currently stored session may authorize UI and fresh sync.
+            // Supabase >= 2.55.3 also rejects stale refreshes before storing them.
+            guard !isSigningOut,
+                  session.accessToken == supabase.auth.currentSession?.accessToken else { return }
+        }
+        switch event {
+        case .initialSession:
+            isSignedIn = session != nil
+            currentUserID = session?.user.id.uuidString
+            hasCheckedInitialSession = true
+        case .signedIn, .tokenRefreshed:
+            isSignedIn = session != nil
+            currentUserID = session?.user.id.uuidString
+            pendingEmailConfirmation = false
+            pendingPasswordReset = false
+        case .userUpdated:
+            isSignedIn = session != nil
+            currentUserID = session?.user.id.uuidString
+            pendingEmailConfirmation = false
+            pendingPasswordReset = false
+            isRecoveringPassword = false
+        case .passwordRecovery:
+            // A recovery session is a real session. Do not treat it as a
+            // sign-out — the app has to show the set-new-password form.
+            isSignedIn = session != nil
+            currentUserID = session?.user.id.uuidString
+            isRecoveringPassword = true
+            pendingPasswordReset = false
+        case .signedOut, .userDeleted:
+            isSignedIn = false
+            currentUserID = nil
+            isRecoveringPassword = false
+        default:
+            break
         }
     }
 
@@ -152,7 +165,7 @@ final class AuthService {
     }
 
     func signOut() async {
-        await run { try await self.supabase.auth.signOut() }
+        await run { try await self.endSession() }
     }
 
     /// Permanently delete the signed-in account via the delete-account Edge
@@ -175,7 +188,7 @@ final class AuthService {
             guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
             }
-            try? await supabase.auth.signOut()
+            try? await endSession()
             return true
         } catch {
             errorMessage = "Couldn't delete your account. Please try again."
@@ -205,6 +218,15 @@ final class AuthService {
     }
 
     // MARK: - Private
+
+    private func endSession() async throws {
+        isSigningOut = true
+        defer { isSigningOut = false }
+        isSignedIn = false
+        currentUserID = nil
+        isRecoveringPassword = false
+        try await supabase.auth.signOut()
+    }
 
     private func run(_ action: @escaping () async throws -> Void) async {
         isLoading = true

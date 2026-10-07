@@ -10,6 +10,7 @@ export const MAX_RESPONSE_BYTES = 3_000_000;
 export const FETCH_TIMEOUT_MS = 12_000;
 export const MAX_REDIRECTS = 4;
 export const MAX_SOURCE_CHARS = 12_000;
+export const MAX_INSTRUCTION_CHARS = 12_000;
 
 const NOT_ALLOWED =
   "That link isn't one I can open. Paste a public http or https recipe link.";
@@ -614,6 +615,7 @@ function pickCaptionUrl(tracks: CaptionTrack[]): string | null {
   return usable[0].baseUrl ?? null;
 }
 
+/** Converts a YouTube timed-text/caption response (JSON or XML) into plain text. */
 export function captionsToText(body: string): string {
   const trimmed = body.trim();
   if (!trimmed) return "";
@@ -636,7 +638,7 @@ export function captionsToText(body: string): string {
   const re = /<text\b[^>]*>([\s\S]*?)<\/text>/gi;
   let match: RegExpExecArray | null;
   while ((match = re.exec(trimmed)) !== null) {
-    parts.push(decodeHtml(match[1].replace(/<[^>]+>/g, " ")));
+    parts.push(decodeHtml(removeTags(match[1])));
   }
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
@@ -675,39 +677,14 @@ export function recipeFromJsonLd(html: string): StructuredRecipe | null {
   return null;
 }
 
-// Scan disjoint script ranges. If an opening or closing delimiter is missing,
-// consume the remainder once instead of retrying every nested <script prefix.
-function* scriptRanges(html: string): Generator<{
-  start: number;
-  openEnd: number;
-  closeStart: number;
-  end: number;
-}> {
-  const opening = /<script\b/gi;
-  const closing = /<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = opening.exec(html)) !== null) {
-    const openEnd = html.indexOf(">", opening.lastIndex);
-    if (openEnd < 0) {
-      yield { start: match.index, openEnd, closeStart: -1, end: html.length };
-      return;
-    }
-    closing.lastIndex = openEnd + 1;
-    const close = closing.exec(html);
-    const end = close ? closing.lastIndex : html.length;
-    yield { start: match.index, openEnd, closeStart: close?.index ?? -1, end };
-    if (!close) return;
-    opening.lastIndex = end;
-  }
-}
-
+/** Finds closed `<script type="application/ld+json">` blocks and parses each one's JSON body. */
 function extractJsonLdBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
-  for (const script of scriptRanges(html)) {
-    if (script.closeStart < 0) continue;
-    const tag = html.slice(script.start, script.openEnd);
-    if (!/type\s*=\s*["']application\/ld\+json["']/i.test(tag)) continue;
-    const raw = html.slice(script.openEnd + 1, script.closeStart).trim();
+  for (const block of htmlBlocks(html, "script")) {
+    if (!block.closed) continue;
+    const opening = html.slice(block.start, block.contentStart);
+    if (!/type\s*=\s*["']application\/ld\+json["']/i.test(opening)) continue;
+    const raw = html.slice(block.contentStart, block.contentEnd).trim();
     const parsed = parseJsonLd(raw) ?? parseJsonLd(decodeHtml(raw));
     if (parsed !== null) blocks.push(parsed);
   }
@@ -777,23 +754,42 @@ function ingredientLines(value: unknown): string[] {
 
 function instructionLines(value: unknown): string[] {
   const out: string[] = [];
-  collectInstructions(value, out, null);
+  let chars = 0;
+  collectInstructions(value, (line, section) => {
+    // Check before repeating a heading. One budget covers all sections and
+    // both step formats, bounding instruction text in the recipe and raw_json.
+    // Every emitted line is nonempty, so this also bounds the step count.
+    const length = line.length + (section ? section.length + 2 : 0);
+    if (length > MAX_INSTRUCTION_CHARS - chars) {
+      throw new SourceError(
+        "That recipe is too large to read. Paste the recipe text instead.",
+        "url_fetch_failed",
+        422,
+      );
+    }
+    chars += length;
+    out.push(section ? `${section}: ${line}` : line);
+  }, null);
   return out;
 }
 
-function collectInstructions(value: unknown, out: string[], section: string | null): void {
+function collectInstructions(
+  value: unknown,
+  append: (line: string, section: string | null) => void,
+  section: string | null,
+): void {
   if (value == null) return;
   if (typeof value === "string") {
     const text = stripTags(decodeHtml(value)).trim();
     for (const part of text.split(/\n+/)) {
       const line = part.trim();
       if (!line) continue;
-      out.push(section ? `${section}: ${line}` : line);
+      append(line, section);
     }
     return;
   }
   if (Array.isArray(value)) {
-    for (const item of value) collectInstructions(item, out, section);
+    for (const item of value) collectInstructions(item, append, section);
     return;
   }
   if (typeof value !== "object") return;
@@ -801,16 +797,16 @@ function collectInstructions(value: unknown, out: string[], section: string | nu
   const typeStr = typeText(obj["@type"]);
   if (/howtosection/i.test(typeStr)) {
     const name = stringVal(obj.name);
-    collectInstructions(obj.itemListElement ?? obj.recipeInstructions, out, name);
+    collectInstructions(obj.itemListElement ?? obj.recipeInstructions, append, name);
     return;
   }
   const text = stringVal(obj.text) ?? (obj.text == null ? stringVal(obj.name) : null);
   if (text && (/howto/i.test(typeStr) || obj.text != null)) {
     const clean = stripTags(text).trim();
-    if (clean) out.push(section ? `${section}: ${clean}` : clean);
+    if (clean) append(clean, section);
     return;
   }
-  if (obj.itemListElement) collectInstructions(obj.itemListElement, out, section);
+  if (obj.itemListElement) collectInstructions(obj.itemListElement, append, section);
 }
 
 function typeText(type: unknown): string {
@@ -938,30 +934,51 @@ function cleanIngredientName(rest: string, original: string): string {
   return name;
 }
 
-export function htmlToText(html: string): string {
-  const withoutComments = html.replace(/<!--[\s\S]*?-->/g, " ");
-  const parts: string[] = [];
-  let cursor = 0;
-  for (const script of scriptRanges(withoutComments)) {
-    parts.push(withoutComments.slice(cursor, script.start), " ");
-    cursor = script.end;
+/**
+ * Yields the start/content/end offsets of each `<tag>...</tag>` (or `<!-- -->`) block in `html`.
+ * Scan disjoint blocks. A missing terminator consumes the rest of the input,
+ * so repeated opening tags cannot trigger overlapping suffix searches.
+ * Only fixed tag names from the callers below are used in these expressions.
+ */
+function* htmlBlocks(html: string, tag: string) {
+  const comment = tag === "!--";
+  const opening = new RegExp(comment ? "<!--" : `<${tag}\\b`, "gi");
+  const closing = new RegExp(comment ? "-->" : `</${tag}>`, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html)) !== null) {
+    const openingEnd = comment ? opening.lastIndex - 1 : html.indexOf(">", opening.lastIndex);
+    const contentStart = openingEnd < 0 ? html.length : openingEnd + 1;
+    closing.lastIndex = contentStart;
+    const endTag = closing.exec(html);
+    const contentEnd = endTag?.index ?? html.length;
+    const end = endTag ? closing.lastIndex : html.length;
+    yield { start: match.index, contentStart, contentEnd, end, closed: endTag !== null };
+    if (!endTag) break;
+    opening.lastIndex = end;
   }
-  parts.push(withoutComments.slice(cursor));
-  let text = parts.join("")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, " ")
-    .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, " ")
-    .replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, " ");
+}
+
+/** Strips hidden blocks (scripts, styles, comments, etc.) and tags from HTML, leaving readable text. */
+export function htmlToText(html: string): string {
+  let text = html;
+  for (const tag of ["!--", "script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    const parts: string[] = [];
+    let cursor = 0;
+    for (const block of htmlBlocks(text, tag)) {
+      parts.push(text.slice(cursor, block.start), " ");
+      cursor = block.end;
+    }
+    parts.push(text.slice(cursor));
+    text = parts.join("");
+  }
   text = text
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ");
-  text = decodeHtml(text)
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n");
+  // Collapse runs before trimming newlines to avoid overlapping suffix scans.
+  text = decodeHtml(removeTags(text))
     .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   return text;
 }
@@ -999,8 +1016,29 @@ function codepoint(code: number): string {
   }
 }
 
+/** Replaces each well-formed `<...>` tag with a space, leaving an unterminated trailing tag as text. */
+function removeTags(value: string): string {
+  const parts: string[] = [];
+  let cursor = 0;
+  while (cursor < value.length) {
+    const start = value.indexOf("<", cursor);
+    if (start === -1) break;
+    const end = value.indexOf(">", start + 1);
+    // An unfinished tag leaves the rest as text. Stop instead of searching
+    // the same suffix again for every remaining '<' (quadratic work).
+    if (end === -1) break;
+    parts.push(value.slice(cursor, start));
+    // Preserve empty brackets, matching the previous nonempty-tag behavior.
+    parts.push(end === start + 1 ? "<>" : " ");
+    cursor = end + 1;
+  }
+  parts.push(value.slice(cursor));
+  return parts.join("");
+}
+
+/** Removes tags from `value` and collapses surrounding whitespace into a single trimmed string. */
 function stripTags(value: string): string {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return removeTags(value).replace(/\s+/g, " ").trim();
 }
 
 function extractAssignedJson(html: string, marker: string): unknown | null {
@@ -1057,34 +1095,71 @@ function matchJsonEnd(source: string, start: number): number {
 // it wrap the object in prose or code fences. Pull out the first balanced
 // {...} and accept it only if it is a usable recipe. Returns "no_recipe" when
 // the model says the source has no recipe or returns one with no ingredients.
-export function parseModelRecipe(rawText: string): StructuredRecipe | "no_recipe" | null {
+export type NoRecipeReason =
+  | "explicit_no_recipe"
+  | "missing_title"
+  | "empty_ingredients"
+  | "missing_title_and_ingredients";
+
+export type ModelRecipeClassification =
+  | { outcome: "recipe"; recipe: StructuredRecipe }
+  | { outcome: "no_recipe"; reason: NoRecipeReason }
+  | { outcome: "unparseable" };
+
+export function classifyModelRecipe(rawText: string): ModelRecipeClassification {
   const text = rawText.replaceAll("```json", "").replaceAll("```", "").trim();
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(text);
   } catch {
     const start = text.indexOf("{");
-    if (start < 0) return null;
+    if (start < 0) return { outcome: "unparseable" };
     const end = matchJsonEnd(text, start);
-    if (end < 0) return null;
+    if (end < 0) return { outcome: "unparseable" };
     try {
       parsed = JSON.parse(text.slice(start, end));
     } catch {
-      return null;
+      return { outcome: "unparseable" };
     }
   }
   if (Array.isArray(parsed)) parsed = parsed[0];
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed || typeof parsed !== "object") return { outcome: "unparseable" };
   const obj = parsed as Record<string, unknown>;
-  if (obj.error === "no_recipe") return "no_recipe";
+  if (obj.error === "no_recipe") return { outcome: "no_recipe", reason: "explicit_no_recipe" };
   const title = typeof obj.title === "string" ? obj.title.trim() : "";
   const ingredients = Array.isArray(obj.ingredients) ? obj.ingredients : [];
-  if (!title || ingredients.length === 0) return "no_recipe";
+  if (!title || ingredients.length === 0) {
+    const reason: NoRecipeReason = !title && ingredients.length === 0
+      ? "missing_title_and_ingredients"
+      : !title
+      ? "missing_title"
+      : "empty_ingredients";
+    return { outcome: "no_recipe", reason };
+  }
   return {
-    title,
-    attribution: typeof obj.attribution === "string" ? obj.attribution : null,
-    ingredients: ingredients as StructuredIngredient[],
-    steps: Array.isArray(obj.steps) ? obj.steps.filter((step): step is string => typeof step === "string") : [],
-    notes: typeof obj.notes === "string" ? obj.notes : null,
+    outcome: "recipe",
+    recipe: {
+      title,
+      attribution: typeof obj.attribution === "string" ? obj.attribution : null,
+      ingredients: ingredients as StructuredIngredient[],
+      steps: Array.isArray(obj.steps) ? obj.steps.filter((step): step is string => typeof step === "string") : [],
+      notes: typeof obj.notes === "string" ? obj.notes : null,
+    },
   };
+}
+
+export function parseModelRecipe(rawText: string): StructuredRecipe | "no_recipe" | null {
+  const classified = classifyModelRecipe(rawText);
+  switch (classified.outcome) {
+    case "recipe":
+      return classified.recipe;
+    case "no_recipe":
+      return "no_recipe";
+    case "unparseable":
+      return null;
+    default: {
+      const unreachable: never = classified;
+      return unreachable;
+    }
+  }
 }
