@@ -455,13 +455,20 @@ struct RecipeCaptureView: View {
 
     private func toggleRecording() async {
         if transcriber.isRecording {
+            transcribingAudio = true
+            phase = .extracting
+            let text: String
             do {
-                let text = try await transcriber.stopRecording()
-                transcript = text
-                await runExtraction(fromAudio: true)
+                text = try await transcriber.stopRecording()
             } catch {
+                transcribingAudio = false
                 presentError(error.localizedDescription, title: "Didn't catch that")
+                return
             }
+            transcribingAudio = false
+            phase = .idle
+            transcript = text
+            await runExtraction(fromAudio: true)
             return
         }
         do {
@@ -564,14 +571,9 @@ struct RecipeCaptureView: View {
                 appEnv.requireAccount()
                 extractingFromLink = false
                 phase = .idle
-            case .quotaExceeded:
-                presentError(error.localizedDescription, title: "Try again tomorrow")
-            case .instagramCaptionUnavailable:
-                presentError(error.localizedDescription, title: "Paste the caption")
-            case .urlNotAllowed, .urlFetchFailed, .noRecipeText:
-                presentError(error.localizedDescription, title: "Couldn't open that link")
-            case .apiError, .serviceError:
-                presentError(error.localizedDescription)
+            case .quotaExceeded, .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
+                 .apiError, .serviceError:
+                presentError(error.localizedDescription, title: error.captureAlertTitle)
             }
         } catch {
             presentError(error.localizedDescription)

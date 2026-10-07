@@ -1044,34 +1044,71 @@ function matchJsonEnd(source: string, start: number): number {
 // it wrap the object in prose or code fences. Pull out the first balanced
 // {...} and accept it only if it is a usable recipe. Returns "no_recipe" when
 // the model says the source has no recipe or returns one with no ingredients.
-export function parseModelRecipe(rawText: string): StructuredRecipe | "no_recipe" | null {
+export type NoRecipeReason =
+  | "explicit_no_recipe"
+  | "missing_title"
+  | "empty_ingredients"
+  | "missing_title_and_ingredients";
+
+export type ModelRecipeClassification =
+  | { outcome: "recipe"; recipe: StructuredRecipe }
+  | { outcome: "no_recipe"; reason: NoRecipeReason }
+  | { outcome: "unparseable" };
+
+export function classifyModelRecipe(rawText: string): ModelRecipeClassification {
   const text = rawText.replaceAll("```json", "").replaceAll("```", "").trim();
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(text);
   } catch {
     const start = text.indexOf("{");
-    if (start < 0) return null;
+    if (start < 0) return { outcome: "unparseable" };
     const end = matchJsonEnd(text, start);
-    if (end < 0) return null;
+    if (end < 0) return { outcome: "unparseable" };
     try {
       parsed = JSON.parse(text.slice(start, end));
     } catch {
-      return null;
+      return { outcome: "unparseable" };
     }
   }
   if (Array.isArray(parsed)) parsed = parsed[0];
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed || typeof parsed !== "object") return { outcome: "unparseable" };
   const obj = parsed as Record<string, unknown>;
-  if (obj.error === "no_recipe") return "no_recipe";
+  if (obj.error === "no_recipe") return { outcome: "no_recipe", reason: "explicit_no_recipe" };
   const title = typeof obj.title === "string" ? obj.title.trim() : "";
   const ingredients = Array.isArray(obj.ingredients) ? obj.ingredients : [];
-  if (!title || ingredients.length === 0) return "no_recipe";
+  if (!title || ingredients.length === 0) {
+    const reason: NoRecipeReason = !title && ingredients.length === 0
+      ? "missing_title_and_ingredients"
+      : !title
+      ? "missing_title"
+      : "empty_ingredients";
+    return { outcome: "no_recipe", reason };
+  }
   return {
-    title,
-    attribution: typeof obj.attribution === "string" ? obj.attribution : null,
-    ingredients: ingredients as StructuredIngredient[],
-    steps: Array.isArray(obj.steps) ? obj.steps.filter((step): step is string => typeof step === "string") : [],
-    notes: typeof obj.notes === "string" ? obj.notes : null,
+    outcome: "recipe",
+    recipe: {
+      title,
+      attribution: typeof obj.attribution === "string" ? obj.attribution : null,
+      ingredients: ingredients as StructuredIngredient[],
+      steps: Array.isArray(obj.steps) ? obj.steps.filter((step): step is string => typeof step === "string") : [],
+      notes: typeof obj.notes === "string" ? obj.notes : null,
+    },
   };
+}
+
+export function parseModelRecipe(rawText: string): StructuredRecipe | "no_recipe" | null {
+  const classified = classifyModelRecipe(rawText);
+  switch (classified.outcome) {
+    case "recipe":
+      return classified.recipe;
+    case "no_recipe":
+      return "no_recipe";
+    case "unparseable":
+      return null;
+    default: {
+      const unreachable: never = classified;
+      return unreachable;
+    }
+  }
 }
