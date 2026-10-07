@@ -637,7 +637,7 @@ export function captionsToText(body: string): string {
   const re = /<text\b[^>]*>([\s\S]*?)<\/text>/gi;
   let match: RegExpExecArray | null;
   while ((match = re.exec(trimmed)) !== null) {
-    parts.push(decodeHtml(match[1].replace(/<[^>]+>/g, " ")));
+    parts.push(decodeHtml(removeTags(match[1])));
   }
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
@@ -678,10 +678,11 @@ export function recipeFromJsonLd(html: string): StructuredRecipe | null {
 
 function extractJsonLdBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
-  const re = /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(html)) !== null) {
-    const raw = match[1].trim();
+  for (const block of htmlBlocks(html, "script")) {
+    if (!block.closed) continue;
+    const opening = html.slice(block.start, block.contentStart);
+    if (!/type\s*=\s*["']application\/ld\+json["']/i.test(opening)) continue;
+    const raw = html.slice(block.contentStart, block.contentEnd).trim();
     const parsed = parseJsonLd(raw) ?? parseJsonLd(decodeHtml(raw));
     if (parsed !== null) blocks.push(parsed);
   }
@@ -931,24 +932,47 @@ function cleanIngredientName(rest: string, original: string): string {
   return name;
 }
 
+// Scan disjoint blocks. A missing terminator consumes the rest of the input,
+// so repeated opening tags cannot trigger overlapping suffix searches.
+// Only fixed tag names from the callers below are used in these expressions.
+function* htmlBlocks(html: string, tag: string) {
+  const comment = tag === "!--";
+  const opening = new RegExp(comment ? "<!--" : `<${tag}\\b`, "gi");
+  const closing = new RegExp(comment ? "-->" : `</${tag}>`, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html)) !== null) {
+    const openingEnd = comment ? opening.lastIndex - 1 : html.indexOf(">", opening.lastIndex);
+    const contentStart = openingEnd < 0 ? html.length : openingEnd + 1;
+    closing.lastIndex = contentStart;
+    const endTag = closing.exec(html);
+    const contentEnd = endTag?.index ?? html.length;
+    const end = endTag ? closing.lastIndex : html.length;
+    yield { start: match.index, contentStart, contentEnd, end, closed: endTag !== null };
+    if (!endTag) break;
+    opening.lastIndex = end;
+  }
+}
+
 export function htmlToText(html: string): string {
-  let text = html
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, " ")
-    .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, " ")
-    .replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, " ");
+  let text = html;
+  for (const tag of ["!--", "script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    const parts: string[] = [];
+    let cursor = 0;
+    for (const block of htmlBlocks(text, tag)) {
+      parts.push(text.slice(cursor, block.start), " ");
+      cursor = block.end;
+    }
+    parts.push(text.slice(cursor));
+    text = parts.join("");
+  }
   text = text
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ");
-  text = decodeHtml(text)
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n");
+  // Collapse runs before trimming newlines to avoid overlapping suffix scans.
+  text = decodeHtml(removeTags(text))
     .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   return text;
 }
@@ -986,8 +1010,27 @@ function codepoint(code: number): string {
   }
 }
 
+function removeTags(value: string): string {
+  const parts: string[] = [];
+  let cursor = 0;
+  while (cursor < value.length) {
+    const start = value.indexOf("<", cursor);
+    if (start === -1) break;
+    const end = value.indexOf(">", start + 1);
+    // An unfinished tag leaves the rest as text. Stop instead of searching
+    // the same suffix again for every remaining '<' (quadratic work).
+    if (end === -1) break;
+    parts.push(value.slice(cursor, start));
+    // Preserve empty brackets, matching the previous nonempty-tag behavior.
+    parts.push(end === start + 1 ? "<>" : " ");
+    cursor = end + 1;
+  }
+  parts.push(value.slice(cursor));
+  return parts.join("");
+}
+
 function stripTags(value: string): string {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return removeTags(value).replace(/\s+/g, " ").trim();
 }
 
 function extractAssignedJson(html: string, marker: string): unknown | null {

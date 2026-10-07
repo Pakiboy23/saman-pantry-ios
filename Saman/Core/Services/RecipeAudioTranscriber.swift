@@ -33,6 +33,7 @@ struct RecipeTranscriptAccumulator: Equatable {
     private(set) var committedSegments: [String] = []
     private(set) var volatileSegment: String = ""
     private var lastFinalTaskID: Int?
+    private var volatileAudioRange: Range<TimeInterval>?
 
     var fullText: String {
         Self.join(segments: committedSegments + (volatileSegment.isEmpty ? [] : [volatileSegment]))
@@ -45,46 +46,50 @@ struct RecipeTranscriptAccumulator: Equatable {
     /// `isFinal` from the same task is ignored so the recognizer cannot double
     /// the last phrase. The same words from a later task are kept — the cook
     /// may have repeated them after a pause.
-    mutating func applyUtterance(segment: String, isFinal: Bool, taskID: Int = 0) {
+    mutating func applyUtterance(
+        segment: String, isFinal: Bool, taskID: Int = 0,
+        audioRange: Range<TimeInterval>? = nil
+    ) {
         let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            if isFinal { commitVolatile(taskID: taskID) }
+            return
+        }
+        let previous = volatileSegment
+        if !previous.isEmpty {
+            let continues: Bool
+            if let oldRange = volatileAudioRange, let newRange = audioRange {
+                // Corrections describe the same audio; later speech must survive
+                // even when both sentences begin with "Add the" (or are identical).
+                continues = oldRange.overlaps(newRange)
+            } else {
+                continues = Self.continuesSameUtterance(previous, trimmed)
+            }
+            if !continues {
+                committedSegments.append(previous)
+            }
+        }
         if isFinal {
-            if !trimmed.isEmpty {
-                let duplicateFromSameTask = lastFinalTaskID == taskID && committedSegments.last == trimmed
-                if !duplicateFromSameTask {
-                    committedSegments.append(trimmed)
-                    lastFinalTaskID = taskID
-                }
-            }
+            let duplicateFromSameTask = previous.isEmpty
+                && lastFinalTaskID == taskID && committedSegments.last == trimmed
+            if !duplicateFromSameTask { committedSegments.append(trimmed) }
+            lastFinalTaskID = taskID
             volatileSegment = ""
+            volatileAudioRange = nil
         } else {
-            // Partials replace the in-flight utterance. A pause can reset that
-            // string without isFinal; keep the previous words before replacing.
-            if trimmed.isEmpty { return }
-            let previous = volatileSegment.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !previous.isEmpty, !Self.continuesSameUtterance(previous, trimmed) {
-                volatileSegment = ""
-                applyUtterance(segment: previous, isFinal: true, taskID: taskID)
-            }
             volatileSegment = trimmed
+            volatileAudioRange = audioRange
         }
     }
 
-    /// True when `next` is a growth or small rewrite of `previous`, not a new sentence.
+    /// Conservative fallback when the recognizer supplies no usable timestamps.
+    /// Shared opening words alone cannot distinguish a correction from a new step.
     static func continuesSameUtterance(_ previous: String, _ next: String) -> Bool {
-        if next.hasPrefix(previous) || previous.hasPrefix(next) { return true }
         let prevWords = words(previous)
         let nextWords = words(next)
         guard !prevWords.isEmpty, !nextWords.isEmpty else { return false }
-        var shared = 0
-        for pair in zip(prevWords, nextWords) {
-            if pair.0 != pair.1 { break }
-            shared += 1
-        }
-        if shared >= 2 { return true }
-        if shared >= 1, min(prevWords.count, nextWords.count) <= 3 { return true }
-        // A one-word partial can gain or correct its opening sound as it grows
-        // ("Eat" -> "Heat the"). Require a matching word tail so an unrelated
-        // short utterance is still committed instead of silently replaced.
+        if nextWords.starts(with: prevWords) || prevWords.starts(with: nextWords) { return true }
+        // A one-word partial may correct its opening sound as it grows.
         if prevWords.count == 1, nextWords.count > 1 {
             let previousWord = prevWords[0]
             let nextWord = nextWords[0]
@@ -98,7 +103,9 @@ struct RecipeTranscriptAccumulator: Equatable {
     }
 
     private static func words(_ value: String) -> [String] {
-        value.split(whereSeparator: \.isWhitespace).map { String($0).lowercased() }
+        value.split(whereSeparator: \.isWhitespace)
+            .map { String($0).trimmingCharacters(in: .punctuationCharacters).lowercased() }
+            .filter { !$0.isEmpty }
     }
 
     /// Promote the in-flight partial to a committed segment before a task
@@ -111,7 +118,14 @@ struct RecipeTranscriptAccumulator: Equatable {
 
     /// URL / file recognition: each callback is usually the transcript so far.
     /// When a result resets (shorter / unrelated), treat it as a new utterance.
-    mutating func applyCumulative(segment: String, isFinal: Bool) {
+    mutating func applyCumulative(
+        segment: String, isFinal: Bool, audioRange: Range<TimeInterval>? = nil
+    ) {
+        if let audioRange {
+            applyUtterance(segment: segment, isFinal: isFinal, audioRange: audioRange)
+            return
+        }
+        volatileAudioRange = nil
         let trimmed = segment.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             if isFinal {
@@ -172,6 +186,7 @@ struct RecipeTranscriptAccumulator: Equatable {
         committedSegments = []
         volatileSegment = ""
         lastFinalTaskID = nil
+        volatileAudioRange = nil
     }
 
     private static func join(segments: [String]) -> String {
@@ -261,10 +276,13 @@ struct RecipeRecognitionSession {
         accumulator.reset()
     }
 
-    mutating func applyCallback(generation taskGeneration: Int, text: String?, isFinal: Bool, failed: Bool) -> Effect {
+    mutating func applyCallback(
+        generation taskGeneration: Int, text: String?, isFinal: Bool, failed: Bool,
+        audioRange: Range<TimeInterval>? = nil
+    ) -> Effect {
         guard taskGeneration == generation else { return .ignored }
         if let text {
-            accumulator.applyUtterance(segment: text, isFinal: isFinal, taskID: taskGeneration)
+            accumulator.applyUtterance(segment: text, isFinal: isFinal, taskID: taskGeneration, audioRange: audioRange)
         }
         if isFinal {
             consecutiveRestartErrors = 0
@@ -373,6 +391,14 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var recordingGate: ResumeGate<String>?
+    private var fileGate: ResumeGate<String>?
+    private var operationID = UUID()
+    private var isPreparing = false
+    private let speechAccess: () async -> Bool
+
+    init(speechAccess: (() async -> Bool)? = nil) {
+        self.speechAccess = speechAccess ?? { await Self.requestSpeechAccess() }
+    }
     private var session = RecipeRecognitionSession()
     private var tapInstalled = false
     private let requestSlot = RecognitionRequestSlot()
@@ -382,9 +408,24 @@ final class RecipeAudioTranscriber: ObservableObject {
     private var isStopping = false
 
     func startRecording() async throws {
-        guard !isRecording, !isStopping else { return }
-        let recognizer = try await prepareRecognizer()
-        guard await Self.requestMicrophoneAccess() else { throw RecipeAudioError.microphoneDenied }
+        guard !isRecording, !isStopping, !isPreparing, fileGate == nil else { return }
+        operationID = UUID()
+        let operation = operationID
+        isPreparing = true
+        defer {
+            if operation == operationID {
+                isPreparing = false
+                if !isRecording {
+                    session.cancel()
+                    teardownEngine()
+                }
+            }
+        }
+        let recognizer = try await prepareRecognizer(operation: operation)
+        try checkOperation(operation)
+        let microphoneAllowed = await Self.requestMicrophoneAccess()
+        try checkOperation(operation)
+        guard microphoneAllowed else { throw RecipeAudioError.microphoneDenied }
 
         let audioSession = AVAudioSession.sharedInstance()
         do {
@@ -439,6 +480,7 @@ final class RecipeAudioTranscriber: ObservableObject {
 
     func stopRecording() async throws -> String {
         guard isRecording else { throw RecipeAudioError.emptyTranscript }
+        let operation = operationID
         isRecording = false
         isStopping = true
         // Keep the current generation so endAudio's final can still commit
@@ -449,20 +491,27 @@ final class RecipeAudioTranscriber: ObservableObject {
         recognitionRequest = nil
         requestSlot.set(nil)
         let fileURL = recordingFileURL
+        var stopTimeout: Task<Void, Never>?
         defer {
-            clearRecordingFile(delete: true)
-            isStopping = false
+            stopTimeout?.cancel()
+            if operation == operationID {
+                clearRecordingFile(delete: true)
+                recordingGate = nil
+                isStopping = false
+            }
         }
         let live: String = (try? await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
             recordingGate = gate
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            stopTimeout = Task { @MainActor in
+                do { try await Task.sleep(nanoseconds: 2_000_000_000) } catch { return }
+                guard operation == self.operationID else { return }
                 let text = self.session.finishStopWithoutFinal(stopID: stopID)
                     ?? self.session.accumulator.fullText
                 gate.resume(returning: text)
             }
         }) ?? ""
+        try checkOperation(operation)
         recognitionTask?.cancel()
         recognitionTask = nil
         finishTask()
@@ -470,8 +519,9 @@ final class RecipeAudioTranscriber: ObservableObject {
         var fromFile: String?
         if let url = fileURL {
             // Reconciliation is best effort; imports retain the longer default.
-            fromFile = try? await transcribeFile(at: url, timeoutNanoseconds: 5_000_000_000)
+            fromFile = try? await transcribeFile(at: url, operation: operation, timeoutNanoseconds: 5_000_000_000)
         }
+        try checkOperation(operation)
         let chosen = RecipeTranscriptReconciliation.choose(live: live, fromFile: fromFile, duration: duration)
         partialTranscript = ""
         if let ready = RecipeAudioTranscript.readyForExtract(chosen) {
@@ -481,12 +531,16 @@ final class RecipeAudioTranscriber: ObservableObject {
     }
 
     func cancelRecording() {
-        guard isRecording || audioEngine != nil || recognitionTask != nil else { return }
+        // Invalidate even a permission request that has not created an engine yet.
+        operationID = UUID()
+        isPreparing = false
         isRecording = false
         isStopping = true
         session.cancel()
-        recordingGate?.resume(returning: "")
+        recordingGate?.resume(throwing: CancellationError())
         recordingGate = nil
+        fileGate?.resume(throwing: CancellationError())
+        fileGate = nil
         parkEngine()
         recognitionRequest = nil
         requestSlot.set(nil)
@@ -496,22 +550,43 @@ final class RecipeAudioTranscriber: ObservableObject {
         isStopping = false
     }
 
-    func transcribeFile(at url: URL, timeoutNanoseconds: UInt64 = 90_000_000_000) async throws -> String {
-        guard !isRecording else { throw RecipeAudioError.failed }
-        let recognizer = try await prepareRecognizer()
+    func transcribeFile(at url: URL) async throws -> String {
+        guard !isRecording, !isStopping, !isPreparing, fileGate == nil else { throw RecipeAudioError.failed }
+        operationID = UUID()
+        return try await transcribeFile(at: url, operation: operationID, timeoutNanoseconds: 90_000_000_000)
+    }
+
+    private func checkOperation(_ operation: UUID) throws {
+        try Task.checkCancellation()
+        guard operation == operationID else { throw CancellationError() }
+    }
+
+    private func transcribeFile(at url: URL, operation: UUID, timeoutNanoseconds: UInt64) async throws -> String {
+        try checkOperation(operation)
+        isPreparing = true
+        var fileTimeout: Task<Void, Never>?
+        defer {
+            fileTimeout?.cancel()
+            if operation == operationID {
+                isPreparing = false
+                fileGate = nil
+                recognitionTask?.cancel()
+                recognitionTask = nil
+            }
+        }
+        let recognizer = try await prepareRecognizer(operation: operation)
+        try checkOperation(operation)
+        isPreparing = false
         let request = SFSpeechURLRecognitionRequest(url: url)
         configure(request)
-        defer {
-            recognitionTask?.cancel()
-            recognitionTask = nil
-        }
         let text: String = try await withCheckedThrowingContinuation { continuation in
             let gate = ResumeGate(continuation)
+            fileGate = gate
             let fileAccumulator = TranscriptAccumulatorBox()
             recognitionTask = recognizer.recognitionTask(with: request) { result, error in
                 if let result {
                     let segment = result.bestTranscription.formattedString
-                    let soFar = fileAccumulator.applyCumulative(segment: segment, isFinal: result.isFinal)
+                    let soFar = fileAccumulator.applyCumulative(segment: segment, isFinal: result.isFinal, audioRange: Self.audioRange(result))
                     if result.isFinal {
                         gate.resume(returning: soFar)
                         return
@@ -526,11 +601,12 @@ final class RecipeAudioTranscriber: ObservableObject {
                     }
                 }
             }
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+            fileTimeout = Task { @MainActor in
+                do { try await Task.sleep(nanoseconds: timeoutNanoseconds) } catch { return }
                 gate.resume(throwing: RecipeAudioError.failed)
             }
         }
+        try checkOperation(operation)
         guard let ready = RecipeAudioTranscript.readyForExtract(text) else {
             throw RecipeAudioError.emptyTranscript
         }
@@ -554,8 +630,10 @@ final class RecipeAudioTranscriber: ObservableObject {
         return dest
     }
 
-    private func prepareRecognizer() async throws -> SFSpeechRecognizer {
-        guard await Self.requestSpeechAccess() else { throw RecipeAudioError.speechDenied }
+    private func prepareRecognizer(operation: UUID) async throws -> SFSpeechRecognizer {
+        let allowed = await speechAccess()
+        try checkOperation(operation)
+        guard allowed else { throw RecipeAudioError.speechDenied }
         guard let recognizer = Self.onDeviceRecognizer() else {
             throw RecipeAudioError.onDeviceUnavailable
         }
@@ -568,6 +646,7 @@ final class RecipeAudioTranscriber: ObservableObject {
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             let text = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
+            let audioRange = result.flatMap(Self.audioRange)
             let callbackError = error
             // Main queue, not unstructured Tasks, so a later partial cannot
             // overtake the final that should commit this utterance.
@@ -578,7 +657,8 @@ final class RecipeAudioTranscriber: ObservableObject {
                         generation: generation,
                         text: text,
                         isFinal: isFinal,
-                        failed: callbackError != nil
+                        failed: callbackError != nil,
+                        audioRange: audioRange
                     )
                     switch effect {
                     case .updated(let transcript):
@@ -608,6 +688,15 @@ final class RecipeAudioTranscriber: ObservableObject {
         recognitionRequest = request
         requestSlot.set(request)
         listen(recognizer: recognizer, request: request)
+    }
+
+    /// Segment timestamps refer to the audio stream, not callback delivery time.
+    nonisolated private static func audioRange(_ result: SFSpeechRecognitionResult) -> Range<TimeInterval>? {
+        let segments = result.bestTranscription.segments
+        guard let first = segments.first, let last = segments.last else { return nil }
+        let end = last.timestamp + last.duration
+        guard first.timestamp.isFinite, end.isFinite, end > first.timestamp else { return nil }
+        return first.timestamp..<end
     }
 
     private static func audioDuration(of url: URL) -> TimeInterval {
@@ -710,10 +799,10 @@ private final class TranscriptAccumulatorBox: @unchecked Sendable {
     }
 
     @discardableResult
-    func applyCumulative(segment: String, isFinal: Bool) -> String {
+    func applyCumulative(segment: String, isFinal: Bool, audioRange: Range<TimeInterval>?) -> String {
         lock.lock()
         defer { lock.unlock() }
-        accumulator.applyCumulative(segment: segment, isFinal: isFinal)
+        accumulator.applyCumulative(segment: segment, isFinal: isFinal, audioRange: audioRange)
         return accumulator.fullText
     }
 }

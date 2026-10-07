@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertRejects, assertThrows } from "jsr:@std/assert@1";
 import {
   assertResolvedPublic,
   captionsToText,
@@ -8,6 +8,7 @@ import {
   isPrivateAddress,
   MAX_INSTRUCTION_CHARS,
   MAX_RESPONSE_BYTES,
+  MAX_SOURCE_CHARS,
   parseIngredientLine,
   parseYouTubeWatchPage,
   recipeFromJsonLd,
@@ -452,4 +453,195 @@ Deno.test("parseModelRecipe tolerates fences, prose, and flags empty recipes", a
     outcome: "no_recipe",
     reason: "missing_title_and_ingredients",
   });
+});
+
+Deno.test("HTML tag removal preserves text, formatting, and malformed brackets", () => {
+  const cases = [
+    ["", ""],
+    ["Plain text &amp; salt", "Plain text & salt"],
+    ["<p>Heat<br>oil</p><p>Add <b>salt</b>.</p>", "Heat\noil\n Add salt ."],
+    ["<", "<"],
+    ["<>", "<>"],
+    ["before <<x>after", "before after"],
+    ["before <>after <x <y", "before <>after <x <y"],
+    ["&lt;b&gt;salt&lt;/b&gt;", "<b>salt</b>"],
+  ];
+  for (const [html, expected] of cases) {
+    assertEquals(htmlToText(html), expected, html);
+  }
+});
+
+Deno.test("unfinished tags reach the web fallback and output cap without excessive CPU work", async () => {
+  const html = "Ingredients: salt. Simmer. " + "<x ".repeat(40_000);
+  const start = performance.now();
+  const resolved = await resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+    Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+  ));
+  const elapsed = performance.now() - start;
+  assertEquals(resolved.kind, "text");
+  if (resolved.kind !== "text") throw new Error("expected text");
+  assertEquals(resolved.text, (`URL: https://recipes.example/malformed\n\n${html}`).slice(0, MAX_SOURCE_CHARS));
+  // A generous ceiling for a 120 KB page; the old suffix rescans take seconds.
+  assert(elapsed < 1000, `Malformed HTML took ${elapsed} ms`);
+});
+
+Deno.test("unfinished tags in structured instructions and captions remain text", () => {
+  const text = "Simmer. " + "<x ".repeat(40_000);
+  const start = performance.now();
+  assertThrows(() => recipeFromJsonLd(`<script type="application/ld+json">${JSON.stringify({
+    "@type": "Recipe",
+    name: "Dal",
+    recipeIngredient: ["1 cup lentils"],
+    recipeInstructions: text,
+  })}</script>`), SourceError, "That recipe is too large");
+  assertEquals(captionsToText(`<transcript><text>${text}</text></transcript>`), text.trim());
+  assert(performance.now() - start < 1000, "Malformed recipe text took excessive CPU time");
+});
+
+
+Deno.test("JSON-LD scanning preserves case, quotes, attributes, and entity decoding", () => {
+  const html = KARAHI_JSON_LD
+    .replace('<script type="application/ld+json">', "<ScRiPt id='recipe' TYPE = 'APPLICATION/LD+JSON' defer>")
+    .replace("</script>", "</ScRiPt>")
+    .replaceAll('"', "&quot;");
+  assertEquals(recipeFromJsonLd(html), recipeFromJsonLd(KARAHI_JSON_LD));
+});
+
+Deno.test("JSON-LD scanning skips unrelated, invalid, and incomplete blocks", () => {
+  const prefix = `<script type="text/javascript">{"@type":"Recipe"}</script>
+    <script type="application/ld+json">not JSON</script>
+    <script type="application/ld+json">{"@type":"Recipe","name":"Incomplete"}</script>`;
+  assertEquals(recipeFromJsonLd(prefix + KARAHI_JSON_LD), recipeFromJsonLd(KARAHI_JSON_LD));
+  assertEquals(recipeFromJsonLd(KARAHI_JSON_LD.split("</script>")[0]), null);
+});
+
+Deno.test("script-looking text inside a script is not another JSON-LD block", () => {
+  assertEquals(recipeFromJsonLd("<script>" + KARAHI_JSON_LD + "</script>"), null);
+});
+
+Deno.test("malformed script pages stay within a bounded parsing budget", async () => {
+  const fragments = [
+    "<script ",
+    '<script type="application/ld+json">',
+    '<SCRIPT type="application/ld+json"></scriptx>',
+  ];
+  for (const fragment of fragments) {
+    const html = fragment.repeat(Math.floor(MAX_RESPONSE_BYTES / fragment.length));
+    const started = performance.now();
+    assertEquals(recipeFromJsonLd(html), null);
+    assertEquals(htmlToText(html), "");
+    // A generous absolute ceiling avoids noisy timing ratios while detecting
+    // overlapping suffix scans on a page within the production download cap.
+    assertEquals(performance.now() - started < 1000, true, fragment);
+    const error = await assertRejects(
+      () => resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+        Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+      )),
+      SourceError,
+    );
+    assertEquals((error as SourceError).code, "no_recipe_text");
+  }
+});
+
+Deno.test("text fallback keeps visible content before an unfinished script", async () => {
+  const visible = "Ingredients: 1 kg mutton, 2 tsp haldi. Fry the onion, then simmer.";
+  for (const tail of ["<script ".repeat(1000), '<script type="application/ld+json">private script text']) {
+    const html = `<p>${visible}</p>${tail}`;
+    assertEquals(htmlToText(html), visible);
+    const resolved = await resolveRecipeSource("https://recipes.example/aloo", ctx(() =>
+      Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+    ));
+    if (resolved.kind !== "text") throw new Error("expected text");
+    assertEquals(resolved.text, `URL: https://recipes.example/aloo\n\n${visible}`);
+  }
+});
+
+
+Deno.test("HTML whitespace normalization preserves line breaks and single tabs", () => {
+  const cases = [
+    ["  a\t b \t\n\n \t\n c  ", "a b\n\n c"],
+    ["a\tb\tc", "a\tb\tc"],
+    ["a\t\nb \n c", "a\nb\n c"],
+    ["a \t\r\nb", "a \r\nb"],
+    ["<p>Ingredients:  1 cup rice&nbsp;&#9;</p><p>Boil<br>Serve</p>", "Ingredients: 1 cup rice\n Boil\nServe"],
+  ];
+  for (const [html, expected] of cases) {
+    assertEquals(htmlToText(html), expected);
+  }
+});
+
+Deno.test("HTML normalization handles long whitespace runs without a newline", () => {
+  for (const whitespace of [" ", "\t", " \t"]) {
+    const run = whitespace.repeat(100_000);
+    assertEquals(htmlToText(`a${run}b`), "a b");
+    assertEquals(htmlToText(`a${run}\nb`), "a\nb");
+    assertEquals(htmlToText(`a${run}`), "a");
+  }
+});
+
+Deno.test("a whitespace-only HTML response at the byte cap returns no recipe", async () => {
+  const error = await assertRejects(
+    () => resolveRecipeSource("https://recipes.example/blank", ctx(() =>
+      Promise.resolve(new Response(" ".repeat(MAX_RESPONSE_BYTES), {
+        headers: { "content-type": "text/html" },
+      }))
+    )),
+    SourceError,
+  );
+  assertEquals(error.code, "no_recipe_text");
+  assertEquals(error.status, 422);
+});
+
+
+Deno.test("HTML cleanup preserves text around mixed-case blocks and adjacent blocks", () => {
+  for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    const html = `İ before<${tag.toUpperCase()} data-value="x">hidden</${tag.toUpperCase()}>` +
+      `<${tag}>also hidden</${tag}>after`;
+    assertEquals(htmlToText(html), "İ before after", tag);
+  }
+  assertEquals(htmlToText("before<!-- hidden --><!-- hidden too -->after"), "before after");
+  assertEquals(htmlToText("<scripture>visible</scripture>"), "visible");
+  assertEquals(htmlToText("<p>one &amp; two</p><p>three<br>four</p>"), "one & two\n three\nfour");
+});
+
+Deno.test("HTML cleanup discards unterminated blocks including repeated incomplete openers", () => {
+  for (const tag of ["script", "style", "noscript", "svg", "nav", "footer", "header"]) {
+    for (const opener of [`<${tag}>`, `<${tag} `]) {
+      assertEquals(htmlToText(`visible${opener.repeat(1000)}hidden`), "visible", opener);
+    }
+  }
+  assertEquals(htmlToText(`visible${"<!--".repeat(1000)}hidden`), "visible");
+});
+
+Deno.test("JSON-LD scanning skips invalid scripts and resumes after each closed block", () => {
+  const html = `<script>const nested = '<script type="application/ld+json">';</script>` +
+    `<script type="application/ld+json">invalid JSON</script>` +
+    KARAHI_JSON_LD.replaceAll("script", "SCRIPT");
+  assertEquals(recipeFromJsonLd(html)?.title, "Chicken Karahi");
+  const unclosed = KARAHI_JSON_LD.slice(0, KARAHI_JSON_LD.indexOf("</script>"));
+  assertEquals(recipeFromJsonLd(unclosed), null);
+});
+
+Deno.test("response-cap pages with unclosed scripts resolve without exposing script text", async () => {
+  const prefix = "<p>Ingredients: 1 cup lentils. Boil in water, then simmer until tender.</p>";
+  for (const opener of ["<script>", '<script type="application/ld+json">', "<script "]) {
+    const html = prefix + opener.repeat(Math.floor((MAX_RESPONSE_BYTES - prefix.length) / opener.length));
+    const resolved = await resolveRecipeSource("https://recipes.example/malformed", ctx(() =>
+      Promise.resolve(new Response(html, { headers: { "content-type": "text/html" } }))
+    ));
+    assertEquals(resolved.kind, "text");
+    if (resolved.kind === "text") {
+      assertEquals(resolved.text, "URL: https://recipes.example/malformed\n\nIngredients: 1 cup lentils. Boil in water, then simmer until tender.");
+    }
+  }
+});
+
+Deno.test("a page containing only an unclosed script reports no recipe", async () => {
+  const error = await assertRejects(
+    () => resolveRecipeSource("https://recipes.example/empty", ctx(() =>
+      Promise.resolve(new Response('<script type="application/ld+json">' + "<script>".repeat(1000)))
+    )),
+    SourceError,
+  );
+  assertEquals((error as SourceError).code, "no_recipe_text");
 });

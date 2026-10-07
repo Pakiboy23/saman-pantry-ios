@@ -76,6 +76,7 @@ final class RecipeExtractionService {
         } catch {
             throw ExtractionError.unauthorized
         }
+        try Task.checkCancellation()
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -86,14 +87,14 @@ final class RecipeExtractionService {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ExtractionError.apiError }
         guard (200...299).contains(http.statusCode) else {
-            throw failure(status: http.statusCode, data: data, route: route)
+            throw Self.failure(status: http.statusCode, data: data, route: route)
         }
 
         let serviceResp = try JSONDecoder().decode(EdgeFunctionResponse.self, from: data)
         return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON)
     }
 
-    private func failure(status: Int, data: Data, route: RecipeExtractionRoute) -> ExtractionError {
+    static func failure(status: Int, data: Data, route: RecipeExtractionRoute) -> ExtractionError {
         let body = try? JSONDecoder().decode(ExtractionErrorResponse.self, from: data)
         if status == 401 { return .unauthorized }
         if status == 402 { return .quotaExceeded }
@@ -119,7 +120,7 @@ final class RecipeExtractionService {
 
     /// Server `source` wins when the deployed function sends it. Older
     /// functions omit it, so the route this call actually used is the fallback.
-    private func resolvedRoute(from source: String?, fallback: RecipeExtractionRoute) -> RecipeExtractionRoute {
+    private static func resolvedRoute(from source: String?, fallback: RecipeExtractionRoute) -> RecipeExtractionRoute {
         switch source {
         case RecipeExtractionRoute.url.rawValue:
             return .url

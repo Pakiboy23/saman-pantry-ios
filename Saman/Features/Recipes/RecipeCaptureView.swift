@@ -31,6 +31,9 @@ struct RecipeCaptureView: View {
     @State private var showAudioPicker = false
     @State private var transcribingAudio = false
     @State private var resumeFromAudio = false
+    @State private var captureTask: Task<Void, Never>?
+    @State private var captureIsActive = true
+    @State private var captureGeneration = UUID()
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -100,7 +103,12 @@ struct RecipeCaptureView: View {
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     if phase != .done {
-                        Button("Cancel") { dismiss() }
+                        Button("Cancel") {
+                            cancelCapture()
+                            resumeExtractAfterAuth = false
+                            resumeFromAudio = false
+                            dismiss()
+                        }
                             .foregroundStyle(Color.brandSaag)
                     }
                 }
@@ -117,16 +125,14 @@ struct RecipeCaptureView: View {
                 AuthView()
             }
             .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
-                guard signedIn, resumeExtractAfterAuth else { return }
-                resumeExtractAfterAuth = false
-                let audio = resumeFromAudio
-                resumeFromAudio = false
-                Task { await runExtraction(fromAudio: audio) }
+                if signedIn { resumePendingExtraction() }
             }
             .onChange(of: appEnv.isAuthPresented) { _, presented in
                 if !presented && !appEnv.auth.isSignedIn {
                     resumeExtractAfterAuth = false
                     resumeFromAudio = false
+                } else if !presented {
+                    resumePendingExtraction()
                 }
             }
             .onChange(of: recipeLink) { _, _ in inlineError = nil }
@@ -139,7 +145,7 @@ struct RecipeCaptureView: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
-                    Task { await transcribePickedFile(url) }
+                    startCaptureTask { await transcribePickedFile(url) }
                 case .failure:
                     presentError(
                         "Couldn't open that recording. Try another audio file, or record it in the app.",
@@ -147,9 +153,11 @@ struct RecipeCaptureView: View {
                     )
                 }
             }
-            .onDisappear {
-                transcriber.cancelRecording()
+            .onAppear {
+                captureIsActive = true
+                resumePendingExtraction()
             }
+            .onDisappear { cancelCapture() }
         }
     }
 
@@ -275,7 +283,7 @@ struct RecipeCaptureView: View {
                 }
             }
 
-            Button("Extract Recipe") { Task { await runExtraction() } }
+            Button("Extract Recipe") { startCaptureTask { await runExtraction() } }
                 .buttonStyle(SamaanPrimaryButtonStyle())
                 .disabled(!canExtract || transcriber.isRecording)
                 .accessibilityIdentifier("recipe.extract")
@@ -284,7 +292,7 @@ struct RecipeCaptureView: View {
                         hasAIConsent = true
                         let audio = resumeFromAudio
                         resumeFromAudio = false
-                        Task { await runExtraction(fromAudio: audio) }
+                        startCaptureTask { await runExtraction(fromAudio: audio) }
                     }
                     Button("Read Privacy Policy") {
                         if let url = URL(string: Config.privacyPolicyURL) { openURL(url) }
@@ -431,7 +439,7 @@ struct RecipeCaptureView: View {
                 .foregroundStyle(Color.inkKohlSoft)
                 .kerning(0.8)
             Button(transcriber.isRecording ? "Stop and read the recipe" : "Record a recipe") {
-                Task { await toggleRecording() }
+                startCaptureTask { await toggleRecording() }
             }
             .buttonStyle(SamaanPrimaryButtonStyle())
             .accessibilityIdentifier(transcriber.isRecording ? "recipe.record.stop" : "recipe.record")
@@ -453,14 +461,49 @@ struct RecipeCaptureView: View {
         .samaanCard()
     }
 
+    private func startCaptureTask(_ action: @escaping @MainActor () async -> Void) {
+        guard captureIsActive else { return }
+        captureTask?.cancel()
+        captureTask = Task { await action() }
+    }
+
+    private func cancelCapture() {
+        captureIsActive = false
+        captureGeneration = UUID()
+        captureTask?.cancel()
+        captureTask = nil
+        transcriber.cancelRecording()
+        if transcribingAudio {
+            transcribingAudio = false
+            phase = .idle
+        }
+    }
+
+    private func resumePendingExtraction() {
+        guard captureIsActive, !appEnv.isAuthPresented,
+              appEnv.auth.isSignedIn, resumeExtractAfterAuth else { return }
+        resumeExtractAfterAuth = false
+        let audio = resumeFromAudio
+        resumeFromAudio = false
+        startCaptureTask { await runExtraction(fromAudio: audio) }
+    }
+
+    private func acceptsCapture(_ generation: UUID) -> Bool {
+        captureIsActive && captureGeneration == generation && !Task.isCancelled
+    }
+
     private func toggleRecording() async {
+        let generation = captureGeneration
+        guard acceptsCapture(generation) else { return }
         if transcriber.isRecording {
             transcribingAudio = true
             phase = .extracting
             let text: String
             do {
                 text = try await transcriber.stopRecording()
+                guard acceptsCapture(generation) else { return }
             } catch {
+                guard acceptsCapture(generation) else { return }
                 transcribingAudio = false
                 presentError(error.localizedDescription, title: "Didn't catch that")
                 return
@@ -474,11 +517,14 @@ struct RecipeCaptureView: View {
         do {
             try await transcriber.startRecording()
         } catch {
+            guard acceptsCapture(generation) else { return }
             presentError(error.localizedDescription, title: "Can't record")
         }
     }
 
     private func transcribePickedFile(_ url: URL) async {
+        let generation = captureGeneration
+        guard acceptsCapture(generation) else { return }
         transcribingAudio = true
         phase = .extracting
         let copy: URL
@@ -493,7 +539,9 @@ struct RecipeCaptureView: View {
         do {
             defer { try? FileManager.default.removeItem(at: copy) }
             text = try await transcriber.transcribeFile(at: copy)
+            guard acceptsCapture(generation) else { return }
         } catch {
+            guard acceptsCapture(generation) else { return }
             transcribingAudio = false
             presentError(error.localizedDescription, title: "Couldn't transcribe that")
             return
@@ -505,6 +553,8 @@ struct RecipeCaptureView: View {
     }
 
     private func runExtraction(fromAudio: Bool = false) async {
+        let generation = captureGeneration
+        guard acceptsCapture(generation) else { return }
         let audio = fromAudio || resumeFromAudio
         if audio {
             recipeLink = ""
@@ -544,10 +594,12 @@ struct RecipeCaptureView: View {
             let result: ExtractionResult
             if let link {
                 result = try await RecipeExtractionService.shared.extract(url: link)
+                guard acceptsCapture(generation) else { return }
                 capturedSource = link
                 capturedSourceKind = .url
             } else {
                 result = try await RecipeExtractionService.shared.extract(transcript: text)
+                guard acceptsCapture(generation) else { return }
                 capturedSource = text
                 capturedSourceKind = .transcript
             }
@@ -564,6 +616,7 @@ struct RecipeCaptureView: View {
             Analytics.track(.recipeExtracted)
             phase = .reviewing
         } catch let error as RecipeExtractionService.ExtractionError {
+            guard acceptsCapture(generation) else { return }
             switch error {
             case .unauthorized:
                 resumeFromAudio = audio
@@ -576,6 +629,7 @@ struct RecipeCaptureView: View {
                 presentError(error.localizedDescription, title: error.captureAlertTitle)
             }
         } catch {
+            guard acceptsCapture(generation) else { return }
             presentError(error.localizedDescription)
         }
     }
