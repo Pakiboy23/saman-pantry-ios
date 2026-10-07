@@ -16,7 +16,12 @@ Body is `{ "transcript" }` and/or `{ "url" }`. A transcript that is only an http
 
 Outbound fetches are http/https only, reject private and internal addresses (and DNS answers or redirects that point at them), time out, and cap the body size.
 
-Requires `supabase/migrations/004_recipe_extraction_events.sql` applied in prod before this deploy, or every extract 500s.
+Requires `supabase/migrations/004_recipe_extraction_events.sql` and
+`supabase/migrations/009_atomic_recipe_extraction_quota.sql` applied in prod before
+this deploy, or every extract 500s. The service-role-only `reserve_recipe_extraction`
+RPC locks admissions per user and counts/inserts in one transaction, so concurrent
+requests share the same five-slot allowance. Deploy the updated function after
+the migration; older function instances still use the separate count/insert path.
 
 ### Required Supabase secrets
 
@@ -34,7 +39,10 @@ supabase secrets set YOUTUBE_API_KEY=<youtube-data-api-v3-key>
 ### Tests
 
 ```sh
-deno test supabase/functions/extract-recipe/recipe_source_test.ts
+deno test --allow-env supabase/functions/extract-recipe/
+# Real concurrency/RLS checks in an isolated temporary PostgreSQL cluster.
+# Requires PostgreSQL 17 (initdb, pg_ctl, psql) and uuid-ossp; run as non-root.
+python3 supabase/tests/recipe_extraction_quota_test.py
 ```
 
 ### Deploy

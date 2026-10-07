@@ -102,6 +102,8 @@ security definer
 set search_path = public
 as $$
 declare
+  recipe_row public.recipes%rowtype;
+  card_owner uuid;
   parsed jsonb;
   card_steps jsonb := '[]'::jsonb;
   card_phrases jsonb := '[]'::jsonb;
@@ -109,13 +111,26 @@ declare
   email text;
 begin
   if tg_op = 'DELETE' then
-    delete from public.recipe_book_cards where id = old.id;
+    recipe_row := old;
+  else
+    recipe_row := new;
+  end if;
+
+  -- Cards may exist without recipes. An ID match does not prove ownership.
+  select owner_id into card_owner from public.recipe_book_cards
+  where id = recipe_row.id for update;
+  if found and card_owner is distinct from recipe_row.user_id then
+    raise exception 'Recipe card ownership conflict' using errcode = '42501';
+  end if;
+
+  if tg_op = 'DELETE' then
+    delete from public.recipe_book_cards where id = old.id and owner_id = old.user_id;
     return old;
   end if;
 
   -- URL extracts stay private. Drop any stale card if the source flips.
   if new.source_kind is distinct from 'transcript' then
-    delete from public.recipe_book_cards where id = new.id;
+    delete from public.recipe_book_cards where id = new.id and owner_id = new.user_id;
     return new;
   end if;
 
@@ -165,13 +180,18 @@ begin
     new.updated_at
   )
   on conflict (id) do update set
-    owner_id = excluded.owner_id,
     title = excluded.title,
     attribution = excluded.attribution,
     steps = excluded.steps,
     ingredient_phrases = excluded.ingredient_phrases,
     added_by_label = excluded.added_by_label,
-    updated_at = excluded.updated_at;
+    updated_at = excluded.updated_at
+  -- Recheck under the conflict lock if another transaction inserted the card.
+  where c.owner_id = excluded.owner_id;
+
+  if not found then
+    raise exception 'Recipe card ownership conflict' using errcode = '42501';
+  end if;
 
   return new;
 end;
