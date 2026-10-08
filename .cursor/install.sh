@@ -98,13 +98,9 @@ if [ ! -x /usr/lib/postgresql/17/bin/initdb ]; then
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
     ca-certificates curl postgresql-common
-  sudo install -d /usr/share/postgresql-common/pgdg
-  sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-    https://www.postgresql.org/media/keys/ACCC4CF8.asc
-  # shellcheck disable=SC1091
-  . /etc/os-release
-  echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
-    | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+  # Use the setup helper and signing key shipped by the authenticated distro
+  # package instead of downloading a new trust root without verification.
+  sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
   # Tests create their own clusters. Skip the package's default main cluster
   # so install does not leave a server running on port 5432.
   sudo python3 - <<'PY'
@@ -123,9 +119,11 @@ else
   saman_log "PostgreSQL 17 binaries already installed"
 fi
 for bin in initdb pg_ctl postgres psql; do
-  if [ -x "/usr/lib/postgresql/17/bin/${bin}" ]; then
-    sudo ln -sfn "/usr/lib/postgresql/17/bin/${bin}" "/usr/local/bin/${bin}"
+  if [ ! -x "/usr/lib/postgresql/17/bin/${bin}" ]; then
+    saman_log "missing or non-executable PostgreSQL 17 binary: ${bin}"
+    exit 1
   fi
+  sudo ln -sfn "/usr/lib/postgresql/17/bin/${bin}" "/usr/local/bin/${bin}"
 done
 
 # --- ripgrep (ci_scripts/check_secrets.sh) ----------------------------------
