@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test private API key scanner
+        run: python3 ci_scripts/test_check_secrets.py
       - name: Check for private API keys
         run: ci_scripts/check_secrets.sh
       - name: Validate asset catalog JSON
