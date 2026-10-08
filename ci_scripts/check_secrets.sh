@@ -26,9 +26,10 @@ for pattern in "${patterns[@]}"; do
 done
 
 while IFS= read -r -d '' file; do
-  # Explicit paths and disabled configuration prevent checkout ignore rules
-  # from hiding credentials. Text mode also scans past embedded NUL bytes.
-  if rg --no-config --no-ignore --text --with-filename -n "${pattern_args[@]}" -- "./$file"; then
+  # Explicit paths prevent checkout ignore rules from hiding credentials.
+  # grep is used instead of ripgrep because it ships on every CI runner and
+  # has no ignore files or config. Text mode scans past embedded NUL bytes.
+  if grep -E -a -H -n "${pattern_args[@]}" -- "./$file"; then
     echo "Potential private API key detected. Move it to server-side secrets before committing." >&2
     exit 1
   else
