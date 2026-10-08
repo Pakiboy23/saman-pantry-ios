@@ -685,6 +685,23 @@ function referenceCaptionParts(body: string): string[] {
   return parts;
 }
 
+/** Old captionsToText applied decodeHtml(removeTags(match)) to each regex block. */
+function referenceRemoveTags(value: string): string {
+  const parts: string[] = [];
+  let cursor = 0;
+  while (cursor < value.length) {
+    const start = value.indexOf("<", cursor);
+    if (start === -1) break;
+    const end = value.indexOf(">", start + 1);
+    if (end === -1) break;
+    parts.push(value.slice(cursor, start));
+    parts.push(end === start + 1 ? "<>" : " ");
+    cursor = end + 1;
+  }
+  parts.push(value.slice(cursor));
+  return parts.join("");
+}
+
 /** Linear meta and caption scanning returns exactly what the old regexes returned. */
 Deno.test("meta and caption scanning match the previous regex results", () => {
   const pieces = [
@@ -703,9 +720,9 @@ Deno.test("meta and caption scanning match the previous regex results", () => {
     for (const key of ["og:description", "description"]) {
       assertEquals(metaContent(html, key), referenceMetaContent(html, key), html);
     }
-    // Each old regex block, read on its own, gives the reference text.
+    // Each old regex block, decoded on its own — not via captionsToText.
     const reference = referenceCaptionParts(html)
-      .map((part) => captionsToText(`<text>${part}</text>`))
+      .map((part) => decodeHtml(referenceRemoveTags(part)))
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
