@@ -86,7 +86,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - Cuts approved: Prices tab (view deleted 2026-08-29), Scanner as top-level tab, Settings as tab, PantryListView / AddPantryView (deleted 2026-09-05), ReorderView / ReorderItemRow (deleted 2026-09-17)
 - Scanner stays inside Add Item. It is a data-entry method, not a destination
 - Cultural specificity is the moat — no generic mode
-- Not a recipe app. Recipes exist to feed the shopping list.
+- Pantry-first: recipes support the shopping list, and the public family recipe book is intentional.
 - Guest browse stays. Do not restore a login wall.
 
 ## Known issues (open)
