@@ -18,7 +18,7 @@ Use an **empty disposable PostgreSQL 17 database**, with a superuser connection:
 ```bash
 psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/tests/recipe_book_security_setup.sql
 psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/tests/recipe_book_security.sql
-psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/migrations/009_recipe_book_card_ownership.sql
+psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/migrations/010_recipe_book_card_ownership.sql
 psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/tests/recipe_book_security.sql
 ```
 
@@ -28,4 +28,4 @@ They cover cross-owner ID collisions on recipe insert/update/delete, unchanged
 victim cards and notes, and normal publication, privacy flips and owner deletion.
 
 For installations that already applied `008`, the owner must apply
-`009_recipe_book_card_ownership.sql` to install the hardened trigger function.
+`010_recipe_book_card_ownership.sql` to install the hardened trigger function.
