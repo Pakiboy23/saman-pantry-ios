@@ -3,10 +3,12 @@ import {
   assertResolvedPublic,
   captionsToText,
   classifyRecipeUrl,
+  decodeHtml,
   extractInstagramCaption,
   htmlToText,
   isPrivateAddress,
   MAX_INSTRUCTION_CHARS,
+  metaContent,
   MAX_RESPONSE_BYTES,
   MAX_SOURCE_CHARS,
   parseIngredientLine,
@@ -660,4 +662,90 @@ Deno.test("a page containing only an unclosed script reports no recipe", async (
     SourceError,
   );
   assertEquals((error as SourceError).code, "no_recipe_text");
+});
+
+// The regexes these scanners replaced. Kept here only as the reference for
+// the equivalence check below.
+function referenceMetaContent(html: string, key: string): string | null {
+  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
+  for (const tag of tags) {
+    const attr = /(?:property|name|itemprop)\s*=\s*["']([^"']+)["']/i.exec(tag);
+    const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag);
+    if (!attr || !content) continue;
+    if (attr[1].toLowerCase() === key.toLowerCase()) return decodeHtml(content[1]).trim();
+  }
+  return null;
+}
+
+function referenceCaptionParts(body: string): string[] {
+  const parts: string[] = [];
+  const re = /<text\b[^>]*>([\s\S]*?)<\/text>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(body)) !== null) parts.push(match[1]);
+  return parts;
+}
+
+/** Linear meta and caption scanning returns exactly what the old regexes returned. */
+Deno.test("meta and caption scanning match the previous regex results", () => {
+  const pieces = [
+    "<meta", "<META", "<meta-x", ">", " ", "a", "<", "<text", "<TEXT", "<textarea", "</text>", "</TEXT>",
+    ' property="og:description"', ' name="description"', ' content="Dal"', ' content="Aloo"', "<p>", "&amp;",
+  ];
+  let seed = 7;
+  const next = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed;
+  };
+  for (let round = 0; round < 3000; round++) {
+    let html = "";
+    const length = next() % 14;
+    for (let i = 0; i < length; i++) html += pieces[next() % pieces.length];
+    for (const key of ["og:description", "description"]) {
+      assertEquals(metaContent(html, key), referenceMetaContent(html, key), html);
+    }
+    // Each old regex block, read on its own, gives the reference text.
+    const reference = referenceCaptionParts(html)
+      .map((part) => captionsToText(`<text>${part}</text>`))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    assertEquals(captionsToText(html), reference, html);
+  }
+});
+
+const CAPTION = "<transcript><text>Heat the oil. Add 1 kg mutton and haldi. Cook until tender.</text>";
+
+/** Pages at the response cap full of unclosed <meta and <text openers resolve quickly. */
+Deno.test("unclosed meta and caption tags at the response cap stay within a bounded parsing budget", async () => {
+  const metaPage = "<meta ".repeat(Math.floor(MAX_RESPONSE_BYTES / 6));
+  const captions = "<text ".repeat(Math.floor(MAX_RESPONSE_BYTES / 6));
+  const start = performance.now();
+  assertEquals(metaContent(metaPage, "og:description"), null);
+  assertEquals(captionsToText(captions), "");
+  assertEquals(captionsToText("<text>".repeat(Math.floor(MAX_RESPONSE_BYTES / 6))), "");
+  const error = await assertRejects(
+    () => resolveRecipeSource("https://www.instagram.com/p/Abcdef/", ctx(() =>
+      Promise.resolve(new Response(metaPage, { headers: { "content-type": "text/html" } }))
+    )),
+    SourceError,
+  );
+  assertEquals((error as SourceError).code, "instagram_caption_unavailable");
+  const resolved = await resolveRecipeSource(`https://www.youtube.com/watch?v=${VIDEO}`, ctx((url) => {
+    if (url.includes("/watch?")) {
+      const page = WATCH_HTML + metaPage.slice(WATCH_HTML.length);
+      return Promise.resolve(new Response(page, { headers: { "content-type": "text/html" } }));
+    }
+    if (url.includes("timedtext") && url.includes("lang=en")) {
+      return Promise.resolve(new Response(
+        (CAPTION + captions).slice(0, MAX_RESPONSE_BYTES),
+        { headers: { "content-type": "text/xml" } },
+      ));
+    }
+    return Promise.resolve(new Response("no", { status: 404 }));
+  }));
+  if (resolved.kind !== "text") throw new Error("expected text");
+  assertEquals(resolved.text.includes("Transcript:\nHeat the oil. Add 1 kg mutton and haldi. Cook until tender."), true);
+  const elapsed = performance.now() - start;
+  // The old regexes took minutes here; a 600 KB page alone took over 40 s.
+  assert(elapsed < 2000, `Unclosed meta and caption tags took ${elapsed} ms`);
 });

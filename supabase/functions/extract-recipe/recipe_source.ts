@@ -635,10 +635,11 @@ export function captionsToText(body: string): string {
     }
   }
   const parts: string[] = [];
-  const re = /<text\b[^>]*>([\s\S]*?)<\/text>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(trimmed)) !== null) {
-    parts.push(decodeHtml(removeTags(match[1])));
+  // Same blocks as /<text\b[^>]*>([\s\S]*?)<\/text>/gi, scanned once, so
+  // repeated unclosed <text openers cannot rescan the rest of the body.
+  for (const block of htmlBlocks(trimmed, "text")) {
+    if (!block.closed) break;
+    parts.push(decodeHtml(removeTags(trimmed.slice(block.contentStart, block.contentEnd))));
   }
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
@@ -984,15 +985,30 @@ export function htmlToText(html: string): string {
 }
 
 export function metaContent(html: string, key: string): string | null {
-  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
   const wanted = key.toLowerCase();
-  for (const tag of tags) {
+  for (const tag of metaTags(html)) {
     const attr = /(?:property|name|itemprop)\s*=\s*["']([^"']+)["']/i.exec(tag);
     const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag);
     if (!attr || !content) continue;
     if (attr[1].toLowerCase() === wanted) return decodeHtml(content[1]).trim();
   }
   return null;
+}
+
+/**
+ * Yields each `<meta ...>` tag, matching /<meta\b[^>]*>/gi. Without a closing
+ * `>` no later tag can match either, so stop instead of rescanning the suffix
+ * for every remaining `<meta` opener.
+ */
+function* metaTags(html: string) {
+  const opening = /<meta\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html)) !== null) {
+    const end = html.indexOf(">", opening.lastIndex);
+    if (end < 0) return;
+    yield html.slice(match.index, end + 1);
+    opening.lastIndex = end + 1;
+  }
 }
 
 export function decodeHtml(value: string): string {
