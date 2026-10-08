@@ -1,17 +1,26 @@
 # Project Memory
-Last updated: 2026-09-19 | Branch: cursor/monetization-honesty-dbc3
+Last updated: 2026-10-08 | Branch: grok/docs-current-state
 Memory health: 9/10
 
 ## Project Overview
-Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Product company: Saman Technologies LLC. Bundle `com.samanpantry.Saman`. THESIS.md wins product arguments.
+Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Legal entity: Saman Technologies LLC dba Samaan Technologies. Bundle `com.samanpantry.Saman` and `samanpantry.com` stay single-a. Paid tier: Samaan Pro. THESIS.md wins product arguments.
 
 ## Where We Left Off
-- **Current task:** Stale June launch reports and agent memory contradicted #20/#21. Docs PR only — no product rewrite.
-- **Status:** Guest browse shipped in #20. Reorder UI deleted in #21. Xcode project is **1.0 (65)**. `1.0 (47)` was on TestFlight as of 30 Aug 2026. App Review rejected **64**; 65 is the next archive number in the repo — do not invent a TestFlight listing for 65. Not App Review ready. Owner-console work is still the blocker (SQL, deploy, revoke key, demo account, redirect URL).
-- **Next immediate step:** Owner applies `003_recipes.sql` and `004_recipe_extraction_events.sql`, deploys `extract-recipe` and `delete-account`, revokes the old Anthropic key, creates a pre-confirmed App Review demo account, and adds `samaan://auth-callback` to Supabase Auth redirect URLs. Do not submit. Do not restore a login wall or ReorderView.
-- **Open question:** none on the code side for recovery — `samaan://auth-callback` + `onOpenURL` + set-new-password UI are on main.
+- **App Store:** Samaan Pantry **1.3 (build 133)** is live, released 2026-10-05. Build 133 is `main` at `788fafd` (recording, audio-file intake, family recipe book). A 1.4 App Store version is a metadata-only draft in App Store Connect (no build).
+- **main:** marketing **1.3.1**. TestFlight 1.3.1 builds run through 161 (2026-10-07). 158 is `main` at the #61 merge; 157 (the #61 branch head) is the last build Haaris was asked to test. Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` (107) in the pbxproj is not the App Store Connect build number.
+- **Server:** `extract-recipe` live is **version 9** (deployed 2026-10-07 4:10 PM ET), byte-identical to `main` at `2632437`, so #54, #58, #60, #61 are live. Migrations 001 through both 009 files are applied (009s on 2026-10-06). Later function changes (for example #63) need `supabase functions deploy extract-recipe` with Haaris's OK.
+- **Next immediate step:** Haaris tests 1.3.1 on TestFlight. With his OK, submit 1.3.1 and the Desi Family Recipes product page version. Nothing goes to App Review without his explicit OK.
+- **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
+- 2026-10-08 Docs: skill and MEMORY match 1.3 live / 1.3.1 on main, Xcode Cloud build numbers, extract-recipe v9, and Samaan Pro prices. Removed the build 65 / "do not submit" guidance.
+- 2026-10-07 Parser hardening and capture cancellation (#61); `extract-recipe` v9 deployed from that main.
+- 2026-10-07 Voice capture keeps the full transcript; link-shaped miss errors fixed (#60). Stale auth sessions no longer restore signed-out accounts (#59).
+- 2026-10-06 Atomic 5/day extraction quota (#58). Cross-owner recipe book card mutations blocked (#57). JSON-LD instruction budget (#54). Int-conversion crash fix (#56). Both 009 migrations applied.
+- 2026-10-05 1.3 (133) released. Recording keeps the full transcript across pauses (#49); marketing 1.3.1 (#50).
+- 2026-10-04 On-device transcription of a recording or audio file into the recipe extract (#46). Public family recipe book for transcript saves (#44).
+- 2026-09-26 Recipe link extraction (#39), shipped in 1.2 (119) alongside Samaan Pro (Monthly $4.99, Yearly $39.99, Lifetime $79.99). Migrations 003 through 006 applied.
+- 2026-09-25 Anonymous usage events and one-time Anthropic consent (#36), shipped in 1.1 (106).
 - 2026-09-18 Deleted June `LAUNCH_REVIEW.md` / `APP_STORE_READINESS_REPORT.md`, duplicate `docs/launch/PrivacyInfo.xcprivacy`, and replaced the obsolete Edge Function spec with a pointer at `supabase/functions/`. Trued up skill, MEMORY, THESIS, and screenshot copy for guest browse + mark-bought restock.
 - 2026-09-17 Deleted unreachable `ReorderView` / `ReorderItemRow` / private `RestockSheet`, trimmed the unwired LowStockBanner chevron, and dropped the two root `*.pages` thesis binaries (#21).
 - 2026-09-15 Guest browse + in-binary Privacy/Terms/Support (Auth, Settings LEGAL, paywall inset). Unsigned launch reaches the tab shell. Auth only for sync, extract, delete account. Build 65 (#20).
@@ -31,27 +40,23 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 - 2026-04-19 THESIS.md + foundation.
 
 ## Active Work
-- [ ] Owner: apply `supabase/migrations/003_recipes.sql` in the Supabase SQL editor
-- [ ] Owner: apply `supabase/migrations/004_recipe_extraction_events.sql`
-- [ ] Owner: deploy the `extract-recipe` and `delete-account` Edge Functions
-- [ ] Owner: revoke the old Anthropic key in the Anthropic console
-- [ ] Owner: create a pre-confirmed demo account for App Review (email confirmation is on)
-- [ ] Owner: add `samaan://auth-callback` to Supabase Auth → URL Configuration → Redirect URLs
-- [x] Guest browse (#20) — do not restore a login wall
-- [x] Reorder UI deleted (#21) — do not restore ReorderView
-- [x] TestFlight 1.0 (47) as of 30 Aug 2026 (historical). Repo build is now 1.0 (65)
+- [ ] Haaris: test 1.3.1 on TestFlight (long recording with pauses, long audio file, cancel mid-capture)
+- [ ] With Haaris's OK: submit 1.3.1; submit the Desi Family Recipes product page version
+- [ ] With Haaris's OK: deploy `extract-recipe` after any further function change (#63 is open)
+- [ ] Owner, confirm don't assume: old Anthropic key revoked
+- [ ] Owner, confirm don't assume: pre-confirmed App Review demo account still works
+- [ ] Owner, confirm don't assume: `samaan://auth-callback` in Supabase Auth redirect URLs
+- [x] Guest browse (#20). Do not restore a login wall
+- [x] Reorder UI deleted (#21). Do not restore ReorderView
 - [ ] Household mode stays off (THESIS)
 
 ## Blockers
-- Recipes pull no-ops until `003_recipes.sql` is applied in prod.
-- Recipe capture 500s until `004_recipe_extraction_events.sql` is applied and `extract-recipe` is redeployed.
-- In-app account deletion fails until `delete-account` is deployed.
-- Password-reset email will not bounce back into the app until the redirect URL is allow-listed.
-- App Review still needs the pre-confirmed demo account for the extract/sync/delete paths that require a session. Guest browse is enough for pantry/list/recipe UI without an account.
+- None in the repo. Release steps (submit, deploy, console checks) are Haaris's call.
 
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-10-04 | Transcribe on device; extract on the server | Audio stays on the phone; extraction needs the model and the quota | RecipeAudioTranscriber, extract-recipe |
 | 2026-09-19 | Monetization copy matches real gates; 402 is not a Pro upsell | Settings said "support development"; StoreKit said "premium pantry and recipe features"; extract 402 opened paywall though Pro does not lift the 5/day cap | FreeLimits, Settings, StoreKit, RecipeCaptureView |
 | 2026-09-18 | Delete June launch reports; truth-up skill/MEMORY/THESIS | Stale launch copy would send the next agent to undo #20/#21 | launch docs, skill |
 | 2026-09-17 | Delete ReorderView + Pages thesis binaries | Unreachable tab; live loop is item detail → list → mark bought. `.pages` copies were ~777KB each next to THESIS.md | ReorderView, LowStockBanner |
@@ -68,14 +73,10 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 | 2026-04-19 | isDirty flag pattern for sync | Simple optimistic tracking | Models, SyncManager |
 
 ## Roadmap (do in order)
-- [x] #2 restock writeback (now mark-bought; ReorderView later deleted)
-- [x] Bidirectional sync + recipe sync + password reset + honest copy + iPhone-only
-- [x] Live legal URLs
-- [x] Guest browse (#20)
-- [x] Reorder UI deleted (#21)
-- [x] TestFlight 1.0 (47) — historical. Repo is 1.0 (65)
-- [ ] Owner: recipes SQL, quota SQL, Edge Functions, Anthropic revoke, demo account, redirect URL
-- [ ] App Review (do not submit until the owner items above are done)
+- [x] Restock writeback, bidirectional sync, recipe sync, password reset, iPhone-only
+- [x] Live legal URLs, guest browse (#20), Reorder UI deleted (#21)
+- [x] 1.0 through 1.3 on the App Store; Samaan Pro since 1.2
+- [ ] 1.3.1 (recording fix) after Haaris's TestFlight test and OK
 - [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
 ## Strategic decisions (do not reopen)
@@ -90,7 +91,7 @@ Samaan — iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `
 
 ## Known issues (open)
 - `image_url` is modeled, migrated, and synced but nothing populates it. No photo picker, no Storage upload.
-- Old Anthropic key must still be revoked in the provider account.
+- Xcode Cloud's single `Default` workflow archives and uploads a TestFlight build on every branch push. Use `[ci skip]` for docs-only pushes.
 
 ## Key Files
 | File | Purpose |
