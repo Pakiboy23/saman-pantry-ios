@@ -7,6 +7,7 @@ struct FamilyRecipeBookView: View {
     @State private var cards: [FamilyRecipeBookCard] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+
     var body: some View {
         Group {
             if !appEnv.auth.isSignedIn {

@@ -192,12 +192,19 @@ struct DeleteRecordTests {
         try container.mainContext.save()
         env.deleteRecord(item, table: "items", id: item.id)
         #expect(!env.syncManager.queuedTombstones().isEmpty)
+        let suite = "samaan.tests.clear.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
+        defer { defaults.removePersistentDomain(forName: suite) }
 
-        env.clearLocalStore()
+        env.clearLocalStore(defaults: defaults)
 
         let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
         #expect(remaining.isEmpty)
         #expect(env.syncManager.queuedTombstones().isEmpty)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 }
 
@@ -330,6 +337,8 @@ struct LocalStoreReconcileTests {
         let (defaults, suite) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
 
         env.reconcileLocalStore(currentUserID: nil, defaults: defaults)
 
@@ -337,6 +346,8 @@ struct LocalStoreReconcileTests {
         #expect(remaining.isEmpty)
         #expect(env.syncManager.queuedTombstones().isEmpty)
         #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 
     @Test func guestKitchenSurvivesFirstSignIn() throws {
@@ -373,6 +384,8 @@ struct LocalStoreReconcileTests {
         let (defaults, suite) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
 
         env.reconcileLocalStore(
             currentUserID: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF",
@@ -382,6 +395,8 @@ struct LocalStoreReconcileTests {
         let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
         #expect(remaining.isEmpty)
         #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 }
 
@@ -454,27 +469,25 @@ struct PurchaseSessionBindingTests {
 }
 
 struct FreeLimitsTests {
-    @Test func pantryCapBlocksFreeUserAtLimit() {
-        #expect(FreeLimits.canAddPantryItem(existingCount: 29, isPro: false) == true)
-        #expect(FreeLimits.canAddPantryItem(existingCount: 30, isPro: false) == false)
-        #expect(FreeLimits.canAddPantryItem(existingCount: 30, isPro: true) == true)
-        #expect(FreeLimits.pantryItemCap == 30)
+    @Test func pantryAndListsAreUnlimitedForEveryone() {
+        #expect(FreeLimits.freePlanSummary.lowercased().contains("unlimited pantry"))
+        #expect(FreeLimits.freePlanSummary.lowercased().contains("lists"))
+        #expect(!FreeLimits.freePlanSummary.contains("30"))
     }
 
-    @Test func listsTabCapBlocksFreeUserAtOneList() {
-        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 0, isPro: false) == true)
-        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 1, isPro: false) == false)
-        #expect(FreeLimits.canAddShoppingListFromListsTab(existingCount: 1, isPro: true) == true)
-        #expect(FreeLimits.shoppingListCap == 1)
+    @Test func extractQuotaIsFiveWithLifetimeAndDailyCopy() {
+        #expect(FreeLimits.extractLimit == 5)
+        #expect(FreeLimits.extractionCounterLabel(used: 2, grandfathered: false) == "2 of 5 extractions used")
+        #expect(FreeLimits.extractionCounterLabel(used: 2, grandfathered: true) == "2 of 5 extractions used today")
+        #expect(FreeLimits.freePlanSummary.contains("5 voice extractions"))
+        #expect(FreeLimits.proActiveSummary.lowercased().contains("unlimited voice"))
+        #expect(!FreeLimits.proActiveSummary.lowercased().contains("share"))
+        #expect(!FreeLimits.proMarketingStrings.joined(separator: "\n").lowercased().contains("add family members"))
     }
 
-    @Test func extractQuotaIsNotAProUnlock() {
-        #expect(FreeLimits.extractPerDay == 5)
-        #expect(FreeLimits.quotaExceededMessage.contains("tomorrow"))
-        #expect(FreeLimits.quotaExceededMessage.contains("\(FreeLimits.extractPerDay)"))
-        #expect(RecipeExtractionService.ExtractionError.quotaExceeded.localizedDescription == FreeLimits.quotaExceededMessage)
-        #expect(FreeLimits.proUnlocksSummary.contains("everyone"))
-        #expect(FreeLimits.freePlanSummary.contains("Extract stays"))
+    @Test func paywallTriggersCarryContextOnlyWhenNeeded() {
+        #expect(PaywallTrigger.settings.contextLine == nil)
+        #expect(PaywallTrigger.extractionLimit.contextLine == FreeLimits.paywallContextExtractionLimit)
     }
 }
 
@@ -490,25 +503,29 @@ struct MonetizationCopyTests {
         let text = try String(contentsOf: storeKitURL, encoding: .utf8)
         #expect(!text.contains("premium pantry and recipe features"))
         #expect(!text.contains("support development"))
-        #expect(text.contains("\(FreeLimits.pantryItemCap) pantry"))
-        #expect(text.contains("Lists"))
-        #expect(text.contains("\(FreeLimits.extractPerDay) per day") || text.contains("\(FreeLimits.extractPerDay)/day"))
+        #expect(text.contains("voice"))
+        #expect(text.contains("cookbook") || text.contains("Cookbook"))
+        #expect(!text.lowercased().contains("lifetime"))
     }
 
     @Test func paywallBenefitsAreTheRealUnlocks() {
         #expect(FreeLimits.proBenefits.count == 2)
         #expect(FreeLimits.proBenefits.map(\.title) == [
-            "Unlimited pantry items",
-            "Unlimited shopping lists",
+            "Unlimited voice extractions",
+            "Keep every rescued recipe",
         ])
-        #expect(!FreeLimits.proMarketingStrings.joined(separator: "\n").lowercased().contains("unlimited pantries"))
-        #expect(FreeLimits.proUnlocksSummary.contains("\(FreeLimits.pantryItemCap) pantry"))
-        #expect(FreeLimits.proUnlocksSummary.contains("everyone"))
+        #expect(FreeLimits.paywallHeadline.contains("Don't lose the recipes"))
+        #expect(FreeLimits.monthlyPriceLabel.contains("7.99"))
+        #expect(FreeLimits.yearlyPriceLabel.contains("59.99"))
+        #expect(FreeLimits.yearlySavingsLabel.contains("38%"))
         for string in FreeLimits.proMarketingStrings {
             let lower = string.lowercased()
             for banned in Self.bannedProClaims {
                 #expect(!lower.contains(banned), "Pro copy leaked \(banned): \(string)")
             }
+            #expect(!string.contains("—"), "App-facing copy must not use em dashes: \(string)")
+            #expect(!lower.contains("read and cook from it for free"))
+            #expect(!lower.contains("add family members"))
         }
     }
 
@@ -527,7 +544,23 @@ struct MonetizationCopyTests {
         #expect(!paywall.contains("import RevenueCatUI"))
         #expect(!paywall.contains("PaywallView()"))
         #expect(paywall.contains("FreeLimits.proBenefits"))
-        #expect(paywall.contains("FreeLimits.proUnlocksSummary"))
+        #expect(paywall.contains("FreeLimits.paywallHeadline"))
+        #expect(paywall.contains("Lifetime is retired"))
+        #expect(paywall.contains("localizedPriceString"))
+        #expect(paywall.contains("loadFailed = true"))
+        #expect(paywall.contains("usesScreenshotFixtures"))
+        #expect(!paywall.contains("CreateFamilyCookbookView"))
+    }
+
+    @Test func familyCookbookCreateUIIsNotShipped() throws {
+        let createPath = samanRoot.appendingPathComponent("Features/Recipes/CreateFamilyCookbookView.swift")
+        #expect(!FileManager.default.fileExists(atPath: createPath.path))
+        let familyBook = try String(
+            contentsOf: samanRoot.appendingPathComponent("Features/Recipes/FamilyRecipeBookView.swift"),
+            encoding: .utf8
+        )
+        #expect(!familyBook.contains("CreateFamilyCookbookView"))
+        #expect(!familyBook.contains("cookbook.create"))
     }
 
     private var repoRoot: URL {

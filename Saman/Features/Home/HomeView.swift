@@ -11,7 +11,6 @@ struct HomeView: View {
 
     @State private var showCapture  = false
     @State private var showAdd      = false
-    @State private var showPaywall  = false
     @State private var showSettings = false
 
     // MARK: - Derived
@@ -42,7 +41,6 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture)  { RecipeCaptureView() }
             .sheet(isPresented: $showAdd)       { AddItemView() }
-            .sheet(isPresented: $showPaywall)   { SamaanPaywallView() }
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
         .accessibilityIdentifier("screenshot.home")
@@ -69,11 +67,7 @@ struct HomeView: View {
             }
             .accessibilityLabel("Settings")
             Button {
-                if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
-                    showAdd = true
-                } else {
-                    showPaywall = true
-                }
+                showAdd = true
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 16, weight: .semibold))
@@ -107,11 +101,7 @@ struct HomeView: View {
             }
             .padding(.bottom, 32)
             Button("Add your first item") {
-                if FreeLimits.canAddPantryItem(existingCount: allItems.count, isPro: appEnv.purchases.isPro) {
-                    showAdd = true
-                } else {
-                    showPaywall = true
-                }
+                showAdd = true
             }
             .buttonStyle(SamaanPrimaryButtonStyle())
             .padding(.horizontal, Samaan.Space.md)

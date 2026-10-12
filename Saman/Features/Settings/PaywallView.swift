@@ -4,9 +4,14 @@ import RevenueCat
 /// Local Samaan Pro paywall. Feature bullets come from `FreeLimits`, not from
 /// RevenueCatUI's remote `PaywallView` — that offering still lists a retired
 /// grocery-delivery reorder claim this app does not ship.
+///
+/// Lifetime packages are hidden. Live cards use StoreKit localized prices.
+/// Static $7.99 / $59.99 labels are screenshot fixtures only.
 struct SamaanPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnv) private var appEnv
+
+    var trigger: PaywallTrigger = .settings
 
     @State private var packages: [Package] = []
     @State private var selectedPackageID: String?
@@ -16,24 +21,18 @@ struct SamaanPaywallView: View {
     @State private var loadFailed = false
     @State private var errorMessage: String?
 
+    private var usesScreenshotFixtures: Bool {
+        ScreenshotLaunchConfiguration.current.scene == .paywall
+            || ScreenshotLaunchConfiguration.current.isUITesting
+    }
+
     var body: some View {
         ZStack {
             Color.surfaceDoodh.ignoresSafeArea()
             content
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Text(FreeLimits.proUnlocksSummary)
-                .font(.system(size: 13))
-                .foregroundStyle(Color.inkKohl)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Samaan.Space.md)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(Color.surfaceDoodh)
-                .accessibilityIdentifier("paywall.unlocks")
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            SamaanLegalLinks(includeSupport: false)
+            footerLinks
                 .padding(.top, 10)
                 .padding(.bottom, 12)
                 .frame(maxWidth: .infinity)
@@ -59,17 +58,30 @@ struct SamaanPaywallView: View {
 
     private var paywallBody: some View {
         ScrollView {
-            VStack(spacing: 22) {
-                VStack(spacing: 6) {
-                    Text(FreeLimits.paywallTitle)
-                        .font(.pantryDisplay)
+            VStack(spacing: 20) {
+                VStack(spacing: 10) {
+                    if let context = trigger.contextLine {
+                        Text(context)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.brandSaag)
+                            .multilineTextAlignment(.center)
+                            .accessibilityIdentifier("paywall.context")
+                    }
+
+                    Text(FreeLimits.paywallHeadline)
+                        .font(.cormorant(size: 30))
                         .foregroundStyle(Color.inkKohl)
-                    Text(FreeLimits.paywallSubtitle)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("paywall.headline")
+
+                    Text(FreeLimits.paywallSubheadline)
                         .font(.system(size: 15))
                         .foregroundStyle(Color.inkKohlSoft)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .multilineTextAlignment(.center)
-                .padding(.top, 12)
+                .padding(.top, 8)
 
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(FreeLimits.proBenefits, id: \.title) { benefit in
@@ -79,9 +91,7 @@ struct SamaanPaywallView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("paywall.features")
 
-                if !packages.isEmpty {
-                    packagePicker
-                }
+                packagePicker
 
                 VStack(spacing: 10) {
                     Button {
@@ -97,24 +107,10 @@ struct SamaanPaywallView: View {
                     .disabled(selectedPackage == nil || isPurchasing || isRestoring)
                     .accessibilityIdentifier("paywall.cta")
 
-                    Text(disclaimer)
+                    Text(FreeLimits.paywallRenewalDisclaimer)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.inkKohlSoft)
                         .multilineTextAlignment(.center)
-
-                    Button {
-                        Task { await restore() }
-                    } label: {
-                        if isRestoring {
-                            ProgressView().tint(Color.inkKohlSoft)
-                        } else {
-                            Text("Restore Purchases")
-                        }
-                    }
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.inkKohlSoft)
-                    .disabled(isPurchasing || isRestoring)
-                    .accessibilityIdentifier("paywall.restore")
                 }
 
                 if let errorMessage {
@@ -139,6 +135,7 @@ struct SamaanPaywallView: View {
             }
             .buttonStyle(SamaanSecondaryButtonStyle())
             .padding(.horizontal, 48)
+            .accessibilityIdentifier("paywall.retry")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -163,45 +160,99 @@ struct SamaanPaywallView: View {
     }
 
     private var packagePicker: some View {
-        HStack(alignment: .top, spacing: 8) {
-            ForEach(packages, id: \.identifier) { package in
-                packageCard(package)
+        VStack(spacing: 10) {
+            ForEach(displayPackages, id: \.id) { option in
+                packageCard(option)
             }
         }
         .accessibilityIdentifier("paywall.packages")
     }
 
-    private func packageCard(_ package: Package) -> some View {
-        let selected = package.identifier == selectedPackageID
+    private var displayPackages: [DisplayPackage] {
+        var options: [DisplayPackage] = []
+        if let annual = packages.first(where: { $0.packageType == .annual }) {
+            options.append(DisplayPackage(
+                id: annual.identifier,
+                package: annual,
+                title: "Yearly",
+                priceLabel: "\(annual.storeProduct.localizedPriceString) / year",
+                badge: annualSavingsBadge
+            ))
+        } else if usesScreenshotFixtures {
+            options.append(DisplayPackage(
+                id: "yearly-fixture",
+                package: nil,
+                title: "Yearly",
+                priceLabel: FreeLimits.yearlyPriceLabel,
+                badge: FreeLimits.yearlySavingsLabel
+            ))
+        }
+        if let monthly = packages.first(where: { $0.packageType == .monthly }) {
+            options.append(DisplayPackage(
+                id: monthly.identifier,
+                package: monthly,
+                title: "Monthly",
+                priceLabel: "\(monthly.storeProduct.localizedPriceString) / month",
+                badge: nil
+            ))
+        } else if usesScreenshotFixtures {
+            options.append(DisplayPackage(
+                id: "monthly-fixture",
+                package: nil,
+                title: "Monthly",
+                priceLabel: FreeLimits.monthlyPriceLabel,
+                badge: nil
+            ))
+        }
+        return options
+    }
+
+    private var annualSavingsBadge: String? {
+        guard
+            let monthly = packages.first(where: { $0.packageType == .monthly })?.storeProduct.price,
+            let annual = packages.first(where: { $0.packageType == .annual })?.storeProduct.price
+        else { return nil }
+        let yearlyAtMonthly = monthly * 12
+        guard yearlyAtMonthly > 0, yearlyAtMonthly > annual else { return nil }
+        let saved = (yearlyAtMonthly - annual) / yearlyAtMonthly * 100
+        let percent = NSDecimalNumber(decimal: saved).intValue
+        return percent > 0 ? "save \(percent)%" : nil
+    }
+
+    private func packageCard(_ option: DisplayPackage) -> some View {
+        let selected = option.id == selectedPackageID
         return Button {
-            selectedPackageID = package.identifier
+            selectedPackageID = option.id
         } label: {
-            VStack(spacing: 6) {
-                if let badge = badge(for: package) {
-                    Text(badge)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(selected ? Color.surfaceDoodh : Color.inkKohlSoft)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            selected ? Color.brandSaag : Color.brandSaagSoft.opacity(0.45),
-                            in: Capsule()
-                        )
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(option.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.inkKohl)
+                        if let badge = option.badge {
+                            Text(badge)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(selected ? Color.surfaceDoodh : Color.brandSaag)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    selected ? Color.brandSaag : Color.brandSaagSoft.opacity(0.55),
+                                    in: Capsule()
+                                )
+                        }
+                    }
+                    Text(option.priceLabel)
+                        .font(.samaanMono(14))
+                        .foregroundStyle(Color.inkKohl)
                 }
-                Text(title(for: package))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.inkKohl)
-                Text(package.storeProduct.localizedPriceString)
-                    .font(.samaanMono(13))
-                    .foregroundStyle(Color.inkKohl)
-                Text(periodCaption(for: package))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.inkKohlSoft)
-                    .multilineTextAlignment(.center)
+                Spacer(minLength: 0)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(selected ? Color.brandSaag : Color.borderAkhrotSoft)
             }
-            .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 14)
             .background(
                 selected ? Color.brandSaagSoft.opacity(0.55) : Color.surfaceMalai,
                 in: RoundedRectangle(cornerRadius: Samaan.Radius.md)
@@ -212,83 +263,38 @@ struct SamaanPaywallView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(option.package == nil)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
+    private var footerLinks: some View {
+        HStack(spacing: 6) {
+            Button("Restore Purchases") {
+                Task { await restore() }
+            }
+            .disabled(isPurchasing || isRestoring)
+            .accessibilityIdentifier("paywall.restore")
+
+            Text("·").foregroundStyle(Color.inkKohlSoft)
+
+            if let privacy = URL(string: Config.privacyPolicyURL) {
+                Link("Privacy Policy", destination: privacy)
+            }
+
+            Text("·").foregroundStyle(Color.inkKohlSoft)
+
+            if let terms = URL(string: Config.termsOfUseURL) {
+                Link("Terms of Use", destination: terms)
+            }
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(Color.brandSaag)
+        .tint(Color.brandSaag)
+        .multilineTextAlignment(.center)
+    }
+
     private var selectedPackage: Package? {
-        packages.first { $0.identifier == selectedPackageID }
-    }
-
-    private var disclaimer: String {
-        if let selectedPackage, selectedPackage.packageType == .lifetime {
-            return FreeLimits.paywallLifetimeDisclaimer
-        }
-        return FreeLimits.paywallRenewalDisclaimer
-    }
-
-    private func title(for package: Package) -> String {
-        switch package.packageType {
-        case .monthly: return "Monthly"
-        case .annual: return "Yearly"
-        case .lifetime: return "Lifetime"
-        case .weekly: return "Weekly"
-        case .twoMonth: return "2 months"
-        case .threeMonth: return "3 months"
-        case .sixMonth: return "6 months"
-        case .custom, .unknown:
-            return package.storeProduct.localizedTitle
-        @unknown default:
-            return package.storeProduct.localizedTitle
-        }
-    }
-
-    private func periodCaption(for package: Package) -> String {
-        switch package.packageType {
-        case .monthly: return "Billed monthly"
-        case .annual: return annualCaption(package)
-        case .lifetime: return "One-time purchase"
-        case .weekly: return "Billed weekly"
-        case .twoMonth: return "Billed every 2 months"
-        case .threeMonth: return "Billed every 3 months"
-        case .sixMonth: return "Billed every 6 months"
-        case .custom, .unknown:
-            return "Plan"
-        @unknown default:
-            return "Plan"
-        }
-    }
-
-    private func annualCaption(_ package: Package) -> String {
-        if let perMonth = package.storeProduct.localizedPricePerMonth {
-            return "\(perMonth)/month, billed yearly"
-        }
-        return "Billed yearly"
-    }
-
-    private func badge(for package: Package) -> String? {
-        switch package.packageType {
-        case .annual:
-            if let percent = annualSavingsPercent { return "Save \(percent)%" }
-            return nil
-        case .lifetime:
-            return "Best value"
-        case .monthly, .weekly, .twoMonth, .threeMonth, .sixMonth, .custom, .unknown:
-            return nil
-        @unknown default:
-            return nil
-        }
-    }
-
-    private var annualSavingsPercent: Int? {
-        guard
-            let monthly = packages.first(where: { $0.packageType == .monthly })?.storeProduct.price,
-            let annual = packages.first(where: { $0.packageType == .annual })?.storeProduct.price
-        else { return nil }
-        let yearlyAtMonthly = monthly * 12
-        guard yearlyAtMonthly > 0, yearlyAtMonthly > annual else { return nil }
-        let saved = (yearlyAtMonthly - annual) / yearlyAtMonthly * 100
-        let percent = NSDecimalNumber(decimal: saved).intValue
-        return percent > 0 ? percent : nil
+        packages.first(where: { $0.identifier == selectedPackageID })
     }
 
     private func loadOffering() async {
@@ -297,22 +303,39 @@ struct SamaanPaywallView: View {
         errorMessage = nil
         do {
             let offering = try await appEnv.purchases.currentOffering()
-            let available = offering?.availablePackages ?? []
-            packages = available
-            if selectedPackageID == nil {
-                selectedPackageID = available.first(where: { $0.packageType == .annual })?.identifier
-                    ?? available.first?.identifier
+            // Lifetime is retired from this paywall. Keep monthly + yearly only.
+            let available = (offering?.availablePackages ?? []).filter {
+                $0.packageType == .monthly || $0.packageType == .annual
             }
-            loadFailed = available.isEmpty
+            packages = available
+            if available.isEmpty && !usesScreenshotFixtures {
+                loadFailed = true
+                selectedPackageID = nil
+            } else {
+                loadFailed = false
+                selectedPackageID = available.first(where: { $0.packageType == .annual })?.identifier
+                    ?? available.first(where: { $0.packageType == .monthly })?.identifier
+                    ?? displayPackages.first?.id
+            }
         } catch {
             AppLogger.error("[Paywall] offerings: \(error)")
-            loadFailed = true
+            packages = []
+            selectedPackageID = nil
+            if usesScreenshotFixtures {
+                loadFailed = false
+                selectedPackageID = displayPackages.first?.id
+            } else {
+                loadFailed = true
+            }
         }
         isLoading = false
     }
 
     private func purchaseSelected() async {
-        guard let selectedPackage else { return }
+        guard let selectedPackage else {
+            errorMessage = "Couldn't load plans. Try again."
+            return
+        }
         Analytics.track(.purchaseStarted)
         isPurchasing = true
         errorMessage = nil
@@ -341,5 +364,13 @@ struct SamaanPaywallView: View {
             AppLogger.error("[Paywall] restore: \(error)")
             errorMessage = "Couldn't restore purchases. Try again."
         }
+    }
+
+    private struct DisplayPackage: Identifiable {
+        let id: String
+        let package: Package?
+        let title: String
+        let priceLabel: String
+        let badge: String?
     }
 }

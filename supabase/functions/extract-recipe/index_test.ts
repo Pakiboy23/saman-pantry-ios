@@ -22,6 +22,10 @@ async function exercise(options: {
   authenticated?: boolean;
   body?: object;
   anthropic?: { status?: number; payload?: unknown };
+  grandfathered?: boolean;
+  revenueCatSecret?: string;
+  revenueCatStatus?: number;
+  revenueCatPayload?: unknown;
 }) {
   const calls: string[] = [];
   const logs: string[] = [];
@@ -30,13 +34,17 @@ async function exercise(options: {
   console.log = (...args: unknown[]) => {
     logs.push(args.map((arg) => typeof arg === "string" ? arg : JSON.stringify(arg)).join(" "));
   };
-  const env = {
+  const env: Record<string, string | undefined> = {
     SUPABASE_URL: "https://quota-test.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "synthetic-service-role",
     ANTHROPIC_API_KEY: "synthetic-provider-key",
+    REVENUECAT_SECRET_API_KEY: options.revenueCatSecret,
   };
   const saved = Object.fromEntries(Object.keys(env).map((key) => [key, Deno.env.get(key)]));
-  for (const [key, value] of Object.entries(env)) Deno.env.set(key, value);
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined) Deno.env.delete(key);
+    else Deno.env.set(key, value);
+  }
   globalThis.fetch = (async (input, init) => {
     const url = String(input);
     calls.push(url);
@@ -46,14 +54,25 @@ async function exercise(options: {
         ? Response.json({ message: "Invalid session" }, { status: 401 })
         : Response.json({ id: userId });
     }
+    if (url.includes("api.revenuecat.com/v1/subscribers/")) {
+      return Response.json(
+        options.revenueCatPayload ?? {},
+        { status: options.revenueCatStatus ?? 500 },
+      );
+    }
     if (url.endsWith("/rest/v1/rpc/reserve_recipe_extraction")) {
       assertEquals(init?.method, "POST");
       assertEquals(JSON.parse(String(init?.body)), { p_user_id: userId });
       return Response.json(options.reservation ?? null, { status: options.rpcStatus ?? 200 });
     }
+    if (url.includes("/rest/v1/user_accounts")) {
+      return Response.json([{ grandfathered: options.grandfathered ?? false }]);
+    }
     if (url === "https://api.anthropic.com/v1/messages") {
-      // A provider failure must occur only after a successful reservation.
-      assertEquals(options.reservation, slotId);
+      // Free-tier provider calls require a reserved slot. Pro skips reservation.
+      if (!options.revenueCatSecret || options.revenueCatStatus !== 200) {
+        assertEquals(options.reservation, slotId);
+      }
       if (options.anthropic) {
         return Response.json(options.anthropic.payload ?? {}, { status: options.anthropic.status ?? 200 });
       }
@@ -80,10 +99,75 @@ async function exercise(options: {
 }
 
 Deno.test("quota exhaustion returns the existing 402 contract without calling the provider", async () => {
-  const result = await exercise({ reservation: null });
+  const result = await exercise({ reservation: null, grandfathered: false });
   assertEquals(result.status, 402);
   assertEquals(result.body.code, "quota_exceeded");
-  assertEquals(result.calls.length, 2);
+  assertEquals(result.body.grandfathered, false);
+  assertEquals(result.calls.length, 3);
+});
+
+Deno.test("grandfathered quota exhaustion still returns 402 with grandfathered true", async () => {
+  const result = await exercise({ reservation: null, grandfathered: true });
+  assertEquals(result.status, 402);
+  assertEquals(result.body.code, "quota_exceeded");
+  assertEquals(result.body.grandfathered, true);
+});
+
+Deno.test("RevenueCat lookup failure returns 503 without reserving free quota", async () => {
+  const result = await exercise({
+    revenueCatSecret: "synthetic-rc-secret",
+    revenueCatStatus: 500,
+    reservation: slotId,
+  });
+  assertEquals(result.status, 503);
+  assertEquals(result.body.code, "entitlement_unavailable");
+  assertEquals(
+    result.calls.some((url) => url.includes("/rest/v1/rpc/reserve_recipe_extraction")),
+    false,
+  );
+});
+
+Deno.test("active RevenueCat entitlement skips the free-tier reservation", async () => {
+  const result = await exercise({
+    revenueCatSecret: "synthetic-rc-secret",
+    revenueCatStatus: 200,
+    revenueCatPayload: {
+      subscriber: {
+        entitlements: {
+          "Saman Pro": { expires_date: null },
+        },
+      },
+    },
+    reservation: slotId,
+    anthropic: {
+      status: 200,
+      payload: {
+        stop_reason: "end_turn",
+        model: "claude-sonnet-4-6",
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            title: "Daal",
+            attribution: null,
+            ingredients: [{
+              ingredient: "lentils",
+              original_phrase: "daal",
+              amount: null,
+              unit: null,
+              vague: true,
+            }],
+            steps: ["Boil"],
+            notes: null,
+          }),
+        }],
+      },
+    },
+  });
+  assertEquals(result.status, 200);
+  assertEquals(
+    result.calls.some((url) => url.includes("/rest/v1/rpc/reserve_recipe_extraction")),
+    false,
+  );
 });
 
 Deno.test("RPC errors and malformed reservations fail closed", async () => {

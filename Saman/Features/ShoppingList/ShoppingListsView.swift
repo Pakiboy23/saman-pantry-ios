@@ -6,7 +6,6 @@ struct ShoppingListsView: View {
     @Environment(\.appEnv) private var appEnv
     @Query(sort: \ShoppingList.createdAt, order: .reverse) private var lists: [ShoppingList]
     @State private var showAdd = false
-    @State private var showPaywall = false
     @State private var pendingDeleteList: ShoppingList?
     @State private var openSwipeID: UUID?
     @State private var showScreenshotList = false
@@ -48,11 +47,7 @@ struct ShoppingListsView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     SamaanHeader(subtitle: listSubtitle) {
-                        if FreeLimits.canAddShoppingListFromListsTab(existingCount: lists.count, isPro: appEnv.purchases.isPro) {
-                            showAdd = true
-                        } else {
-                            showPaywall = true
-                        }
+                        showAdd = true
                     }
                     Rectangle().frame(height: 1).foregroundStyle(Color.borderAkhrotSoft.opacity(0.5))
                 }
@@ -73,7 +68,6 @@ struct ShoppingListsView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { AddShoppingListView() }
-            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .confirmationDialog(
                 "Delete \(pendingDeleteList?.name ?? "list")?",
                 isPresented: Binding(

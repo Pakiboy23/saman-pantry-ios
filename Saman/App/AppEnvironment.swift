@@ -9,6 +9,7 @@ final class AppEnvironment {
     let syncManager: SyncManager
     let auth: AuthService
     let purchases: PurchaseService
+    let extractionQuota: ExtractionQuotaService
 
     /// Presents `AuthView` from Settings or recipe capture (nested cover)
     /// when a guest hits Sync, AI extract, or account deletion.
@@ -23,6 +24,7 @@ final class AppEnvironment {
         self.syncManager = SyncManager(supabase: supabase)
         self.auth = AuthService(supabase: supabase)
         self.purchases = PurchaseService()
+        self.extractionQuota = ExtractionQuotaService(supabase: supabase)
     }
 
     /// Returns `true` when a session already exists. Otherwise presents
@@ -73,12 +75,16 @@ final class AppEnvironment {
     }
 
     static let lastAuthenticatedUserIDKey = "samaan.lastAuthenticatedUserID"
+    private static let obsoleteLocalCookbookKeys = [
+        "samaan.familyCookbook.name",
+        "samaan.familyCookbook.members",
+    ]
 
     /// Wipe all locally-cached SwiftData. Called on sign-out, session loss,
     /// account switch, and account deletion so guest browse never inherits the
     /// prior user's pantry (and so push-sync cannot re-upload it under a new user).
     @MainActor
-    func clearLocalStore() {
+    func clearLocalStore(defaults: UserDefaults = .standard) {
         syncManager.invalidateInFlightSync()
         let context = modelContainer.mainContext
         try? context.delete(model: Item.self)
@@ -90,6 +96,9 @@ final class AppEnvironment {
         try? context.delete(model: Recipe.self)
         try? context.save()
         syncManager.clearTombstones()
+        for key in Self.obsoleteLocalCookbookKeys {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     /// Align the on-disk kitchen with the current auth user.
@@ -107,7 +116,7 @@ final class AppEnvironment {
             persistedUserID: persisted,
             currentUserID: currentUserID
         ) {
-            clearLocalStore()
+            clearLocalStore(defaults: defaults)
         }
         let trimmed = currentUserID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if trimmed.isEmpty {

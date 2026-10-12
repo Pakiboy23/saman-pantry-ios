@@ -4,7 +4,16 @@
 
 The iOS app calls `https://<project-ref>.supabase.co/functions/v1/extract-recipe` instead of calling Anthropic directly. This keeps private AI provider credentials out of the app binary.
 
-The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected. After 5 extractions in a rolling 24h the function returns **402** `{ code: "quota_exceeded" }` for **everyone**, including Pro — the function does not read the RevenueCat entitlement. The client shows a try-tomorrow message. Do not open the Pro paywall on 402 until this function grants Pro a higher quota.
+The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected.
+
+Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`):
+
+- **Grandfathered** accounts (created before 2026-10-12): 5 extractions per rolling 24h
+- **New free** accounts: 5 lifetime extractions
+- **Pro** (`Saman Pro` entitlement): uncapped when `REVENUECAT_SECRET_API_KEY` is set
+- RevenueCat lookup failures / timeouts return **503** `{ code: "entitlement_unavailable" }` and do **not** reserve free-tier quota
+
+402 is `{ code: "quota_exceeded", grandfathered: bool }`. The iOS client opens the Pro paywall.
 
 Body is `{ "transcript" }` and/or `{ "url" }`. A transcript that is only an http(s) link is read as a URL.
 
@@ -16,12 +25,10 @@ Body is `{ "transcript" }` and/or `{ "url" }`. A transcript that is only an http
 
 Outbound fetches are http/https only, reject private and internal addresses (and DNS answers or redirects that point at them), time out, and cap the body size.
 
-Requires `supabase/migrations/004_recipe_extraction_events.sql` and
-`supabase/migrations/009_atomic_recipe_extraction_quota.sql` applied in prod before
-this deploy, or every extract 500s. The service-role-only `reserve_recipe_extraction`
-RPC locks admissions per user and counts/inserts in one transaction, so concurrent
-requests share the same five-slot allowance. Deploy the updated function after
-the migration; older function instances still use the separate count/insert path.
+Requires migrations `004`, `009`, and `011` applied in prod before this deploy, or
+every extract 500s. The service-role-only `reserve_recipe_extraction` RPC locks
+admissions per user and counts/inserts in one transaction. Deploy the updated
+function after migration 011.
 
 ### Required Supabase secrets
 
@@ -32,6 +39,9 @@ supabase secrets set ANTHROPIC_MODEL=claude-sonnet-4-6
 # Optional. When set, YouTube links use Data API v3 videos.list (snippet).
 # When unset, the function uses the public watch page. Captions are best-effort either way.
 supabase secrets set YOUTUBE_API_KEY=<youtube-data-api-v3-key>
+# Optional until new Pro products are live. When set, extract-recipe skips the
+# free-tier quota for subscribers with the Saman Pro entitlement.
+supabase secrets set REVENUECAT_SECRET_API_KEY=<revenuecat-secret-api-key>
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically. Do not put `YOUTUBE_API_KEY` in the app.
