@@ -11,7 +11,6 @@ import RevenueCat
 struct SamaanPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnv) private var appEnv
-    @Environment(\.openURL) private var openURL
 
     var trigger: PaywallTrigger = .settings
 
