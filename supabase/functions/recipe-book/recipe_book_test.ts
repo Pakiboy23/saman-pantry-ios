@@ -39,6 +39,7 @@ function transcriptRecipe(overrides: Partial<RecipeRow> & { id: string }): Recip
     extracted_json: overrides.extracted_json ?? JSON.stringify(extracted),
     attribution: overrides.attribution ?? "Mom",
     source_kind: overrides.source_kind ?? "transcript",
+    share_in_family_book: overrides.share_in_family_book ?? false,
     created_at: overrides.created_at ?? "2026-10-04T12:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-10-04T12:00:00.000Z",
   };
@@ -79,6 +80,110 @@ Deno.test("2. A's url extract does not show for Sally; A still sees it", () => {
   assertEquals(aPrivate.length, 1);
   assertEquals(aPrivate[0].title, "YouTube Karahi");
   assertEquals(aPrivate[0].source_kind, "url");
+});
+
+Deno.test("2b. A opts a link recipe in; Sally sees the source link, not the raw transcript field", () => {
+  const store = makeStore();
+  const link = "https://www.youtube.com/watch?v=example";
+  store.upsertRecipe(transcriptRecipe({
+    id: "url-1",
+    source_kind: "url",
+    share_in_family_book: false,
+    raw_transcript: link,
+    title: "YouTube Karahi",
+    attribution: "youtube.com",
+    updated_at: "2026-10-05T12:00:00.000Z",
+  }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 0);
+
+  store.upsertRecipe(transcriptRecipe({
+    id: "url-1",
+    source_kind: "url",
+    share_in_family_book: true,
+    raw_transcript: link,
+    title: "YouTube Karahi",
+    attribution: "youtube.com",
+    created_at: "2020-01-02T00:00:00.000Z",
+    updated_at: "2026-10-05T12:00:00.000Z",
+  }));
+
+  const sallyBook = store.bookForSignedInUser(SALLY);
+  assertEquals(sallyBook.length, 1);
+  assertEquals(sallyBook[0].attribution, "youtube.com");
+  assertEquals(sallyBook[0].source_url, link);
+  assertEquals(sallyBook[0].created_at, "2026-10-05T12:00:00.000Z");
+  const publicFields = publicCardFields(sallyBook[0]);
+  assertEquals("raw_transcript" in publicFields, false);
+  assertEquals(publicFields.source_url, link);
+
+  store.upsertRecipe(transcriptRecipe({
+    id: "url-1",
+    source_kind: "url",
+    share_in_family_book: true,
+    raw_transcript: link,
+    title: "YouTube Karahi again",
+    attribution: "youtube.com",
+    updated_at: "2026-10-06T12:00:00.000Z",
+  }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 1);
+  assertEquals(store.cardForSignedInUser("url-1", SALLY)?.created_at, "2026-10-05T12:00:00.000Z");
+  assertEquals(store.cardForSignedInUser("url-1", SALLY)?.title, "YouTube Karahi again");
+
+  store.upsertRecipe(transcriptRecipe({
+    id: "url-1",
+    source_kind: "url",
+    share_in_family_book: false,
+    raw_transcript: link,
+    title: "YouTube Karahi again",
+  }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 0);
+  assertEquals(store.ownerRecipes(A)[0]?.title, "YouTube Karahi again");
+});
+
+Deno.test("2c. A link whose text is not an http URL can be shared without publishing that text", () => {
+  const store = makeStore();
+  store.upsertRecipe(transcriptRecipe({
+    id: "url-messy",
+    source_kind: "url",
+    share_in_family_book: true,
+    raw_transcript: "notes that are not a link",
+    title: "Messy link",
+  }));
+  const card = store.cardForSignedInUser("url-messy", SALLY);
+  assertExists(card);
+  assertEquals(card?.source_url, null);
+  assertEquals(JSON.stringify(publicCardFields(card!)).includes("notes that are not a link"), false);
+});
+
+Deno.test("2e. A link with non-array ingredients still publishes", () => {
+  const store = makeStore();
+  for (const ingredients of [null, { haldi: "andaza" }]) {
+    store.upsertRecipe(transcriptRecipe({
+      id: "url-odd",
+      source_kind: "url",
+      share_in_family_book: true,
+      raw_transcript: "https://example.com/odd",
+      extracted_json: JSON.stringify({ ingredients, steps: ["Cook"] }),
+      title: "Odd JSON",
+    }));
+    const card = store.cardForSignedInUser("url-odd", SALLY);
+    assertExists(card);
+    assertEquals(card?.ingredient_phrases, []);
+    assertEquals(card?.steps, ["Cook"]);
+  }
+});
+
+Deno.test("2d. Clearing the flag on a transcript does not remove it from Sally's book", () => {
+  const store = makeStore();
+  store.upsertRecipe(transcriptRecipe({
+    id: "card-1",
+    share_in_family_book: false,
+    raw_transcript: "Private words from ammi",
+  }));
+  const card = store.cardForSignedInUser("card-1", SALLY);
+  assertExists(card);
+  assertEquals(card?.source_url, null);
+  assertEquals(JSON.stringify(publicCardFields(card!)).includes("Private words"), false);
 });
 
 Deno.test("3. Sally's card has no raw_transcript", () => {

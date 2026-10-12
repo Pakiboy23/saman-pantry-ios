@@ -10,7 +10,10 @@ struct RecipeDetailView: View {
     @State private var extracted: ExtractedRecipe? = nil
     @State private var showAddedBanner = false
     @State private var showEditor = false
-    @State private var showDeleteConfirm = false
+    @State private var detailPrompt: DetailPrompt?
+    @State private var familyBookAuth = FamilyBookAuthIntent()
+    @State private var familyBookError: String?
+    @State private var isUpdatingFamilyBook = false
     @State private var shareOffer: RecipeShareOffer?
 
     var body: some View {
@@ -27,9 +30,21 @@ struct RecipeDetailView: View {
                     transcriptFallback
                 }
 
-                addToListButton
-                    .padding(.top, 28)
-                    .padding(.bottom, 48)
+                VStack(spacing: 12) {
+                    addToListButton
+                    if recipe.sourceKindValue == .url {
+                        Button(recipe.shareInFamilyBook
+                            ? FamilyBookShareCopy.removeAction
+                            : FamilyBookShareCopy.addAction
+                        ) {
+                            requestFamilyBookChange()
+                        }
+                        .buttonStyle(SamaanSecondaryButtonStyle())
+                        .accessibilityIdentifier("recipe.familyBook")
+                    }
+                }
+                .padding(.top, 28)
+                .padding(.bottom, 48)
             }
             .padding(.horizontal, Samaan.Space.md)
             .padding(.top, 12)
@@ -48,11 +63,17 @@ struct RecipeDetailView: View {
                 .accessibilityLabel("Edit Recipe")
             }
             ToolbarItem(placement: .destructiveAction) {
-                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                Button(role: .destructive) { detailPrompt = .delete } label: {
                     Image(systemName: "trash")
                 }
                 .accessibilityLabel("Delete Recipe")
             }
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { appEnv.isAuthPresented },
+            set: { appEnv.isAuthPresented = $0 }
+        )) {
+            AuthView()
         }
         .sheet(isPresented: $showEditor, onDismiss: {
             parseExtracted()
@@ -61,19 +82,56 @@ struct RecipeDetailView: View {
             RecipeEditView(recipe: recipe)
         }
         .confirmationDialog(
-            "Delete \(recipe.title)?",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
-                dismiss()
+            detailPrompt?.title(recipeTitle: recipe.title) ?? "",
+            isPresented: Binding(
+                get: { detailPrompt != nil },
+                set: { if !$0 { detailPrompt = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: detailPrompt
+        ) { prompt in
+            switch prompt {
+            case .delete:
+                Button("Delete", role: .destructive) {
+                    appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
+                    detailPrompt = nil
+                    dismiss()
+                }
+            case .addToFamilyBook:
+                Button(FamilyBookShareCopy.addAction) {
+                    Task { await commitFamilyBookShare(true) }
+                }
+                .disabled(isUpdatingFamilyBook)
+            case .removeFromFamilyBook:
+                Button(FamilyBookShareCopy.removeAction) {
+                    Task { await commitFamilyBookShare(false) }
+                }
+                .disabled(isUpdatingFamilyBook)
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) { detailPrompt = nil }
+        } message: { prompt in
+            if let message = prompt.message {
+                Text(message)
+            }
         }
         .onAppear {
             parseExtracted()
             refreshShareOffer()
+        }
+        .onChange(of: appEnv.isAuthPresented) { _, presented in
+            guard !presented else { return }
+            guard familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) != nil else { return }
+            Task { @MainActor in
+                showFamilyBookPrompt()
+            }
+        }
+        .alert(FamilyBookShareCopy.uploadFailedTitle, isPresented: Binding(
+            get: { familyBookError != nil },
+            set: { if !$0 { familyBookError = nil } }
+        )) {
+            Button("OK") { familyBookError = nil }
+        } message: {
+            Text(familyBookError ?? "")
         }
         .overlay(alignment: .top) {
             if showAddedBanner {
@@ -101,6 +159,12 @@ struct RecipeDetailView: View {
                         .foregroundStyle(Color.brandSaag)
                 }
                 Text(recipe.createdAt, format: .dateTime.day().month(.abbreviated).year())
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.inkKohlSoft)
+            }
+
+            if recipe.sourceKindValue == .url {
+                Text(recipe.myBookStatusLabel)
                     .font(.system(size: 13))
                     .foregroundStyle(Color.inkKohlSoft)
             }
@@ -271,6 +335,32 @@ struct RecipeDetailView: View {
         }
     }
 
+    private func requestFamilyBookChange() {
+        guard recipe.sourceKindValue == .url else { return }
+        guard appEnv.auth.isSignedIn else {
+            familyBookAuth.remember(recipe.id)
+            appEnv.requireAccount()
+            return
+        }
+        showFamilyBookPrompt()
+    }
+
+    private func showFamilyBookPrompt() {
+        detailPrompt = recipe.shareInFamilyBook ? .removeFromFamilyBook : .addToFamilyBook
+    }
+
+    private func commitFamilyBookShare(_ share: Bool) async {
+        guard !isUpdatingFamilyBook else { return }
+        isUpdatingFamilyBook = true
+        defer { isUpdatingFamilyBook = false }
+        detailPrompt = nil
+        do {
+            try await FamilyBookShareCommit.send(share, recipe: recipe, context: context, sync: appEnv.syncManager)
+        } catch {
+            familyBookError = error.localizedDescription
+        }
+    }
+
     private func pushToList() async {
         guard let ex = extracted else { return }
         let list = ShoppingList(name: recipe.title)
@@ -281,6 +371,45 @@ struct RecipeDetailView: View {
         withAnimation { showAddedBanner = true }
         try? await Task.sleep(nanoseconds: 2_500_000_000)
         withAnimation { showAddedBanner = false }
+    }
+}
+
+private enum DetailPrompt: Identifiable {
+    case delete
+    case addToFamilyBook
+    case removeFromFamilyBook
+
+    var id: String {
+        switch self {
+        case .delete:
+            return "delete"
+        case .addToFamilyBook:
+            return "add"
+        case .removeFromFamilyBook:
+            return "remove"
+        }
+    }
+
+    func title(recipeTitle: String) -> String {
+        switch self {
+        case .delete:
+            return "Delete \(recipeTitle)?"
+        case .addToFamilyBook:
+            return FamilyBookShareCopy.addTitle
+        case .removeFromFamilyBook:
+            return FamilyBookShareCopy.removeTitle
+        }
+    }
+
+    var message: String? {
+        switch self {
+        case .delete:
+            return nil
+        case .addToFamilyBook:
+            return FamilyBookShareCopy.addMessage
+        case .removeFromFamilyBook:
+            return FamilyBookShareCopy.removeMessage
+        }
     }
 }
 
