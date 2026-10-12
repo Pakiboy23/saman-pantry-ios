@@ -141,7 +141,7 @@ final class RecipeExtractionService {
         var captureAlertTitle: String {
             switch self {
             case .quotaExceeded:
-                return "Try again tomorrow"
+                return "Upgrade to continue"
             case .instagramCaptionUnavailable:
                 return "Paste the caption"
             case .urlNotAllowed, .urlFetchFailed, .noRecipeText(.url):
@@ -160,7 +160,7 @@ final class RecipeExtractionService {
             case .serviceError(let message):
                 return message
             case .quotaExceeded:
-                return FreeLimits.quotaExceededMessage
+                return FreeLimits.paywallContextExtractionLimit
             case .unauthorized:
                 return "Please sign in again, then retry."
             case .instagramCaptionUnavailable:

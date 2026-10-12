@@ -9,11 +9,13 @@ import {
 // Recipe extraction is proxied so the Anthropic key never ships in the iOS
 // binary. The caller must be a signed-in user: the anon key as Bearer is a
 // valid JWT but getUser rejects it, which is what closed the open proxy.
-// Quota is 5 extractions per rolling 24h for every signed-in user, including
-// Pro. This function does not read RevenueCat.
-// The iOS client must show "try tomorrow" on 402 — do not open the Pro
-// paywall until a higher Pro cap actually exists here.
-// Counted in recipe_extraction_events (service role only; see 004 and 009).
+//
+// Free-tier quota (see migration 011):
+//   - grandfathered users: 5 extractions / rolling 24h
+//   - new free users: 5 lifetime extractions
+// Pro (`Saman Pro` RevenueCat entitlement) skips the quota. The iOS client
+// opens the paywall on 402 for free users.
+// Counted in recipe_extraction_events (service role only; see 004, 009, 011).
 //
 // Body is { transcript } and/or { url }. A transcript that is only an http(s)
 // link is read as a URL. Text transcripts still consume a slot before the
@@ -30,6 +32,7 @@ const corsHeaders = {
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
 const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
+const revenueCatEntitlementID = "Saman Pro";
 const TRANSCRIPT_NO_RECIPE =
   "I only caught part of that. Try recording again, or type the ingredients and steps.";
 const LINK_NO_RECIPE =
@@ -90,6 +93,14 @@ Deno.serve(async (request) => {
   let slotId: string | null = null;
 
   async function takeQuotaSlot(): Promise<Response | null> {
+    const isPro = await hasActiveProEntitlement(userId);
+    if (isPro) {
+      // Pro is uncapped. Do not write recipe_extraction_events — those rows
+      // are the free-tier meter, and a later downgrade must not inherit them.
+      slotId = null;
+      return null;
+    }
+
     // The RPC locks admissions for this user through counting and insertion.
     // A provider failure still counts; URL fetches that fail before here do not.
     const { data: reservedSlotId, error } = await admin.rpc(
@@ -103,8 +114,20 @@ Deno.serve(async (request) => {
     }
 
     if (reservedSlotId === null) {
+      const { data: account } = await admin
+        .from("user_accounts")
+        .select("grandfathered")
+        .eq("id", userId)
+        .maybeSingle();
+      const grandfathered = account?.grandfathered === true;
       return json(
-        { error: "Daily recipe extraction limit reached.", code: "quota_exceeded" },
+        {
+          error: grandfathered
+            ? "Daily recipe extraction limit reached."
+            : "Free recipe extraction limit reached.",
+          code: "quota_exceeded",
+          grandfathered,
+        },
         402,
       );
     }
@@ -155,6 +178,43 @@ Deno.serve(async (request) => {
   const userText = `Transcript:\n\n${transcript}\n\nReturn the structured recipe as JSON.`;
   return await extractWithModel(apiKey, userText, systemPrompt, "transcript");
 });
+
+async function hasActiveProEntitlement(appUserId: string): Promise<boolean> {
+  const secret = Deno.env.get("REVENUECAT_SECRET_API_KEY")?.trim();
+  if (!secret) {
+    // Secret is set when Pro products are live. Until then, free-tier quota
+    // applies to everyone so we never silently grant unlimited extracts.
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (!response.ok) {
+      console.error("revenuecat subscriber lookup failed:", response.status);
+      return false;
+    }
+    const payload = await response.json() as {
+      subscriber?: {
+        entitlements?: Record<string, { expires_date?: string | null }>;
+      };
+    };
+    const entitlement = payload.subscriber?.entitlements?.[revenueCatEntitlementID];
+    if (!entitlement) return false;
+    if (entitlement.expires_date == null) return true;
+    return Date.parse(entitlement.expires_date) > Date.now();
+  } catch (error) {
+    console.error("revenuecat subscriber lookup error:", error instanceof Error ? error.message : "unknown");
+    return false;
+  }
+}
 
 async function extractWithModel(
   apiKey: string,

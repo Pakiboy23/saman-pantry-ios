@@ -22,6 +22,7 @@ async function exercise(options: {
   authenticated?: boolean;
   body?: object;
   anthropic?: { status?: number; payload?: unknown };
+  grandfathered?: boolean;
 }) {
   const calls: string[] = [];
   const logs: string[] = [];
@@ -50,6 +51,9 @@ async function exercise(options: {
       assertEquals(init?.method, "POST");
       assertEquals(JSON.parse(String(init?.body)), { p_user_id: userId });
       return Response.json(options.reservation ?? null, { status: options.rpcStatus ?? 200 });
+    }
+    if (url.includes("/rest/v1/user_accounts")) {
+      return Response.json([{ grandfathered: options.grandfathered ?? false }]);
     }
     if (url === "https://api.anthropic.com/v1/messages") {
       // A provider failure must occur only after a successful reservation.
@@ -80,10 +84,18 @@ async function exercise(options: {
 }
 
 Deno.test("quota exhaustion returns the existing 402 contract without calling the provider", async () => {
-  const result = await exercise({ reservation: null });
+  const result = await exercise({ reservation: null, grandfathered: false });
   assertEquals(result.status, 402);
   assertEquals(result.body.code, "quota_exceeded");
-  assertEquals(result.calls.length, 2);
+  assertEquals(result.body.grandfathered, false);
+  assertEquals(result.calls.length, 3);
+});
+
+Deno.test("grandfathered quota exhaustion still returns 402 with grandfathered true", async () => {
+  const result = await exercise({ reservation: null, grandfathered: true });
+  assertEquals(result.status, 402);
+  assertEquals(result.body.code, "quota_exceeded");
+  assertEquals(result.body.grandfathered, true);
 });
 
 Deno.test("RPC errors and malformed reservations fail closed", async () => {

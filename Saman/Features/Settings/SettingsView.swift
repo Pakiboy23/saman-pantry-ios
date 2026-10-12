@@ -253,7 +253,7 @@ struct SettingsView: View {
                 Text("This permanently removes your account, pantry, lists, and recipes. This can't be undone.")
             }
             .sheet(isPresented: $showPaywall) {
-                SamaanPaywallView()
+                SamaanPaywallView(trigger: .settings)
             }
             .alert("Restore Purchases", isPresented: Binding(
                 get: { restoreMessage != nil },

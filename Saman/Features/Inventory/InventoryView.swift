@@ -6,7 +6,6 @@ struct InventoryView: View {
     @Environment(\.appEnv) private var appEnv
     @Query(sort: \Item.name) private var items: [Item]
     @State private var showAdd = false
-    @State private var showPaywall = false
     @State private var showSettings = false
     @State private var pendingDeleteItem: Item?
     @State private var openSwipeID: UUID?
@@ -90,7 +89,6 @@ struct InventoryView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAdd) { AddItemView() }
-            .sheet(isPresented: $showPaywall) { SamaanPaywallView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .confirmationDialog(
                 "Delete \(pendingDeleteItem?.name ?? "item")?",
@@ -134,11 +132,7 @@ struct InventoryView: View {
                 .accessibilityLabel("Settings")
                 // Add item
                 Button {
-                    if FreeLimits.canAddPantryItem(existingCount: items.count, isPro: appEnv.purchases.isPro) {
-                        showAdd = true
-                    } else {
-                        showPaywall = true
-                    }
+                    showAdd = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold))

@@ -34,6 +34,7 @@ struct RecipeCaptureView: View {
     @State private var captureTask: Task<Void, Never>?
     @State private var captureIsActive = true
     @State private var captureGeneration = UUID()
+    @State private var showPaywall = false
 
     enum Phase { case idle, extracting, reviewing, adding, done }
 
@@ -153,6 +154,13 @@ struct RecipeCaptureView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showPaywall) {
+                SamaanPaywallView(trigger: .extractionLimit)
+            }
+            .task(id: appEnv.auth.isSignedIn) {
+                guard appEnv.auth.isSignedIn, !appEnv.purchases.isPro else { return }
+                await appEnv.extractionQuota.refresh()
+            }
             .onAppear {
                 captureIsActive = true
                 resumePendingExtraction()
@@ -182,6 +190,16 @@ struct RecipeCaptureView: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if shouldShowExtractionCounter {
+                        Text(appEnv.extractionQuota.status.counterLabel)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.brandSaag)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, Samaan.Space.md)
+                            .padding(.top, Samaan.Space.md)
+                            .accessibilityIdentifier("recipe.extractionCounter")
+                    }
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Record it, paste a link, or paste the words.")
                             .font(.system(size: 14, weight: .medium))
@@ -191,7 +209,7 @@ struct RecipeCaptureView: View {
                             .foregroundStyle(Color.inkKohlSoft)
                     }
                     .padding(.horizontal, Samaan.Space.md)
-                    .padding(.top, Samaan.Space.md)
+                    .padding(.top, shouldShowExtractionCounter ? 10 : Samaan.Space.md)
                     .padding(.bottom, 12)
 
                     audioCapture
@@ -600,6 +618,15 @@ struct RecipeCaptureView: View {
             resumeExtractAfterAuth = true
             return
         }
+        if !appEnv.purchases.isPro {
+            await appEnv.extractionQuota.refresh()
+            if appEnv.extractionQuota.status.isExhausted {
+                extractingFromLink = false
+                phase = .idle
+                showPaywall = true
+                return
+            }
+        }
         resumeFromAudio = false
         extractingFromLink = link != nil
         phase = .extracting
@@ -627,6 +654,10 @@ struct RecipeCaptureView: View {
             selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
             extractedJSON = result.rawJSON
             Analytics.track(.recipeExtracted)
+            if !appEnv.purchases.isPro {
+                appEnv.extractionQuota.noteLocalExtraction()
+                Task { await appEnv.extractionQuota.refresh() }
+            }
             phase = .reviewing
         } catch let error as RecipeExtractionService.ExtractionError {
             guard acceptsCapture(generation) else { return }
@@ -637,7 +668,11 @@ struct RecipeCaptureView: View {
                 appEnv.requireAccount()
                 extractingFromLink = false
                 phase = .idle
-            case .quotaExceeded, .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
+            case .quotaExceeded:
+                extractingFromLink = false
+                phase = .idle
+                showPaywall = true
+            case .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
                  .apiError, .serviceError:
                 presentError(error.localizedDescription, title: error.captureAlertTitle)
             }
@@ -645,6 +680,10 @@ struct RecipeCaptureView: View {
             guard acceptsCapture(generation) else { return }
             presentError(error.localizedDescription)
         }
+    }
+
+    private var shouldShowExtractionCounter: Bool {
+        appEnv.auth.isSignedIn && !appEnv.purchases.isPro
     }
 
     private func presentError(_ message: String, title: String = "Extraction failed") {

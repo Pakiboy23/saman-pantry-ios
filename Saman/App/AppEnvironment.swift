@@ -9,6 +9,7 @@ final class AppEnvironment {
     let syncManager: SyncManager
     let auth: AuthService
     let purchases: PurchaseService
+    let extractionQuota: ExtractionQuotaService
 
     /// Presents `AuthView` from Settings or recipe capture (nested cover)
     /// when a guest hits Sync, AI extract, or account deletion.
@@ -23,6 +24,7 @@ final class AppEnvironment {
         self.syncManager = SyncManager(supabase: supabase)
         self.auth = AuthService(supabase: supabase)
         self.purchases = PurchaseService()
+        self.extractionQuota = ExtractionQuotaService(supabase: supabase)
     }
 
     /// Returns `true` when a session already exists. Otherwise presents

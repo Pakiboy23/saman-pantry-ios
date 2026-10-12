@@ -7,6 +7,9 @@ struct FamilyRecipeBookView: View {
     @State private var cards: [FamilyRecipeBookCard] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showPaywall = false
+    @State private var showCreateCookbook = false
+
     var body: some View {
         Group {
             if !appEnv.auth.isSignedIn {
@@ -24,6 +27,14 @@ struct FamilyRecipeBookView: View {
             }
         }
         .background(Color.surfaceDoodh)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if appEnv.auth.isSignedIn {
+                createCookbookButton
+                    .padding(.horizontal, Samaan.Space.md)
+                    .padding(.vertical, 12)
+                    .background(Color.surfaceDoodh.opacity(0.96))
+            }
+        }
         .task(id: appEnv.auth.isSignedIn) {
             guard appEnv.auth.isSignedIn else {
                 cards = []
@@ -31,12 +42,32 @@ struct FamilyRecipeBookView: View {
             }
             await reload()
         }
+        .sheet(isPresented: $showPaywall) {
+            SamaanPaywallView(trigger: .cookbookCreation)
+        }
+        .sheet(isPresented: $showCreateCookbook) {
+            CreateFamilyCookbookView()
+        }
         .fullScreenCover(isPresented: Binding(
             get: { appEnv.isAuthPresented },
             set: { appEnv.isAuthPresented = $0 }
         )) {
             AuthView()
         }
+    }
+
+    private var createCookbookButton: some View {
+        Button {
+            if appEnv.purchases.isPro {
+                showCreateCookbook = true
+            } else {
+                showPaywall = true
+            }
+        } label: {
+            Text(appEnv.purchases.isPro ? "Create family cookbook" : "Create your family cookbook")
+        }
+        .buttonStyle(SamaanSecondaryButtonStyle())
+        .accessibilityIdentifier("cookbook.create")
     }
 
     private var signInPrompt: some View {

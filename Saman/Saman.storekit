@@ -20,7 +20,7 @@
       "id" : "SamanProSubscriptions",
       "localizations" : [
         {
-          "description" : "Unlocks more than 30 pantry items and extra shopping lists from the Lists tab. Recipe extract is 5 per day for everyone.",
+          "description" : "Unlimited voice extractions and a family cookbook you can share. Members cook from it for free.",
           "displayName" : "Saman Pro",
           "locale" : "en_US"
         }
@@ -34,14 +34,14 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "4.99",
+          "displayPrice" : "7.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "saman.pro.monthly",
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "More than 30 pantry items and extra lists from Lists. Extract stays 5/day.",
+              "description" : "Unlimited voice extractions. Create and share your family cookbook.",
               "displayName" : "Saman Pro Monthly",
               "locale" : "en_US"
             }
@@ -49,6 +49,31 @@
           "productID" : "saman.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Saman Pro Monthly",
+          "subscriptionGroupID" : "SamanProSubscriptions",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "59.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "saman.pro.yearly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited voice extractions. Create and share your family cookbook. Save 38%.",
+              "displayName" : "Saman Pro Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "saman.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Saman Pro Yearly",
           "subscriptionGroupID" : "SamanProSubscriptions",
           "type" : "RecurringSubscription"
         }

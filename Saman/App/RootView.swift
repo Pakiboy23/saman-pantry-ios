@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(\.appEnv) private var appEnv
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(OnboardingStorage.completedKey) private var hasCompletedOnboarding = false
     @State private var selectedTab: AppTab
     @State private var showScreenshotRecipeReview: Bool
     @State private var showScreenshotPaywall: Bool
@@ -20,6 +21,10 @@ struct RootView: View {
         let presentNow = launch.skipsAuth
         _showScreenshotRecipeReview = State(initialValue: presentNow && scene == .recipeReview)
         _showScreenshotPaywall = State(initialValue: presentNow && scene == .paywall)
+        // Screenshot / UI-test launches skip onboarding so seeded scenes stay reachable.
+        if launch.skipsAuth {
+            UserDefaults.standard.set(true, forKey: OnboardingStorage.completedKey)
+        }
     }
 
     private static func tab(for scene: ScreenshotLaunchConfiguration.Scene?) -> AppTab {
@@ -53,6 +58,10 @@ struct RootView: View {
                 }
             } else if appEnv.auth.isRecoveringPassword {
                 AuthView(allowsDismiss: false)
+            } else if !hasCompletedOnboarding {
+                OnboardingView {
+                    hasCompletedOnboarding = true
+                }
             } else {
                 tabShell
                     .onAppear {
@@ -68,10 +77,14 @@ struct RootView: View {
         .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
             if ScreenshotLaunchConfiguration.current.skipsAuth { return }
             appEnv.reconcileLocalStore(currentUserID: signedIn ? appEnv.auth.currentUserID : nil)
-            guard signedIn else { return }
-            appEnv.isAuthPresented = false
-            appEnv.syncNow()
-            presentScreenshotSheetsIfNeeded()
+            if signedIn {
+                appEnv.isAuthPresented = false
+                appEnv.syncNow()
+                Task { await appEnv.extractionQuota.refresh() }
+                presentScreenshotSheetsIfNeeded()
+            } else {
+                appEnv.extractionQuota.resetForSignOut()
+            }
         }
         .sheet(isPresented: $showScreenshotRecipeReview) {
             RecipeCaptureView(demoReview: ScreenshotDemoKitchen.chickenKarahiReview)
