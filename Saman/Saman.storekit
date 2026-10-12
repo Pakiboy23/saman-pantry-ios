@@ -20,7 +20,7 @@
       "id" : "SamanProSubscriptions",
       "localizations" : [
         {
-          "description" : "Unlimited voice extractions and a family cookbook you can share. Members cook from it for free.",
+          "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
           "displayName" : "Saman Pro",
           "locale" : "en_US"
         }
@@ -41,7 +41,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Unlimited voice extractions. Create and share your family cookbook.",
+              "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
               "displayName" : "Saman Pro Monthly",
               "locale" : "en_US"
             }
@@ -66,7 +66,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Unlimited voice extractions. Create and share your family cookbook. Save 38%.",
+              "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
               "displayName" : "Saman Pro Yearly",
               "locale" : "en_US"
             }
