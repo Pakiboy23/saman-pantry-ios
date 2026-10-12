@@ -618,15 +618,9 @@ struct RecipeCaptureView: View {
             resumeExtractAfterAuth = true
             return
         }
-        if !appEnv.purchases.isPro {
-            await appEnv.extractionQuota.refresh()
-            if appEnv.extractionQuota.status.isExhausted {
-                extractingFromLink = false
-                phase = .idle
-                showPaywall = true
-                return
-            }
-        }
+        // Free-tier exhaustion is authoritative on the server (402). Do not
+        // gate on the local quota RPC or a possibly-stale isPro flag — a
+        // returning Pro subscriber can still be binding RevenueCat identity.
         resumeFromAudio = false
         extractingFromLink = link != nil
         phase = .extracting
@@ -672,6 +666,7 @@ struct RecipeCaptureView: View {
                 extractingFromLink = false
                 phase = .idle
                 showPaywall = true
+                Task { await appEnv.extractionQuota.refresh() }
             case .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
                  .apiError, .serviceError:
                 presentError(error.localizedDescription, title: error.captureAlertTitle)

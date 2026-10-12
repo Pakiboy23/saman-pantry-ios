@@ -6,6 +6,10 @@ import Foundation
 /// grandfathered accounts keep 5/day; new free accounts get 5 lifetime.
 /// Pro (`Saman Pro` entitlement) is uncapped once the Edge Function can
 /// verify RevenueCat. Pantry items and shopping lists are unlimited for all.
+///
+/// Do not advertise private cookbook sharing or member invites here until
+/// household sharing ships (THESIS). The public family recipe book is free
+/// for readers and is not a Pro unlock.
 enum FreeLimits {
     static let extractLimit = 5
 
@@ -13,13 +17,13 @@ enum FreeLimits {
     static let extractPerDay = extractLimit
 
     static let freePlanSummary =
-        "\(extractLimit) voice extractions · view shared cookbooks · unlimited pantry and lists"
+        "\(extractLimit) voice extractions · view the family recipe book · unlimited pantry and lists"
 
     static let proActiveSummary =
-        "Unlimited voice extractions · create and share your family cookbook"
+        "Unlimited voice extractions · every rescued recipe stays in your cookbook"
 
     static let proUnlocksSummary =
-        "Unlimited voice extractions, a family cookbook you can share, and members who cook from it for free."
+        "Unlimited voice extractions. No daily or lifetime cap on recipes from recordings."
 
     /// Source-controlled paywall bullets. Do not load feature copy from the
     /// RevenueCat offering — the remote paywall still advertises a retired
@@ -31,13 +35,14 @@ enum FreeLimits {
 
     static let paywallHeadline = "Don't lose the recipes that only one person knows."
     static let paywallSubheadline =
-        "Samaan Pantry Pro turns voice notes and recordings into a cookbook your whole family can keep."
+        "Samaan Pantry Pro turns voice notes and recordings into recipes you can keep."
     static let paywallCallToAction = "Get Samaan Pro"
     static let paywallRenewalDisclaimer = "Subscription renews automatically. Cancel anytime."
 
     static let paywallContextExtractionLimit = "You've used your \(extractLimit) free extractions."
-    static let paywallContextCookbookCreation = "Creating a family cookbook is a Pro feature."
 
+    /// Screenshot / StoreKit fixture labels only. Live paywall cards use
+    /// `Package.storeProduct.localizedPriceString`.
     static let monthlyPriceLabel = "$7.99 / month"
     static let yearlyPriceLabel = "$59.99 / year"
     static let yearlySavingsLabel = "save 38%"
@@ -48,12 +53,8 @@ enum FreeLimits {
             subtitle: "No cap on recipes rescued from recordings"
         ),
         ProBenefit(
-            title: "Create your family cookbook",
-            subtitle: "One place for every recipe, from every generation"
-        ),
-        ProBenefit(
-            title: "Add family members",
-            subtitle: "They can read and cook from it for free"
+            title: "Keep every rescued recipe",
+            subtitle: "Your extracts stay in your cookbook, ready to cook from again"
         ),
     ]
 
@@ -62,7 +63,7 @@ enum FreeLimits {
             freePlanSummary, proUnlocksSummary, proActiveSummary,
             paywallHeadline, paywallSubheadline, paywallCallToAction,
             paywallRenewalDisclaimer,
-            paywallContextExtractionLimit, paywallContextCookbookCreation,
+            paywallContextExtractionLimit,
             monthlyPriceLabel, yearlyPriceLabel, yearlySavingsLabel,
         ] + proBenefits.flatMap { [$0.title, $0.subtitle] }
     }
@@ -80,7 +81,6 @@ enum FreeLimits {
 enum PaywallTrigger: Equatable, Sendable {
     case settings
     case extractionLimit
-    case cookbookCreation
 
     var contextLine: String? {
         switch self {
@@ -88,8 +88,6 @@ enum PaywallTrigger: Equatable, Sendable {
             return nil
         case .extractionLimit:
             return FreeLimits.paywallContextExtractionLimit
-        case .cookbookCreation:
-            return FreeLimits.paywallContextCookbookCreation
         }
     }
 }

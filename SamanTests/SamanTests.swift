@@ -466,13 +466,13 @@ struct FreeLimitsTests {
         #expect(FreeLimits.extractionCounterLabel(used: 2, grandfathered: true) == "2 of 5 extractions used today")
         #expect(FreeLimits.freePlanSummary.contains("5 voice extractions"))
         #expect(FreeLimits.proActiveSummary.lowercased().contains("unlimited voice"))
-        #expect(FreeLimits.proActiveSummary.lowercased().contains("family cookbook"))
+        #expect(!FreeLimits.proActiveSummary.lowercased().contains("share"))
+        #expect(!FreeLimits.proMarketingStrings.joined(separator: "\n").lowercased().contains("add family members"))
     }
 
     @Test func paywallTriggersCarryContextOnlyWhenNeeded() {
         #expect(PaywallTrigger.settings.contextLine == nil)
         #expect(PaywallTrigger.extractionLimit.contextLine == FreeLimits.paywallContextExtractionLimit)
-        #expect(PaywallTrigger.cookbookCreation.contextLine == FreeLimits.paywallContextCookbookCreation)
     }
 }
 
@@ -494,11 +494,10 @@ struct MonetizationCopyTests {
     }
 
     @Test func paywallBenefitsAreTheRealUnlocks() {
-        #expect(FreeLimits.proBenefits.count == 3)
+        #expect(FreeLimits.proBenefits.count == 2)
         #expect(FreeLimits.proBenefits.map(\.title) == [
             "Unlimited voice extractions",
-            "Create your family cookbook",
-            "Add family members",
+            "Keep every rescued recipe",
         ])
         #expect(FreeLimits.paywallHeadline.contains("Don't lose the recipes"))
         #expect(FreeLimits.monthlyPriceLabel.contains("7.99"))
@@ -510,6 +509,8 @@ struct MonetizationCopyTests {
                 #expect(!lower.contains(banned), "Pro copy leaked \(banned): \(string)")
             }
             #expect(!string.contains("—"), "App-facing copy must not use em dashes: \(string)")
+            #expect(!lower.contains("read and cook from it for free"))
+            #expect(!lower.contains("add family members"))
         }
     }
 
@@ -530,7 +531,21 @@ struct MonetizationCopyTests {
         #expect(paywall.contains("FreeLimits.proBenefits"))
         #expect(paywall.contains("FreeLimits.paywallHeadline"))
         #expect(paywall.contains("Lifetime is retired"))
-        #expect(paywall.contains("trigger"))
+        #expect(paywall.contains("localizedPriceString"))
+        #expect(paywall.contains("loadFailed = true"))
+        #expect(paywall.contains("usesScreenshotFixtures"))
+        #expect(!paywall.contains("CreateFamilyCookbookView"))
+    }
+
+    @Test func familyCookbookCreateUIIsNotShipped() throws {
+        let createPath = samanRoot.appendingPathComponent("Features/Recipes/CreateFamilyCookbookView.swift")
+        #expect(!FileManager.default.fileExists(atPath: createPath.path))
+        let familyBook = try String(
+            contentsOf: samanRoot.appendingPathComponent("Features/Recipes/FamilyRecipeBookView.swift"),
+            encoding: .utf8
+        )
+        #expect(!familyBook.contains("CreateFamilyCookbookView"))
+        #expect(!familyBook.contains("cookbook.create"))
     }
 
     private var repoRoot: URL {

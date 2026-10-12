@@ -5,9 +5,8 @@ import RevenueCat
 /// RevenueCatUI's remote `PaywallView` — that offering still lists a retired
 /// grocery-delivery reorder claim this app does not ship.
 ///
-/// Lifetime packages are hidden. New App Store prices ($7.99 / $59.99) are
-/// shown from `FreeLimits` until RevenueCat offerings are updated after Apple
-/// approves the products.
+/// Lifetime packages are hidden. Live cards use StoreKit localized prices.
+/// Static $7.99 / $59.99 labels are screenshot fixtures only.
 struct SamaanPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnv) private var appEnv
@@ -21,6 +20,11 @@ struct SamaanPaywallView: View {
     @State private var isRestoring = false
     @State private var loadFailed = false
     @State private var errorMessage: String?
+
+    private var usesScreenshotFixtures: Bool {
+        ScreenshotLaunchConfiguration.current.scene == .paywall
+            || ScreenshotLaunchConfiguration.current.isUITesting
+    }
 
     var body: some View {
         ZStack {
@@ -45,7 +49,7 @@ struct SamaanPaywallView: View {
             ProgressView()
                 .tint(Color.brandSaag)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if loadFailed && packages.isEmpty {
+        } else if loadFailed {
             retryState
         } else {
             paywallBody
@@ -131,6 +135,7 @@ struct SamaanPaywallView: View {
             }
             .buttonStyle(SamaanSecondaryButtonStyle())
             .padding(.horizontal, 48)
+            .accessibilityIdentifier("paywall.retry")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -170,17 +175,15 @@ struct SamaanPaywallView: View {
                 id: annual.identifier,
                 package: annual,
                 title: "Yearly",
-                priceLabel: FreeLimits.yearlyPriceLabel,
-                detail: FreeLimits.yearlySavingsLabel,
-                badge: FreeLimits.yearlySavingsLabel
+                priceLabel: "\(annual.storeProduct.localizedPriceString) / year",
+                badge: annualSavingsBadge
             ))
-        } else {
+        } else if usesScreenshotFixtures {
             options.append(DisplayPackage(
-                id: "yearly-fallback",
+                id: "yearly-fixture",
                 package: nil,
                 title: "Yearly",
                 priceLabel: FreeLimits.yearlyPriceLabel,
-                detail: FreeLimits.yearlySavingsLabel,
                 badge: FreeLimits.yearlySavingsLabel
             ))
         }
@@ -189,21 +192,31 @@ struct SamaanPaywallView: View {
                 id: monthly.identifier,
                 package: monthly,
                 title: "Monthly",
-                priceLabel: FreeLimits.monthlyPriceLabel,
-                detail: nil,
+                priceLabel: "\(monthly.storeProduct.localizedPriceString) / month",
                 badge: nil
             ))
-        } else {
+        } else if usesScreenshotFixtures {
             options.append(DisplayPackage(
-                id: "monthly-fallback",
+                id: "monthly-fixture",
                 package: nil,
                 title: "Monthly",
                 priceLabel: FreeLimits.monthlyPriceLabel,
-                detail: nil,
                 badge: nil
             ))
         }
         return options
+    }
+
+    private var annualSavingsBadge: String? {
+        guard
+            let monthly = packages.first(where: { $0.packageType == .monthly })?.storeProduct.price,
+            let annual = packages.first(where: { $0.packageType == .annual })?.storeProduct.price
+        else { return nil }
+        let yearlyAtMonthly = monthly * 12
+        guard yearlyAtMonthly > 0, yearlyAtMonthly > annual else { return nil }
+        let saved = (yearlyAtMonthly - annual) / yearlyAtMonthly * 100
+        let percent = NSDecimalNumber(decimal: saved).intValue
+        return percent > 0 ? "save \(percent)%" : nil
     }
 
     private func packageCard(_ option: DisplayPackage) -> some View {
@@ -232,11 +245,6 @@ struct SamaanPaywallView: View {
                     Text(option.priceLabel)
                         .font(.samaanMono(14))
                         .foregroundStyle(Color.inkKohl)
-                    if let detail = option.detail, option.badge == nil {
-                        Text(detail)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.inkKohlSoft)
-                    }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
@@ -255,7 +263,7 @@ struct SamaanPaywallView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(option.package == nil && packages.isEmpty == false)
+        .disabled(option.package == nil)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -286,8 +294,7 @@ struct SamaanPaywallView: View {
     }
 
     private var selectedPackage: Package? {
-        displayPackages.first(where: { $0.id == selectedPackageID })?.package
-            ?? packages.first(where: { $0.identifier == selectedPackageID })
+        packages.first(where: { $0.identifier == selectedPackageID })
     }
 
     private func loadOffering() async {
@@ -301,27 +308,32 @@ struct SamaanPaywallView: View {
                 $0.packageType == .monthly || $0.packageType == .annual
             }
             packages = available
-            // Prefer yearly, then monthly, then the static fallback cards so
-            // Review / screenshots still see the new $7.99 / $59.99 copy.
-            loadFailed = false
-            if selectedPackageID == nil || !displayPackages.contains(where: { $0.id == selectedPackageID }) {
+            if available.isEmpty && !usesScreenshotFixtures {
+                loadFailed = true
+                selectedPackageID = nil
+            } else {
+                loadFailed = false
                 selectedPackageID = available.first(where: { $0.packageType == .annual })?.identifier
                     ?? available.first(where: { $0.packageType == .monthly })?.identifier
-                    ?? displayPackages.first(where: { $0.package != nil })?.id
                     ?? displayPackages.first?.id
             }
         } catch {
             AppLogger.error("[Paywall] offerings: \(error)")
             packages = []
-            selectedPackageID = displayPackages.first?.id
-            loadFailed = false
+            selectedPackageID = nil
+            if usesScreenshotFixtures {
+                loadFailed = false
+                selectedPackageID = displayPackages.first?.id
+            } else {
+                loadFailed = true
+            }
         }
         isLoading = false
     }
 
     private func purchaseSelected() async {
         guard let selectedPackage else {
-            errorMessage = "Plans are updating. Try Restore Purchases, or check back shortly."
+            errorMessage = "Couldn't load plans. Try again."
             return
         }
         Analytics.track(.purchaseStarted)
@@ -359,7 +371,6 @@ struct SamaanPaywallView: View {
         let package: Package?
         let title: String
         let priceLabel: String
-        let detail: String?
         let badge: String?
     }
 }

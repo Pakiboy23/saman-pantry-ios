@@ -11,6 +11,7 @@ Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`):
 - **Grandfathered** accounts (created before 2026-10-12): 5 extractions per rolling 24h
 - **New free** accounts: 5 lifetime extractions
 - **Pro** (`Saman Pro` entitlement): uncapped when `REVENUECAT_SECRET_API_KEY` is set
+- RevenueCat lookup failures / timeouts return **503** `{ code: "entitlement_unavailable" }` and do **not** reserve free-tier quota
 
 402 is `{ code: "quota_exceeded", grandfathered: bool }`. The iOS client opens the Pro paywall.
 

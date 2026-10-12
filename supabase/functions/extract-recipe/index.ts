@@ -93,12 +93,22 @@ Deno.serve(async (request) => {
   let slotId: string | null = null;
 
   async function takeQuotaSlot(): Promise<Response | null> {
-    const isPro = await hasActiveProEntitlement(userId);
-    if (isPro) {
+    const entitlement = await lookupProEntitlement(userId);
+    if (entitlement === "active") {
       // Pro is uncapped. Do not write recipe_extraction_events — those rows
       // are the free-tier meter, and a later downgrade must not inherit them.
       slotId = null;
       return null;
+    }
+    if (entitlement === "unknown") {
+      // RevenueCat outage or timeout: do not meter the user as free.
+      return json(
+        {
+          error: "Could not verify subscription. Try again.",
+          code: "entitlement_unavailable",
+        },
+        503,
+      );
     }
 
     // The RPC locks admissions for this user through counting and insertion.
@@ -179,14 +189,20 @@ Deno.serve(async (request) => {
   return await extractWithModel(apiKey, userText, systemPrompt, "transcript");
 });
 
-async function hasActiveProEntitlement(appUserId: string): Promise<boolean> {
+type ProEntitlementLookup = "active" | "inactive" | "unknown";
+
+const revenueCatLookupTimeoutMs = 2_500;
+
+async function lookupProEntitlement(appUserId: string): Promise<ProEntitlementLookup> {
   const secret = Deno.env.get("REVENUECAT_SECRET_API_KEY")?.trim();
   if (!secret) {
     // Secret is set when Pro products are live. Until then, free-tier quota
     // applies to everyone so we never silently grant unlimited extracts.
-    return false;
+    return "inactive";
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), revenueCatLookupTimeoutMs);
   try {
     const response = await fetch(
       `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`,
@@ -195,11 +211,14 @@ async function hasActiveProEntitlement(appUserId: string): Promise<boolean> {
           Authorization: `Bearer ${secret}`,
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
       },
     );
+    // Unknown subscriber is a confirmed free user. Other non-2xx are indeterminate.
+    if (response.status === 404) return "inactive";
     if (!response.ok) {
       console.error("revenuecat subscriber lookup failed:", response.status);
-      return false;
+      return "unknown";
     }
     const payload = await response.json() as {
       subscriber?: {
@@ -207,12 +226,14 @@ async function hasActiveProEntitlement(appUserId: string): Promise<boolean> {
       };
     };
     const entitlement = payload.subscriber?.entitlements?.[revenueCatEntitlementID];
-    if (!entitlement) return false;
-    if (entitlement.expires_date == null) return true;
-    return Date.parse(entitlement.expires_date) > Date.now();
+    if (!entitlement) return "inactive";
+    if (entitlement.expires_date == null) return "active";
+    return Date.parse(entitlement.expires_date) > Date.now() ? "active" : "inactive";
   } catch (error) {
     console.error("revenuecat subscriber lookup error:", error instanceof Error ? error.message : "unknown");
-    return false;
+    return "unknown";
+  } finally {
+    clearTimeout(timer);
   }
 }
 
