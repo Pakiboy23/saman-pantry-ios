@@ -14,7 +14,10 @@ struct RecipesView: View {
     @State private var shelf: Shelf = .yours
     @State private var showCapture = false
     @State private var recipePrompt: RecipePrompt?
+    @State private var familyBookAuth = FamilyBookAuthIntent()
     @State private var showFamilyBookAuth = false
+    @State private var familyBookError: String?
+    @State private var isUpdatingFamilyBook = false
     @State private var openSwipeID: UUID?
 
     var body: some View {
@@ -51,7 +54,13 @@ struct RecipesView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture) { RecipeCaptureView() }
-            .fullScreenCover(isPresented: $showFamilyBookAuth) {
+            .fullScreenCover(isPresented: $showFamilyBookAuth, onDismiss: {
+                guard let recipeID = familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) else { return }
+                Task { @MainActor in
+                    guard let recipe = recipes.first(where: { $0.id == recipeID }) else { return }
+                    presentFamilyBookPrompt(for: recipe)
+                }
+            }) {
                 AuthView()
             }
             .confirmationDialog(
@@ -71,24 +80,28 @@ struct RecipesView: View {
                     }
                 case .addToFamilyBook(let recipe):
                     Button(FamilyBookShareCopy.addAction) {
-                        recipe.setFamilyBookSharing(true)
-                        try? context.save()
-                        appEnv.syncNow()
-                        recipePrompt = nil
+                        Task { await commitFamilyBookShare(true, recipe: recipe) }
                     }
+                    .disabled(isUpdatingFamilyBook)
                 case .removeFromFamilyBook(let recipe):
                     Button(FamilyBookShareCopy.removeAction) {
-                        recipe.setFamilyBookSharing(false)
-                        try? context.save()
-                        appEnv.syncNow()
-                        recipePrompt = nil
+                        Task { await commitFamilyBookShare(false, recipe: recipe) }
                     }
+                    .disabled(isUpdatingFamilyBook)
                 }
                 Button("Cancel", role: .cancel) { recipePrompt = nil }
             } message: { prompt in
                 if let message = prompt.message {
                     Text(message)
                 }
+            }
+            .alert(FamilyBookShareCopy.uploadFailedTitle, isPresented: Binding(
+                get: { familyBookError != nil },
+                set: { if !$0 { familyBookError = nil } }
+            )) {
+                Button("OK") { familyBookError = nil }
+            } message: {
+                Text(familyBookError ?? "")
             }
         }
     }
@@ -173,12 +186,29 @@ struct RecipesView: View {
     private func requestFamilyBookChange(for recipe: Recipe) {
         guard recipe.sourceKindValue == .url else { return }
         guard appEnv.auth.isSignedIn else {
+            familyBookAuth.remember(recipe.id)
             showFamilyBookAuth = true
             return
         }
+        presentFamilyBookPrompt(for: recipe)
+    }
+
+    private func presentFamilyBookPrompt(for recipe: Recipe) {
         recipePrompt = recipe.shareInFamilyBook
             ? .removeFromFamilyBook(recipe)
             : .addToFamilyBook(recipe)
+    }
+
+    private func commitFamilyBookShare(_ share: Bool, recipe: Recipe) async {
+        guard !isUpdatingFamilyBook else { return }
+        isUpdatingFamilyBook = true
+        defer { isUpdatingFamilyBook = false }
+        recipePrompt = nil
+        do {
+            try await FamilyBookShareCommit.send(share, recipe: recipe, context: context, sync: appEnv.syncManager)
+        } catch {
+            familyBookError = error.localizedDescription
+        }
     }
 }
 

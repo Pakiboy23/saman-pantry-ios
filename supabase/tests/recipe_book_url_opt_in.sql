@@ -277,4 +277,48 @@ begin
   ) = false, 'Rejected opt-in must not stick';
 end $$;
 
+-- Opt-in must publish when ingredients is JSON null or an object, not only an array.
+set local request.jwt.claim.sub = '20000000-0000-0000-0000-000000000001';
+insert into public.recipes (
+  id, user_id, title, raw_transcript, extracted_json, source_kind, share_in_family_book
+) values
+(
+  '20000000-0000-0000-0000-000000000014',
+  '20000000-0000-0000-0000-000000000001',
+  'Null ingredients',
+  'https://example.com/null-ingredients',
+  '{"ingredients":null,"steps":["Cook"]}',
+  'url',
+  true
+),
+(
+  '20000000-0000-0000-0000-000000000015',
+  '20000000-0000-0000-0000-000000000001',
+  'Object ingredients',
+  'https://example.com/object-ingredients',
+  '{"ingredients":{"haldi":"andaza"},"steps":["Cook"]}',
+  'url',
+  true
+);
+
+do $$
+begin
+  assert exists (
+    select 1 from public.recipe_book_cards
+    where id = '20000000-0000-0000-0000-000000000014'
+      and ingredient_phrases = '[]'::jsonb
+      and steps = '["Cook"]'::jsonb
+  ), 'JSON null ingredients must still publish the card';
+  assert exists (
+    select 1 from public.recipe_book_cards
+    where id = '20000000-0000-0000-0000-000000000015'
+      and ingredient_phrases = '[]'::jsonb
+      and steps = '["Cook"]'::jsonb
+  ), 'Object ingredients must still publish the card';
+  assert (
+    select share_in_family_book from public.recipes
+    where id = '20000000-0000-0000-0000-000000000014'
+  ) = true, 'A non-array ingredients value must not roll back the opt-in';
+end $$;
+
 rollback;

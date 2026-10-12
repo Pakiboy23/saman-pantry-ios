@@ -11,6 +11,9 @@ struct RecipeDetailView: View {
     @State private var showAddedBanner = false
     @State private var showEditor = false
     @State private var detailPrompt: DetailPrompt?
+    @State private var familyBookAuth = FamilyBookAuthIntent()
+    @State private var familyBookError: String?
+    @State private var isUpdatingFamilyBook = false
     @State private var shareOffer: RecipeShareOffer?
 
     var body: some View {
@@ -96,12 +99,14 @@ struct RecipeDetailView: View {
                 }
             case .addToFamilyBook:
                 Button(FamilyBookShareCopy.addAction) {
-                    applyFamilyBookSharing(true)
+                    Task { await commitFamilyBookShare(true) }
                 }
+                .disabled(isUpdatingFamilyBook)
             case .removeFromFamilyBook:
                 Button(FamilyBookShareCopy.removeAction) {
-                    applyFamilyBookSharing(false)
+                    Task { await commitFamilyBookShare(false) }
                 }
+                .disabled(isUpdatingFamilyBook)
             }
             Button("Cancel", role: .cancel) { detailPrompt = nil }
         } message: { prompt in
@@ -112,6 +117,21 @@ struct RecipeDetailView: View {
         .onAppear {
             parseExtracted()
             refreshShareOffer()
+        }
+        .onChange(of: appEnv.isAuthPresented) { _, presented in
+            guard !presented else { return }
+            guard familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) != nil else { return }
+            Task { @MainActor in
+                showFamilyBookPrompt()
+            }
+        }
+        .alert(FamilyBookShareCopy.uploadFailedTitle, isPresented: Binding(
+            get: { familyBookError != nil },
+            set: { if !$0 { familyBookError = nil } }
+        )) {
+            Button("OK") { familyBookError = nil }
+        } message: {
+            Text(familyBookError ?? "")
         }
         .overlay(alignment: .top) {
             if showAddedBanner {
@@ -317,15 +337,28 @@ struct RecipeDetailView: View {
 
     private func requestFamilyBookChange() {
         guard recipe.sourceKindValue == .url else { return }
-        guard appEnv.requireAccount() else { return }
+        guard appEnv.auth.isSignedIn else {
+            familyBookAuth.remember(recipe.id)
+            appEnv.requireAccount()
+            return
+        }
+        showFamilyBookPrompt()
+    }
+
+    private func showFamilyBookPrompt() {
         detailPrompt = recipe.shareInFamilyBook ? .removeFromFamilyBook : .addToFamilyBook
     }
 
-    private func applyFamilyBookSharing(_ share: Bool) {
-        recipe.setFamilyBookSharing(share)
-        try? context.save()
-        appEnv.syncNow()
+    private func commitFamilyBookShare(_ share: Bool) async {
+        guard !isUpdatingFamilyBook else { return }
+        isUpdatingFamilyBook = true
+        defer { isUpdatingFamilyBook = false }
         detailPrompt = nil
+        do {
+            try await FamilyBookShareCommit.send(share, recipe: recipe, context: context, sync: appEnv.syncManager)
+        } catch {
+            familyBookError = error.localizedDescription
+        }
     }
 
     private func pushToList() async {

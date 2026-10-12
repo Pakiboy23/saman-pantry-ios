@@ -88,6 +88,60 @@ struct RecipeBookTests {
         #expect(recipe.isInFamilyBook)
     }
 
+    @Test func failedFamilyBookUploadRestoresThePreviousFlag() {
+        let recipe = Recipe(
+            title: "YouTube Karahi",
+            rawTranscript: "https://www.youtube.com/watch?v=example",
+            attribution: "youtube.com",
+            sourceKind: .url,
+            shareInFamilyBook: true
+        )
+        recipe.isDirty = false
+        let snapshot = FamilyBookShareSnapshot.capture(recipe)
+        recipe.setFamilyBookSharing(false)
+        let toggleUpdatedAt = recipe.updatedAt
+        #expect(recipe.myBookStatusLabel == "link")
+        #expect(FamilyBookShareCommit.uploadWasRejected(
+            isDirty: recipe.isDirty,
+            updatedAt: recipe.updatedAt,
+            toggleUpdatedAt: toggleUpdatedAt
+        ))
+        snapshot.restore(to: recipe)
+        #expect(recipe.shareInFamilyBook)
+        #expect(!recipe.isDirty)
+        #expect(recipe.updatedAt == snapshot.updatedAt)
+        #expect(recipe.myBookStatusLabel == "link · in the family book")
+    }
+
+    @Test func acceptedFamilyBookUploadKeepsTheNewFlag() {
+        let recipe = Recipe(
+            title: "YouTube Karahi",
+            rawTranscript: "https://www.youtube.com/watch?v=example",
+            sourceKind: .url
+        )
+        recipe.setFamilyBookSharing(true)
+        let toggleUpdatedAt = recipe.updatedAt
+        recipe.isDirty = false
+        #expect(!FamilyBookShareCommit.uploadWasRejected(
+            isDirty: recipe.isDirty,
+            updatedAt: recipe.updatedAt,
+            toggleUpdatedAt: toggleUpdatedAt
+        ))
+        #expect(recipe.myBookStatusLabel == "link · in the family book")
+    }
+
+    @Test func canceledSignInDropsTheFamilyBookTapAndSuccessKeepsIt() {
+        let recipeID = UUID()
+        var intent = FamilyBookAuthIntent()
+        intent.remember(recipeID)
+        #expect(intent.resolve(signedIn: false) == nil)
+        #expect(intent.recipeID == nil)
+
+        intent.remember(recipeID)
+        #expect(intent.resolve(signedIn: true) == recipeID)
+        #expect(intent.recipeID == nil)
+    }
+
     @Test func familyBookShareCopyIsSentenceCase() {
         for line in FamilyBookShareCopy.all {
             #expect(!line.contains("—"))
@@ -191,6 +245,7 @@ struct RecipeBookTests {
         #expect(migration.contains("add column if not exists"))
         #expect(migration.contains("new.source_kind = 'transcript'"))
         #expect(migration.contains("new.share_in_family_book"))
+        #expect(migration.contains("jsonb_typeof(card_ingredients) <> 'array'"))
         #expect(migration.contains("auth.uid() = user_id"))
         #expect(migration.contains("raw_transcript"))
         #expect(migration.contains("^https?://"))

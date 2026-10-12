@@ -155,6 +155,24 @@ Deno.test("2c. A link whose text is not an http URL can be shared without publis
   assertEquals(JSON.stringify(publicCardFields(card!)).includes("notes that are not a link"), false);
 });
 
+Deno.test("2e. A link with non-array ingredients still publishes", () => {
+  const store = makeStore();
+  for (const ingredients of [null, { haldi: "andaza" }]) {
+    store.upsertRecipe(transcriptRecipe({
+      id: "url-odd",
+      source_kind: "url",
+      share_in_family_book: true,
+      raw_transcript: "https://example.com/odd",
+      extracted_json: JSON.stringify({ ingredients, steps: ["Cook"] }),
+      title: "Odd JSON",
+    }));
+    const card = store.cardForSignedInUser("url-odd", SALLY);
+    assertExists(card);
+    assertEquals(card?.ingredient_phrases, []);
+    assertEquals(card?.steps, ["Cook"]);
+  }
+});
+
 Deno.test("2d. Clearing the flag on a transcript does not remove it from Sally's book", () => {
   const store = makeStore();
   store.upsertRecipe(transcriptRecipe({

@@ -117,9 +117,9 @@ export function cardFromRecipe(
     title: recipe.title,
     attribution: recipe.attribution,
     steps: Array.isArray(parsed.steps) ? [...parsed.steps] : [],
-    ingredient_phrases: (parsed.ingredients ?? []).map((ing) =>
-      ing.original_phrase || ing.ingredient || ""
-    ),
+    ingredient_phrases: Array.isArray(parsed.ingredients)
+      ? parsed.ingredients.map((ing) => ing.original_phrase || ing.ingredient || "")
+      : [],
     added_by_label: addedByLabel,
     source_url: publicSourceURL(recipe),
     created_at: recipe.created_at,

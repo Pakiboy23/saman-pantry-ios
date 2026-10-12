@@ -42,6 +42,10 @@ final class SyncManager {
         loadTombstones().map { ($0.table, $0.id) }
     }
 
+    func signedInUserID() async -> UUID? {
+        try? await supabase.auth.session.user.id
+    }
+
     func syncAll(context: ModelContext) async {
         if isSyncing {
             rerunAfterCurrentSync = true

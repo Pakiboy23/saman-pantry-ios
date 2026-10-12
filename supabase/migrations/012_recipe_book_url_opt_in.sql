@@ -58,6 +58,7 @@ declare
   parsed jsonb;
   card_steps jsonb := '[]'::jsonb;
   card_phrases jsonb := '[]'::jsonb;
+  card_ingredients jsonb := '[]'::jsonb;
   label text;
   email text;
   source_link text;
@@ -101,12 +102,19 @@ begin
     card_steps := '[]'::jsonb;
   end if;
 
+  -- JSON null and objects are not SQL null, so coalesce will not replace them.
+  -- A private URL row used to return before this call. Opt-in must still publish.
+  card_ingredients := coalesce(parsed -> 'ingredients', '[]'::jsonb);
+  if jsonb_typeof(card_ingredients) <> 'array' then
+    card_ingredients := '[]'::jsonb;
+  end if;
+
   select coalesce(
     jsonb_agg(coalesce(elem ->> 'original_phrase', elem ->> 'ingredient', '')),
     '[]'::jsonb
   )
   into card_phrases
-  from jsonb_array_elements(coalesce(parsed -> 'ingredients', '[]'::jsonb)) as elem;
+  from jsonb_array_elements(card_ingredients) as elem;
 
   -- Publish the link only. Spoken or pasted words in raw_transcript stay off the card.
   source_link := null;
