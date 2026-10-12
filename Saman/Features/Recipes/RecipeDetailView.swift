@@ -72,7 +72,12 @@ struct RecipeDetailView: View {
         .fullScreenCover(isPresented: Binding(
             get: { appEnv.isAuthPresented },
             set: { appEnv.isAuthPresented = $0 }
-        )) {
+        ), onDismiss: {
+            guard familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) != nil else { return }
+            Task { @MainActor in
+                showFamilyBookPrompt()
+            }
+        }) {
             AuthView()
         }
         .sheet(isPresented: $showEditor, onDismiss: {
@@ -117,13 +122,6 @@ struct RecipeDetailView: View {
         .onAppear {
             parseExtracted()
             refreshShareOffer()
-        }
-        .onChange(of: appEnv.isAuthPresented) { _, presented in
-            guard !presented else { return }
-            guard familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) != nil else { return }
-            Task { @MainActor in
-                showFamilyBookPrompt()
-            }
         }
         .alert(FamilyBookShareCopy.uploadFailedTitle, isPresented: Binding(
             get: { familyBookError != nil },
