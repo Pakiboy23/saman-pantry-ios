@@ -75,12 +75,16 @@ final class AppEnvironment {
     }
 
     static let lastAuthenticatedUserIDKey = "samaan.lastAuthenticatedUserID"
+    private static let obsoleteLocalCookbookKeys = [
+        "samaan.familyCookbook.name",
+        "samaan.familyCookbook.members",
+    ]
 
     /// Wipe all locally-cached SwiftData. Called on sign-out, session loss,
     /// account switch, and account deletion so guest browse never inherits the
     /// prior user's pantry (and so push-sync cannot re-upload it under a new user).
     @MainActor
-    func clearLocalStore() {
+    func clearLocalStore(defaults: UserDefaults = .standard) {
         syncManager.invalidateInFlightSync()
         let context = modelContainer.mainContext
         try? context.delete(model: Item.self)
@@ -92,6 +96,9 @@ final class AppEnvironment {
         try? context.delete(model: Recipe.self)
         try? context.save()
         syncManager.clearTombstones()
+        for key in Self.obsoleteLocalCookbookKeys {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     /// Align the on-disk kitchen with the current auth user.
@@ -109,7 +116,7 @@ final class AppEnvironment {
             persistedUserID: persisted,
             currentUserID: currentUserID
         ) {
-            clearLocalStore()
+            clearLocalStore(defaults: defaults)
         }
         let trimmed = currentUserID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if trimmed.isEmpty {

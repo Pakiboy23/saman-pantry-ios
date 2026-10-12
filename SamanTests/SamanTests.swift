@@ -192,12 +192,19 @@ struct DeleteRecordTests {
         try container.mainContext.save()
         env.deleteRecord(item, table: "items", id: item.id)
         #expect(!env.syncManager.queuedTombstones().isEmpty)
+        let suite = "samaan.tests.clear.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
+        defer { defaults.removePersistentDomain(forName: suite) }
 
-        env.clearLocalStore()
+        env.clearLocalStore(defaults: defaults)
 
         let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
         #expect(remaining.isEmpty)
         #expect(env.syncManager.queuedTombstones().isEmpty)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 }
 
@@ -330,6 +337,8 @@ struct LocalStoreReconcileTests {
         let (defaults, suite) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
 
         env.reconcileLocalStore(currentUserID: nil, defaults: defaults)
 
@@ -337,6 +346,8 @@ struct LocalStoreReconcileTests {
         #expect(remaining.isEmpty)
         #expect(env.syncManager.queuedTombstones().isEmpty)
         #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 
     @Test func guestKitchenSurvivesFirstSignIn() throws {
@@ -373,6 +384,8 @@ struct LocalStoreReconcileTests {
         let (defaults, suite) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", forKey: AppEnvironment.lastAuthenticatedUserIDKey)
+        defaults.set("Khan family recipes", forKey: "samaan.familyCookbook.name")
+        defaults.set("a@example.com,b@example.com", forKey: "samaan.familyCookbook.members")
 
         env.reconcileLocalStore(
             currentUserID: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF",
@@ -382,6 +395,8 @@ struct LocalStoreReconcileTests {
         let remaining = try container.mainContext.fetch(FetchDescriptor<Item>())
         #expect(remaining.isEmpty)
         #expect(defaults.string(forKey: AppEnvironment.lastAuthenticatedUserIDKey) == "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")
+        #expect(defaults.string(forKey: "samaan.familyCookbook.name") == nil)
+        #expect(defaults.string(forKey: "samaan.familyCookbook.members") == nil)
     }
 }
 
