@@ -33,7 +33,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Recipe capture.** Four intakes: record, choose an audio file, paste a link (YouTube, Instagram, recipe sites), or paste text.
 - Recording and audio files are transcribed **on device** (`RecipeAudioTranscriber`, `requiresOnDeviceRecognition = true`). Audio never leaves the phone. The recognizer follows the phone's language setting; Apple's on-device recognition covers Hindi but not Urdu or Punjabi, so desi words may come out spelled by ear.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota: **5 extracts per user per 24h** for everyone, reserved atomically (`009_atomic_recipe_extraction_quota.sql`, #58). 402 `quota_exceeded` is "try tomorrow", not a paywall.
-- Transcript saves publish a public card to the family recipe book; URL extracts stay private (THESIS).
+- Transcript saves publish a public card to the family recipe book. URL extracts stay private unless the owner opts that recipe into the book (THESIS). A shared link card shows the source link and attribution.
 
 **Supabase (verified 8 Oct 2026).**
 - `extract-recipe` live is **version 9**, deployed 7 Oct 2026 at 4:10 PM ET. Its `index.ts` and `recipe_source.ts` are byte-identical to `main` at `2632437` (#61 merge), so #54, #58, #60, and #61 are live.

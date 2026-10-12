@@ -2,7 +2,8 @@ import SwiftUI
 import SwiftData
 
 /// Read-only family book card. Shows title, steps, original phrases,
-/// attribution, and who added it. Never shows raw_transcript.
+/// attribution, and who added it. A shared link can also open its source.
+/// Never shows raw_transcript.
 /// Readers may add a note or push ingredients onto their own list.
 struct FamilyRecipeCardDetailView: View {
     @Environment(\.appEnv) private var appEnv
@@ -112,6 +113,16 @@ struct FamilyRecipeCardDetailView: View {
                 Text(card.createdAt, format: .dateTime.day().month(.abbreviated).year())
                     .font(.system(size: 13))
                     .foregroundStyle(Color.inkKohlSoft)
+            }
+
+            if let sourceLink = card.sourceLink {
+                Link(destination: sourceLink) {
+                    Text("Open the source")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.brandSaag)
+                }
+                .padding(.top, 4)
+                .accessibilityIdentifier("familyBook.source")
             }
 
             Rectangle()

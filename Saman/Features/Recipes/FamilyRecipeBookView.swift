@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Signed-in readers browse transcript recipes shared into the village book.
-/// Newest first. No share tap to publish. Saving a transcript already did that.
+/// Signed-in readers browse the family book, newest first.
+/// Transcripts publish on save. A link shows up only after that cook adds it.
 struct FamilyRecipeBookView: View {
     @Environment(\.appEnv) private var appEnv
     @State private var cards: [FamilyRecipeBookCard] = []
@@ -46,7 +46,7 @@ struct FamilyRecipeBookView: View {
             Text("Family recipe book")
                 .font(.cormorant(size: 28))
                 .foregroundStyle(Color.inkKohl)
-            Text("Sign in to read recipes others have saved from a spoken or written transcript.")
+            Text("Sign in to read recipes other cooks have shared.")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.inkKohlSoft)
                 .multilineTextAlignment(.center)
@@ -64,7 +64,7 @@ struct FamilyRecipeBookView: View {
             Text("No family recipes yet")
                 .font(.cormorant(size: 28))
                 .foregroundStyle(Color.inkKohl)
-            Text("When someone saves a spoken or written recipe, it shows up here for signed-in cooks. Link imports stay on their phone.")
+            Text("When someone saves a spoken or written recipe, it shows up here. A link recipe shows up only if that cook adds it.")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.inkKohlSoft)
                 .multilineTextAlignment(.center)
@@ -135,6 +135,10 @@ private struct FamilyRecipeBookRow: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.inkKohl)
                 HStack(spacing: 4) {
+                    if card.sourceLink != nil {
+                        Text("link")
+                        Text("·")
+                    }
                     if let attribution = card.attribution, !attribution.isEmpty {
                         Text("from \(attribution)")
                             .italic()

@@ -1,8 +1,8 @@
 import Foundation
 import Supabase
 
-/// Public family recipe book. Cards are projections of transcript recipes.
-/// URL extracts never appear here. Reading does not consume extract quota.
+/// Public family recipe book. Transcript recipes publish on save.
+/// Link recipes appear only after the owner opts in. Reading does not consume extract quota.
 struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
     let id: UUID
     let ownerId: UUID
@@ -11,6 +11,8 @@ struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
     let steps: [String]
     let ingredientPhrases: [String]
     let addedByLabel: String
+    /// http(s) source for a link the owner chose to share. Absent on transcript cards.
+    let sourceUrl: String?
     let createdAt: Date
     let updatedAt: Date
 
@@ -19,6 +21,7 @@ struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
         case ownerId = "owner_id"
         case ingredientPhrases = "ingredient_phrases"
         case addedByLabel = "added_by_label"
+        case sourceUrl = "source_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -31,6 +34,7 @@ struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
         steps: [String],
         ingredientPhrases: [String],
         addedByLabel: String,
+        sourceUrl: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -41,14 +45,28 @@ struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
         self.steps = steps
         self.ingredientPhrases = ingredientPhrases
         self.addedByLabel = addedByLabel
+        self.sourceUrl = sourceUrl
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    /// Opens only an http(s) source. Anything else stays hidden.
+    var sourceLink: URL? {
+        guard let sourceUrl else { return nil }
+        let trimmed = sourceUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host,
+              !host.isEmpty,
+              !trimmed.contains(where: \.isWhitespace) else { return nil }
+        return url
     }
 
     /// Keys exposed on a public card. raw_transcript is intentionally absent.
     static let publicFieldKeys: Set<String> = [
         "id", "owner_id", "title", "attribution", "steps",
-        "ingredient_phrases", "added_by_label", "created_at", "updated_at",
+        "ingredient_phrases", "added_by_label", "source_url", "created_at", "updated_at",
     ]
 }
 

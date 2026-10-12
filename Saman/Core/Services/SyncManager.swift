@@ -468,6 +468,7 @@ final class SyncManager {
                     existing.extractedJSON = row.extractedJson
                     existing.attribution = row.attribution
                     existing.sourceKind = row.sourceKind ?? RecipeSourceKind.transcript.rawValue
+                    existing.shareInFamilyBook = row.shareInFamilyBook ?? false
                     existing.updatedAt = row.updatedAt
                     existing.isDirty = false
                 }
@@ -479,7 +480,8 @@ final class SyncManager {
                     rawTranscript: row.rawTranscript,
                     extractedJSON: row.extractedJson,
                     attribution: row.attribution,
-                    sourceKind: kind
+                    sourceKind: kind,
+                    shareInFamilyBook: row.shareInFamilyBook ?? false
                 )
                 recipe.isDirty = false
                 recipe.updatedAt = row.updatedAt
@@ -567,6 +569,7 @@ private struct RecipePayload: Encodable {
     let extractedJson: String?
     let attribution: String?
     let sourceKind: String
+    let shareInFamilyBook: Bool
     let updatedAt: Date
     init(_ r: Recipe, userID: UUID) {
         id = r.id
@@ -576,6 +579,7 @@ private struct RecipePayload: Encodable {
         extractedJson = r.extractedJSON
         attribution = r.attribution
         sourceKind = r.sourceKindValue.rawValue
+        shareInFamilyBook = r.shareInFamilyBook
         updatedAt = r.updatedAt
     }
     enum CodingKeys: String, CodingKey {
@@ -584,6 +588,7 @@ private struct RecipePayload: Encodable {
         case rawTranscript = "raw_transcript"
         case extractedJson = "extracted_json"
         case sourceKind = "source_kind"
+        case shareInFamilyBook = "share_in_family_book"
         case updatedAt = "updated_at"
     }
 }
@@ -634,12 +639,14 @@ private struct RecipeRow: Decodable {
     let extractedJson: String?
     let attribution: String?
     let sourceKind: String?
+    let shareInFamilyBook: Bool?
     let updatedAt: Date
     enum CodingKeys: String, CodingKey {
         case id, title, attribution
         case rawTranscript = "raw_transcript"
         case extractedJson = "extracted_json"
         case sourceKind = "source_kind"
+        case shareInFamilyBook = "share_in_family_book"
         case updatedAt = "updated_at"
     }
 }

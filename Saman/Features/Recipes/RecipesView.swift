@@ -13,7 +13,8 @@ struct RecipesView: View {
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @State private var shelf: Shelf = .yours
     @State private var showCapture = false
-    @State private var pendingDeleteRecipe: Recipe?
+    @State private var recipePrompt: RecipePrompt?
+    @State private var showFamilyBookAuth = false
     @State private var openSwipeID: UUID?
 
     var body: some View {
@@ -50,20 +51,44 @@ struct RecipesView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture) { RecipeCaptureView() }
+            .fullScreenCover(isPresented: $showFamilyBookAuth) {
+                AuthView()
+            }
             .confirmationDialog(
-                "Delete \(pendingDeleteRecipe?.title ?? "recipe")?",
+                recipePrompt?.title ?? "",
                 isPresented: Binding(
-                    get: { pendingDeleteRecipe != nil },
-                    set: { if !$0 { pendingDeleteRecipe = nil } }
+                    get: { recipePrompt != nil },
+                    set: { if !$0 { recipePrompt = nil } }
                 ),
                 titleVisibility: .visible,
-                presenting: pendingDeleteRecipe
-            ) { recipe in
-                Button("Delete", role: .destructive) {
-                    appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
-                    pendingDeleteRecipe = nil
+                presenting: recipePrompt
+            ) { prompt in
+                switch prompt {
+                case .delete(let recipe):
+                    Button("Delete", role: .destructive) {
+                        appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
+                        recipePrompt = nil
+                    }
+                case .addToFamilyBook(let recipe):
+                    Button(FamilyBookShareCopy.addAction) {
+                        recipe.setFamilyBookSharing(true)
+                        try? context.save()
+                        appEnv.syncNow()
+                        recipePrompt = nil
+                    }
+                case .removeFromFamilyBook(let recipe):
+                    Button(FamilyBookShareCopy.removeAction) {
+                        recipe.setFamilyBookSharing(false)
+                        try? context.save()
+                        appEnv.syncNow()
+                        recipePrompt = nil
+                    }
                 }
-                Button("Cancel", role: .cancel) { pendingDeleteRecipe = nil }
+                Button("Cancel", role: .cancel) { recipePrompt = nil }
+            } message: { prompt in
+                if let message = prompt.message {
+                    Text(message)
+                }
             }
         }
     }
@@ -75,7 +100,7 @@ struct RecipesView: View {
                 ? "Capture a family recipe"
                 : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
         case .familyBook:
-            return "Recipes saved from a transcript"
+            return "Transcripts and links a cook shared"
         }
     }
 
@@ -113,7 +138,7 @@ struct RecipesView: View {
             LazyVStack(spacing: 10) {
                 ForEach(recipes) { recipe in
                     SamaanSwipeToDelete(id: recipe.id, openID: $openSwipeID) {
-                        pendingDeleteRecipe = recipe
+                        recipePrompt = .delete(recipe)
                     } content: {
                         NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
                             RecipeRow(recipe: recipe)
@@ -121,7 +146,19 @@ struct RecipesView: View {
                         .buttonStyle(.plain)
                     }
                     .contextMenu {
-                        Button(role: .destructive) { pendingDeleteRecipe = recipe } label: {
+                        if recipe.sourceKindValue == .url {
+                            Button {
+                                requestFamilyBookChange(for: recipe)
+                            } label: {
+                                Label(
+                                    recipe.shareInFamilyBook
+                                        ? FamilyBookShareCopy.removeAction
+                                        : FamilyBookShareCopy.addAction,
+                                    systemImage: recipe.shareInFamilyBook ? "book.closed" : "book"
+                                )
+                            }
+                        }
+                        Button(role: .destructive) { recipePrompt = .delete(recipe) } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
@@ -130,6 +167,56 @@ struct RecipesView: View {
             }
             .padding(.top, 8)
             .padding(.bottom, 32)
+        }
+    }
+
+    private func requestFamilyBookChange(for recipe: Recipe) {
+        guard recipe.sourceKindValue == .url else { return }
+        guard appEnv.auth.isSignedIn else {
+            showFamilyBookAuth = true
+            return
+        }
+        recipePrompt = recipe.shareInFamilyBook
+            ? .removeFromFamilyBook(recipe)
+            : .addToFamilyBook(recipe)
+    }
+}
+
+private enum RecipePrompt: Identifiable {
+    case delete(Recipe)
+    case addToFamilyBook(Recipe)
+    case removeFromFamilyBook(Recipe)
+
+    var id: String {
+        switch self {
+        case .delete(let recipe):
+            return "delete-\(recipe.id.uuidString)"
+        case .addToFamilyBook(let recipe):
+            return "add-\(recipe.id.uuidString)"
+        case .removeFromFamilyBook(let recipe):
+            return "remove-\(recipe.id.uuidString)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .delete(let recipe):
+            return "Delete \(recipe.title)?"
+        case .addToFamilyBook:
+            return FamilyBookShareCopy.addTitle
+        case .removeFromFamilyBook:
+            return FamilyBookShareCopy.removeTitle
+        }
+    }
+
+    var message: String? {
+        switch self {
+        case .delete:
+            return nil
+        case .addToFamilyBook:
+            return FamilyBookShareCopy.addMessage
+        case .removeFromFamilyBook:
+            return FamilyBookShareCopy.removeMessage
         }
     }
 }
@@ -153,13 +240,8 @@ private struct RecipeRow: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.inkKohl)
                 HStack(spacing: 4) {
-                    if recipe.sourceKindValue == .url {
-                        Text("link")
-                        Text("·")
-                    } else {
-                        Text("in the family book")
-                        Text("·")
-                    }
+                    Text(recipe.myBookStatusLabel)
+                    Text("·")
                     if let attribution = recipe.attribution {
                         Text("from \(attribution)")
                             .italic()

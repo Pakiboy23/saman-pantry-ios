@@ -1,6 +1,8 @@
 /** Pure publish rules for the public family recipe book.
- *  Mirrors supabase/migrations/008_recipe_book.sql so Linux CI can exercise
- *  the A / Sally cases without an iOS simulator or production Supabase.
+ *  Mirrors supabase/migrations/012_recipe_book_url_opt_in.sql so Linux CI can
+ *  exercise the A / Sally cases without an iOS simulator or production Supabase.
+ *  Transcript saves publish on their own. URL extracts stay private unless
+ *  share_in_family_book is set. raw_transcript never becomes a card field.
  */
 
 export type SourceKind = "transcript" | "url";
@@ -29,6 +31,8 @@ export type RecipeRow = {
   extracted_json: string | null;
   attribution: string | null;
   source_kind: SourceKind;
+  /** Owner opt-in. Ignored for transcripts. URL extracts stay private when false. */
+  share_in_family_book: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -41,6 +45,8 @@ export type RecipeBookCard = {
   steps: string[];
   ingredient_phrases: string[];
   added_by_label: string;
+  /** http(s) source for an opted-in link recipe. Null for transcripts. */
+  source_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -60,15 +66,37 @@ export type ShoppingList = {
   items: string[];
 };
 
-export function shouldPublishToBook(sourceKind: SourceKind): boolean {
-  return sourceKind === "transcript";
+export function shouldPublishToBook(
+  sourceKind: SourceKind,
+  shareInFamilyBook = false,
+): boolean {
+  switch (sourceKind) {
+    case "transcript":
+      return true;
+    case "url":
+      return shareInFamilyBook;
+    default: {
+      const unreachable: never = sourceKind;
+      return unreachable;
+    }
+  }
+}
+
+/** Public source link. Spoken or pasted words never qualify. */
+export function publicSourceURL(recipe: RecipeRow): string | null {
+  if (recipe.source_kind !== "url") return null;
+  const trimmed = recipe.raw_transcript.trim();
+  if (!/^https?:\/\/\S+$/i.test(trimmed)) return null;
+  return trimmed;
 }
 
 export function cardFromRecipe(
   recipe: RecipeRow,
   addedByLabel: string,
 ): RecipeBookCard | null {
-  if (!shouldPublishToBook(recipe.source_kind)) return null;
+  if (!shouldPublishToBook(recipe.source_kind, recipe.share_in_family_book)) {
+    return null;
+  }
 
   let parsed: ExtractedRecipe = {
     title: recipe.title,
@@ -93,6 +121,7 @@ export function cardFromRecipe(
       ing.original_phrase || ing.ingredient || ""
     ),
     added_by_label: addedByLabel,
+    source_url: publicSourceURL(recipe),
     created_at: recipe.created_at,
     updated_at: recipe.updated_at,
   };
@@ -108,6 +137,7 @@ export function publicCardFields(card: RecipeBookCard): Record<string, unknown> 
     steps: card.steps,
     ingredient_phrases: card.ingredient_phrases,
     added_by_label: card.added_by_label,
+    source_url: card.source_url,
     created_at: card.created_at,
     updated_at: card.updated_at,
   };
@@ -145,7 +175,7 @@ export class LocalRecipeBookStore {
   }
 
   private syncCard(recipe: RecipeRow): void {
-    if (!shouldPublishToBook(recipe.source_kind)) {
+    if (!shouldPublishToBook(recipe.source_kind, recipe.share_in_family_book)) {
       this.cards.delete(recipe.id);
       return;
     }
@@ -153,7 +183,12 @@ export class LocalRecipeBookStore {
       recipe,
       labelFromEmail(this.emails.get(recipe.user_id)),
     );
-    if (card) this.cards.set(card.id, card);
+    if (!card) return;
+    const existing = this.cards.get(recipe.id);
+    // A link joins the book when the owner opts in, then keeps that place.
+    const createdAt = existing?.created_at ??
+      (recipe.source_kind === "url" ? recipe.updated_at : recipe.created_at);
+    this.cards.set(card.id, { ...card, created_at: createdAt });
   }
 
   /** Owner-only recipe read (003_recipes.sql). */
