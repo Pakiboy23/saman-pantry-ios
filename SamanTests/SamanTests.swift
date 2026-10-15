@@ -515,6 +515,8 @@ struct MonetizationCopyTests {
             "Keep every rescued recipe",
         ])
         #expect(FreeLimits.paywallHeadline.contains("Don't lose the recipes"))
+        #expect(FreeLimits.paywallSubheadline == "Samaan Pro turns voice notes and recordings into recipes you can keep.")
+        #expect(!FreeLimits.paywallSubheadline.contains("Pantry Pro"))
         #expect(FreeLimits.monthlyPriceLabel.contains("7.99"))
         #expect(FreeLimits.yearlyPriceLabel.contains("59.99"))
         #expect(FreeLimits.yearlySavingsLabel.contains("38%"))
@@ -537,6 +539,33 @@ struct MonetizationCopyTests {
                 #expect(!lower.contains(banned), "\(file.path) still contains \(banned)")
             }
         }
+    }
+
+    @Test func onboardingAndSourcePlaceholdersStayNeutral() throws {
+        let onboarding = try String(
+            contentsOf: samanRoot.appendingPathComponent("Features/Onboarding/OnboardingView.swift"),
+            encoding: .utf8
+        )
+        #expect(onboarding.contains("Record whoever in your family cooks as they explain a dish, in any language."))
+        #expect(onboarding.contains("New accounts get 5 recipe extractions for life. No credit card needed. Go Samaan Pro when you're ready for unlimited."))
+        #expect(!onboarding.contains("voice note of them"))
+        #expect(!onboarding.contains("Upgrade to Pro"))
+        #expect(!onboarding.contains("—"))
+
+        let capture = try String(
+            contentsOf: samanRoot.appendingPathComponent("Features/Recipes/RecipeCaptureView.swift"),
+            encoding: .utf8
+        )
+        let edit = try String(
+            contentsOf: samanRoot.appendingPathComponent("Features/Recipes/RecipeEditView.swift"),
+            encoding: .utf8
+        )
+        #expect(capture.contains("e.g. whoever taught you"))
+        #expect(edit.contains("e.g. whoever taught you"))
+        #expect(!capture.contains("e.g. Mom"))
+        #expect(!edit.contains("e.g. Mom"))
+        #expect(!edit.contains("From —"))
+        #expect(!edit.contains("andaza —"))
     }
 
     @Test func paywallDoesNotRenderRemoteOfferingCopy() throws {

@@ -131,13 +131,13 @@ struct ScreenshotDemoKitchenTests {
         let recipes = try context.fetch(FetchDescriptor<Recipe>())
         let karahi = recipes.first { $0.title == ScreenshotDemoKitchen.recipeTitle }
         #expect(karahi != nil)
-        #expect(karahi?.attribution == "Ammi")
+        #expect(karahi?.attribution == "Family")
 
         let data = try #require(karahi?.extractedJSON?.data(using: .utf8))
         let extracted = try JSONDecoder().decode(ExtractedRecipe.self, from: data)
         let turmeric = extracted.ingredients.first { $0.ingredient.lowercased() == "turmeric" }
         #expect(turmeric != nil)
-        #expect(turmeric?.originalPhrase == "haldi — andaza se")
+        #expect(turmeric?.originalPhrase == "haldi, andaza se")
         #expect(turmeric?.vague == true)
     }
 
@@ -156,7 +156,27 @@ struct ScreenshotDemoKitchenTests {
     @Test func cannedReviewPreservesAndazaSeNextToTurmeric() {
         let review = ScreenshotDemoKitchen.chickenKarahiReview
         let turmeric = review.ingredients.first { $0.ingredient.lowercased() == "turmeric" }
-        #expect(turmeric?.originalPhrase == "haldi — andaza se")
+        #expect(turmeric?.originalPhrase == "haldi, andaza se")
         #expect(review.title == ScreenshotDemoKitchen.recipeTitle)
+        #expect(review.attribution == "Family")
+    }
+
+    @Test func demoKitchenCopyIsGenderNeutral() {
+        let review = ScreenshotDemoKitchen.chickenKarahiReview
+        let blobs = [
+            ScreenshotDemoKitchen.karahiTranscript,
+            review.attribution ?? "",
+            review.notes ?? "",
+        ] + review.steps + review.ingredients.map(\.originalPhrase)
+        let joined = blobs.joined(separator: "\n")
+        #expect(!joined.contains("—"))
+        #expect(!joined.contains("–"))
+        for word in ["ammi", "nani", "mom", "grandma", "she", "her"] {
+            let pattern = "\\b\(word)\\b"
+            #expect(
+                joined.range(of: pattern, options: [.regularExpression, .caseInsensitive]) == nil,
+                "Demo copy still has \(word)"
+            )
+        }
     }
 }

@@ -21,7 +21,7 @@
       "localizations" : [
         {
           "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
-          "displayName" : "Saman Pro",
+          "displayName" : "Samaan Pro",
           "locale" : "en_US"
         }
       ],
@@ -42,7 +42,7 @@
           "localizations" : [
             {
               "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
-              "displayName" : "Saman Pro Monthly",
+              "displayName" : "Samaan Pro Monthly",
               "locale" : "en_US"
             }
           ],
@@ -67,7 +67,7 @@
           "localizations" : [
             {
               "description" : "Unlimited voice extractions. Every rescued recipe stays in your cookbook.",
-              "displayName" : "Saman Pro Yearly",
+              "displayName" : "Samaan Pro Yearly",
               "locale" : "en_US"
             }
           ],

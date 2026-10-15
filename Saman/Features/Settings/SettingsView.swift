@@ -284,7 +284,7 @@ struct SettingsView: View {
             let restoredPro = try await appEnv.purchases.restorePurchases()
             restoreMessage = restoredPro
                 ? "Samaan Pro restored."
-                : "No Pro purchase found for this Apple ID."
+                : "No Samaan Pro purchase found for this Apple ID."
         } catch {
             restoreMessage = "Couldn't restore purchases. Try again."
         }
@@ -332,8 +332,8 @@ struct SettingsView: View {
 }
 
 private extension Bundle {
-    var appVersion: String { infoDictionary?["CFBundleShortVersionString"] as? String ?? "—" }
-    var buildNumber: String { infoDictionary?["CFBundleVersion"] as? String ?? "—" }
+    var appVersion: String { infoDictionary?["CFBundleShortVersionString"] as? String ?? "-" }
+    var buildNumber: String { infoDictionary?["CFBundleVersion"] as? String ?? "-" }
 }
 
 #Preview {
