@@ -43,6 +43,7 @@ struct AddItemView: View {
                 }
             }
             .navigationTitle("New Item")
+            .heycatchScreen("Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

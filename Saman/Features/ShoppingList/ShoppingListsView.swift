@@ -84,6 +84,7 @@ struct ShoppingListsView: View {
                 Button("Cancel", role: .cancel) { pendingDeleteList = nil }
             }
         }
+        .heycatchScreen("Lists")
     }
 
     private var listSubtitle: String {

@@ -271,8 +271,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showCustomerCenter) {
                 CustomerCenterView()
+                    .heycatchScreen("Customer Center")
             }
         }
+        .heycatchScreen("Settings")
     }
 
     // MARK: - Helpers

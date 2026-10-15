@@ -214,6 +214,7 @@ struct ItemDetailView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+        .heycatchScreen("Item")
     }
 
     // MARK: - Helpers

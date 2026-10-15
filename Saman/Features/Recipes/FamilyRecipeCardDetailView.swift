@@ -54,6 +54,7 @@ struct FamilyRecipeCardDetailView: View {
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
+        .heycatchScreen("Family Recipe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isOwner {

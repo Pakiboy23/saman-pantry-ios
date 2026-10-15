@@ -87,6 +87,7 @@ struct ScannerView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .heycatchScreen("Barcode Scanner")
         }
     }
 

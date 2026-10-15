@@ -1,12 +1,12 @@
 import Foundation
 
-/// Anonymous, fire-and-forget product analytics.
+/// Product analytics. The Supabase row stays anonymous; HeyCatch is separate.
 ///
-/// Each event is one row in the Supabase `events` table: a random per-install
-/// UUID, the event name, and the app version. There's no account id, email, or
-/// user content, and the request uses the public anon key (never the user's
-/// session), so events can't be linked back to an account. RLS allows INSERT
-/// only. App Privacy: Usage Data → Product Interaction, not linked, not tracking.
+/// Each Supabase `events` row is a random per-install UUID, the event name,
+/// and the app version. There's no account id, email, or user content, and
+/// the request uses the public anon key (never the user's session). RLS
+/// allows INSERT only. HeyCatch gets the same event name and no properties.
+/// After sign-in, HeyCatch ties that copy to the Supabase user id.
 enum AnalyticsEvent: String, CaseIterable, Sendable {
     case appOpen = "app_open"
     case signup = "signup"
@@ -53,6 +53,9 @@ enum Analytics {
 
     static func track(_ event: AnalyticsEvent) {
         guard isEnabled else { return }
+        // Same event name, no properties. HeyCatch must not receive recipe
+        // text, transcripts, or other personal content.
+        HeyCatch.capture(event.rawValue)
         let body = payload(event: event, installID: installID(), appVersion: appVersion)
         Task.detached(priority: .utility) {
             await Analytics.send(body)

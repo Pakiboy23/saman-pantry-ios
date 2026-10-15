@@ -29,6 +29,7 @@ struct ShoppingListDetailView: View {
             }
         }
         .navigationTitle(list.name)
+        .heycatchScreen("Shopping List")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("screenshot.shoppingList")
         .toolbar {

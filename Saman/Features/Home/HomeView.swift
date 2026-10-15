@@ -44,6 +44,7 @@ struct HomeView: View {
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
         .accessibilityIdentifier("screenshot.home")
+        .heycatchScreen("Home")
     }
 
     // MARK: - Header

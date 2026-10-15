@@ -16,6 +16,7 @@ struct AddShoppingListView: View {
                 }
             }
             .navigationTitle("New List")
+            .heycatchScreen("Add Shopping List")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

@@ -10,6 +10,7 @@
 		F4460CE32F84207100949A76 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE22F84207100949A76 /* Supabase */; };
 		F4460CE62F84207100949A76 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE52F84207100949A76 /* RevenueCat */; };
 		F4460CE72F84207100949A76 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CE82F84207100949A76 /* RevenueCatUI */; };
+		F4460CE92F85000100949A76 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = F4460CEA2F85000100949A76 /* PostHog */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,7 @@
 				F4460CE32F84207100949A76 /* Supabase in Frameworks */,
 				F4460CE62F84207100949A76 /* RevenueCat in Frameworks */,
 				F4460CE72F84207100949A76 /* RevenueCatUI in Frameworks */,
+				F4460CE92F85000100949A76 /* PostHog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +139,7 @@
 				F4460CE22F84207100949A76 /* Supabase */,
 				F4460CE52F84207100949A76 /* RevenueCat */,
 				F4460CE82F84207100949A76 /* RevenueCatUI */,
+				F4460CEA2F85000100949A76 /* PostHog */,
 			);
 			productName = Saman;
 			productReference = F4460CB72F841F5600949A76 /* Saman.app */;
@@ -223,6 +226,7 @@
 			packageReferences = (
 				F4460CE12F84207100949A76 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+				F4460CEB2F85000100949A76 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F4460CB82F841F5600949A76 /* Products */;
@@ -430,7 +434,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				ENABLE_APP_SANDBOX = YES;
@@ -472,7 +476,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.Saman;
@@ -507,7 +511,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				ENABLE_APP_SANDBOX = YES;
@@ -549,7 +553,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.Saman;
@@ -581,13 +585,13 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.SamanTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -608,13 +612,13 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.SamanTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -634,13 +638,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.SamanUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -660,13 +664,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 107;
+				CURRENT_PROJECT_VERSION = 108;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6KTSZRW2J6;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.SamanUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -740,6 +744,14 @@
 				minimumVersion = 5.78.0;
 			};
 		};
+		F4460CEB2F85000100949A76 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -757,6 +769,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F4460CE42F84207100949A76 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCatUI;
+		};
+		F4460CEA2F85000100949A76 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F4460CEB2F85000100949A76 /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

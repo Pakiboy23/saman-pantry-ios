@@ -45,6 +45,7 @@ struct AuthView: View {
         .onChange(of: auth.isSignedIn) { _, signedIn in
             if signedIn && allowsDismiss { dismiss() }
         }
+        .heycatchScreen("Auth")
     }
 
     private func mailNoticeView(

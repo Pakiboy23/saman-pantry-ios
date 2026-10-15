@@ -38,6 +38,7 @@ struct FamilyRecipeBookView: View {
         )) {
             AuthView()
         }
+        .heycatchScreen("Family Recipe Book")
     }
 
     private var signInPrompt: some View {

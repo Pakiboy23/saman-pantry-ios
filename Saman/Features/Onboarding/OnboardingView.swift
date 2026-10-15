@@ -59,6 +59,7 @@ struct OnboardingView: View {
             }
         }
         .accessibilityIdentifier("onboarding.root")
+        .heycatchScreen("Onboarding")
     }
 
     private var background: some View {
