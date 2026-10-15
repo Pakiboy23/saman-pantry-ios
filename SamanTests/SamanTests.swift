@@ -666,6 +666,50 @@ struct AnalyticsTests {
     }
 }
 
+struct HeyCatchOutboxTests {
+    @Test func eventsStayQueuedUntilTheSessionBind() {
+        var outbox = HeyCatchOutbox()
+        #expect(outbox.screen("Splash") == [])
+        #expect(outbox.screen("Home") == [])
+        #expect(outbox.capture("app_open") == [])
+        #expect(outbox.open() == [
+            .screen("Splash"),
+            .screen("Home"),
+            .capture("app_open"),
+        ])
+        #expect(outbox.screens.isEmpty)
+        #expect(outbox.captures.isEmpty)
+    }
+
+    @Test func automaticCaptureIsOffBeforeSetup() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Core/Services/HeyCatch.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let setup = try #require(text.range(of: "PostHogSDK.shared.setup(config)"))
+        for flag in [
+            "config.captureApplicationLifecycleEvents = false",
+            "config.captureScreenViews = false",
+            "config.enableSwizzling = false",
+            "config.errorTrackingConfig.autoCapture = false",
+            "config.surveys = false",
+            "config.sessionReplay = false",
+        ] {
+            let setting = try #require(text.range(of: flag), "missing \(flag)")
+            #expect(setting.lowerBound < setup.lowerBound)
+        }
+    }
+
+    @Test func eventsAfterOpenSendImmediately() {
+        var outbox = HeyCatchOutbox()
+        _ = outbox.open()
+        #expect(outbox.screen("Pantry") == [.screen("Pantry")])
+        #expect(outbox.capture("item_added") == [.capture("item_added")])
+        #expect(outbox.open() == [])
+    }
+}
+
 struct HeyCatchIdentityTests {
     @Test func freshGuestStaysAnonymous() {
         #expect(HeyCatchIdentity.action(currentUserID: nil, boundUserID: nil) == .none)
@@ -701,8 +745,10 @@ struct HeyCatchIdentityTests {
             .appendingPathComponent("Saman/SamaanApp.swift")
         let text = try String(contentsOf: app, encoding: .utf8)
         let bindOnCheck = try #require(text.range(of: "HeyCatch.bind(userID: appEnv.auth.currentUserID)"))
+        let release = try #require(text.range(of: "HeyCatch.releaseQueuedEvents()"))
         let appOpen = try #require(text.range(of: "Analytics.track(.appOpen)"))
-        #expect(bindOnCheck.lowerBound < appOpen.lowerBound)
+        #expect(bindOnCheck.lowerBound < release.lowerBound)
+        #expect(release.lowerBound < appOpen.lowerBound)
         #expect(text.contains("HeyCatch.bind(userID: userID)"))
         #expect(!text.contains("HeyCatch.identify("))
         #expect(!text.contains("HeyCatch.reset()"))
@@ -715,13 +761,13 @@ struct HeyCatchIdentityTests {
             .appendingPathComponent("Saman/Features/Recipes/RecipesView.swift")
         let text = try String(contentsOf: file, encoding: .utf8)
         let yours = try #require(text.range(of: "case .yours:"))
-        let screen = try #require(text.range(of: ".postHogScreenView(\"Recipes\")"))
+        let screen = try #require(text.range(of: ".heycatchScreen(\"Recipes\")"))
         let family = try #require(text.range(of: "case .familyBook:"))
         #expect(yours.lowerBound < screen.lowerBound)
         #expect(screen.lowerBound < family.lowerBound)
         let stackClose = try #require(text.range(of: "        }\n    }\n\n    private var headerSubtitle"))
         #expect(screen.lowerBound < stackClose.lowerBound)
-        #expect(!text[stackClose.lowerBound...].contains(".postHogScreenView(\"Recipes\")"))
+        #expect(!text[stackClose.lowerBound...].contains(".heycatchScreen(\"Recipes\")"))
     }
 
     @Test func productInteractionIsLinkedAndUserIDIncludesAnalytics() throws {
@@ -765,10 +811,16 @@ struct HeyCatchIdentityTests {
                 let line = String(rawLine)
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") { continue }
-                if line.contains("postHogScreenView(") {
-                    #expect(line.contains("postHogScreenView(\""), "\(relative): \(line)")
+                if line.contains("heycatchScreen(") && !line.contains("func heycatchScreen(") {
+                    #expect(line.contains("heycatchScreen(\""), "\(relative): \(line)")
                     #expect(!line.contains("\\("), "\(relative): \(line)")
                     #expect(!line.contains("properties"), "\(relative): \(line)")
+                }
+                if line.contains("postHogScreenView(") {
+                    #expect(Bool(false), "\(relative) still calls postHogScreenView")
+                }
+                if line.contains("PostHogSDK.shared.screen(") || line.contains("PostHogSDK.shared.capture(") {
+                    #expect(relative.hasSuffix("HeyCatch.swift"), "\(relative): \(line)")
                 }
                 if line.contains("HeyCatch.capture(") {
                     let allowed = line.contains("HeyCatch.capture(\"")

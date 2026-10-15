@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct ShoppingListsView: View {
     @Environment(\.modelContext) private var context
@@ -85,7 +84,7 @@ struct ShoppingListsView: View {
                 Button("Cancel", role: .cancel) { pendingDeleteList = nil }
             }
         }
-        .postHogScreenView("Lists")
+        .heycatchScreen("Lists")
     }
 
     private var listSubtitle: String {

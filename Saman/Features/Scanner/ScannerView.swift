@@ -1,7 +1,6 @@
 import SwiftUI
 import VisionKit
 import SwiftData
-import PostHog
 
 struct ScannerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -88,7 +87,7 @@ struct ScannerView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .postHogScreenView("Barcode Scanner")
+            .heycatchScreen("Barcode Scanner")
         }
     }
 

@@ -56,6 +56,7 @@ struct RootView: View {
                             .foregroundStyle(Color.inkKohlSoft)
                     }
                 }
+                .heycatchScreen("Splash")
             } else if appEnv.auth.isRecoveringPassword {
                 AuthView(allowsDismiss: false)
             } else if !hasCompletedOnboarding {

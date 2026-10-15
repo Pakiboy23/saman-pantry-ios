@@ -1,5 +1,6 @@
 import Foundation
 import PostHog
+import SwiftUI
 
 /// How to move PostHog's persisted identity onto the current Supabase session.
 ///
@@ -41,6 +42,44 @@ enum HeyCatchIdentity {
     }
 }
 
+/// Screen and product events held until the first session bind. PostHog
+/// restores the last person during setup, and SwiftUI can run `onAppear`
+/// before the `onChange` that calls `bind`.
+struct HeyCatchOutbox: Equatable {
+    var isOpen = false
+    var screens: [String] = []
+    var captures: [String] = []
+
+    enum Delivery: Equatable {
+        case screen(String)
+        case capture(String)
+    }
+
+    mutating func screen(_ name: String) -> [Delivery] {
+        guard isOpen else {
+            screens.append(name)
+            return []
+        }
+        return [.screen(name)]
+    }
+
+    mutating func capture(_ event: String) -> [Delivery] {
+        guard isOpen else {
+            captures.append(event)
+            return []
+        }
+        return [.capture(event)]
+    }
+
+    mutating func open() -> [Delivery] {
+        isOpen = true
+        let pending = screens.map { Delivery.screen($0) } + captures.map { Delivery.capture($0) }
+        screens.removeAll()
+        captures.removeAll()
+        return pending
+    }
+}
+
 /// HeyCatch product analytics. The ingest speaks the PostHog protocol, so this
 /// uses PostHog's iOS SDK pointed at HeyCatch. The token and host are HeyCatch's
 /// write-only ingest values, safe to ship in the binary.
@@ -60,8 +99,9 @@ enum HeyCatch {
         // `apiKey` in the HeyCatch guide is this initializer. The 3.x SDK
         // deprecated that name; `projectToken` is the same argument.
         let config = PostHogConfig(projectToken: ingestToken, host: ingestHost)
-        // SwiftUI screens are named by hand. UIKit autocapture would reuse
-        // navigation titles, and a shopping list's title is the list name.
+        // The app sends its own fixed screen names and `app_open`. Every
+        // automatic capture path stays off, including ones that default on.
+        // Swizzling is off so a later default cannot install autocapture.
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
         config.captureElementInteractions = false
@@ -72,6 +112,8 @@ enum HeyCatch {
         config.surveys = false
         config.capturePushNotificationSubscriptions = false
         config.capturePushNotificationOpened = false
+        config.enableSwizzling = false
+        config.errorTrackingConfig.autoCapture = false
         config.preloadFeatureFlags = false
         config.sendFeatureFlagEvent = false
         config.setDefaultPersonProperties = false
@@ -127,8 +169,55 @@ enum HeyCatch {
     }
 
     /// A business outcome. Pass no properties: names here are fixed strings.
+    /// Held until `releaseQueuedEvents` so a cold launch cannot send it
+    /// under the previous account.
     static func capture(_ event: String) {
         guard Analytics.isEnabled else { return }
-        PostHogSDK.shared.capture(event)
+        let deliveries = outboxLock.withLock { outbox.capture(event) }
+        send(deliveries)
+    }
+
+    /// Fixed screen name. Same hold as `capture` until the initial bind.
+    static func screen(_ name: String) {
+        guard Analytics.isEnabled else { return }
+        let deliveries = outboxLock.withLock { outbox.screen(name) }
+        send(deliveries)
+    }
+
+    /// Call once the initial session has been bound. Flushes screens and
+    /// events that appeared while PostHog still had the previous person.
+    static func releaseQueuedEvents() {
+        guard Analytics.isEnabled else { return }
+        let deliveries = outboxLock.withLock { outbox.open() }
+        send(deliveries)
+    }
+
+    private static var outbox = HeyCatchOutbox()
+    private static let outboxLock = NSLock()
+
+    private static func send(_ deliveries: [HeyCatchOutbox.Delivery]) {
+        for delivery in deliveries {
+            switch delivery {
+            case .screen(let name):
+                PostHogSDK.shared.screen(name)
+            case .capture(let event):
+                PostHogSDK.shared.capture(event)
+            }
+        }
+    }
+}
+
+extension View {
+    /// Fixed screen name only. Queued until the initial session bind.
+    func heycatchScreen(_ name: String) -> some View {
+        modifier(HeyCatchScreenModifier(name: name))
+    }
+}
+
+private struct HeyCatchScreenModifier: ViewModifier {
+    let name: String
+
+    func body(content: Content) -> some View {
+        content.onAppear { HeyCatch.screen(name) }
     }
 }

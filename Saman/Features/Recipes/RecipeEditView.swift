@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 /// Post-extraction editor: title, source, ingredients, steps, and notes.
 /// Edits are re-serialized into `recipe.extractedJSON` so the detail view and
@@ -128,7 +127,7 @@ struct RecipeEditView: View {
                 }
             }
             .navigationTitle("Edit Recipe")
-            .postHogScreenView("Edit Recipe")
+            .heycatchScreen("Edit Recipe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

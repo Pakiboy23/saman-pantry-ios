@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct ItemDetailView: View {
     @Environment(\.modelContext) private var context
@@ -215,7 +214,7 @@ struct ItemDetailView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
-        .postHogScreenView("Item")
+        .heycatchScreen("Item")
     }
 
     // MARK: - Helpers

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
@@ -53,7 +52,7 @@ struct RecipeDetailView: View {
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
-        .postHogScreenView("Recipe")
+        .heycatchScreen("Recipe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {

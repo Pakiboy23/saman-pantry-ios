@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct AddItemView: View {
     @Environment(\.modelContext) private var context
@@ -44,7 +43,7 @@ struct AddItemView: View {
                 }
             }
             .navigationTitle("New Item")
-            .postHogScreenView("Add Item")
+            .heycatchScreen("Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct ShoppingListDetailView: View {
     @Environment(\.modelContext) private var context
@@ -30,7 +29,7 @@ struct ShoppingListDetailView: View {
             }
         }
         .navigationTitle(list.name)
-        .postHogScreenView("Shopping List")
+        .heycatchScreen("Shopping List")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("screenshot.shoppingList")
         .toolbar {

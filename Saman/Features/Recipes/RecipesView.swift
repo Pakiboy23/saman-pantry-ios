@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct RecipesView: View {
     private enum Shelf: String, CaseIterable, Identifiable {
@@ -35,7 +34,7 @@ struct RecipesView: View {
                             recipeList
                         }
                     }
-                    .postHogScreenView("Recipes")
+                    .heycatchScreen("Recipes")
                 case .familyBook:
                     FamilyRecipeBookView()
                 }

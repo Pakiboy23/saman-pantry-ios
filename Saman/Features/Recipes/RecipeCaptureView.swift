@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PostHog
 
 struct RecipeCaptureView: View {
     @Environment(\.modelContext) private var context
@@ -167,7 +166,7 @@ struct RecipeCaptureView: View {
                 resumePendingExtraction()
             }
             .onDisappear { cancelCapture() }
-            .postHogScreenView("Recipe Capture")
+            .heycatchScreen("Recipe Capture")
         }
     }
 

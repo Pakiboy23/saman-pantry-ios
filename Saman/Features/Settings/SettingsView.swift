@@ -1,6 +1,5 @@
 import SwiftUI
 import RevenueCatUI
-import PostHog
 
 struct SettingsView: View {
     @Environment(\.appEnv) private var appEnv
@@ -272,10 +271,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showCustomerCenter) {
                 CustomerCenterView()
-                    .postHogScreenView("Customer Center")
+                    .heycatchScreen("Customer Center")
             }
         }
-        .postHogScreenView("Settings")
+        .heycatchScreen("Settings")
     }
 
     // MARK: - Helpers

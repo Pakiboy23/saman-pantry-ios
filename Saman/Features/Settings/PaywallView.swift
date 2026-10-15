@@ -1,5 +1,4 @@
 import SwiftUI
-import PostHog
 import RevenueCat
 
 /// Local Samaan Pro paywall. Feature bullets come from `FreeLimits`, not from
@@ -42,7 +41,7 @@ struct SamaanPaywallView: View {
         }
         .task { await loadOffering() }
         .onAppear { Analytics.track(.paywallViewed) }
-        .postHogScreenView("Paywall")
+        .heycatchScreen("Paywall")
     }
 
     @ViewBuilder

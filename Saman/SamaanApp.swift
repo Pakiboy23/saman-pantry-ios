@@ -39,6 +39,9 @@ struct SamaanApp: App {
                     // identified account, and a killed process never emits
                     // the nil transition this onChange would have reset.
                     HeyCatch.bind(userID: appEnv.auth.currentUserID)
+                    // Splash, Home, Onboarding, and Auth can appear before
+                    // this onChange. Hold their screen events until bind.
+                    HeyCatch.releaseQueuedEvents()
                     Analytics.track(.appOpen)
                     if appEnv.auth.currentUserID == nil {
                         Analytics.trackOnce(.guestStart)
