@@ -171,7 +171,7 @@ struct ScreenshotDemoKitchenTests {
         let joined = blobs.joined(separator: "\n")
         #expect(!joined.contains("—"))
         #expect(!joined.contains("–"))
-        for word in ["ammi", "nani", "mom", "grandma", "she", "her"] {
+        for word in ["ammi", "nani", "mom", "grandma", "she", "her", "beta"] {
             let pattern = "\\b\(word)\\b"
             #expect(
                 joined.range(of: pattern, options: [.regularExpression, .caseInsensitive]) == nil,

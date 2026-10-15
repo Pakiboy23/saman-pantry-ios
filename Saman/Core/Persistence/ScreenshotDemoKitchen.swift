@@ -8,7 +8,7 @@ enum ScreenshotDemoKitchen {
     static let recipeTitle = "Chicken Karahi"
 
     static let karahiTranscript = """
-    Beta listen, chicken karahi bahut easy hai. Ek kilo chicken, char tamatar, \
+    Listen, chicken karahi bahut easy hai. Ek kilo chicken, char tamatar, \
     adrak lehsun. Haldi, andaza se. Thora sa laal mirch, garam masala last mein. \
     Don't measure the haldi.
     """
