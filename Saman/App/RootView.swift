@@ -7,6 +7,9 @@ struct RootView: View {
     @State private var selectedTab: AppTab
     @State private var showScreenshotRecipeReview: Bool
     @State private var showScreenshotPaywall: Bool
+    /// False until this launch has called `HeyCatch.bind`. Child screen
+    /// views capture in `onAppear`, which can run before the app `onChange`.
+    @State private var hasBoundIdentity = false
 
     private enum AppTab: Hashable {
         case home, pantry, lists, recipes
@@ -42,9 +45,10 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if !appEnv.auth.hasCheckedInitialSession {
-                // Splash — wait for Supabase to resolve the cached session
-                // before committing to either screen (prevents tab-bar flash)
+            if !appEnv.auth.hasCheckedInitialSession || !hasBoundIdentity {
+                // Splash until the cached session is known and HeyCatch has
+                // bound it. Leaving earlier lets Home, Onboarding, or Auth
+                // capture a screen under the person PostHog restored from disk.
                 ZStack {
                     Color.surfaceDoodh.ignoresSafeArea()
                     VStack(spacing: 8) {
@@ -72,6 +76,10 @@ struct RootView: View {
             }
         }
         .task { await appEnv.auth.startListening() }
+        .onAppear { bindIdentityBeforeScreens() }
+        .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, _ in
+            bindIdentityBeforeScreens()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && appEnv.auth.isSignedIn { appEnv.syncNow() }
         }
@@ -123,6 +131,16 @@ struct RootView: View {
                 .tag(AppTab.recipes)
         }
         .tint(Color.brandSaag)
+    }
+
+    /// Bind while splash is still up, then reveal the real root. `onAppear`
+    /// covers a session that was already checked; `onChange` covers the
+    /// cold-launch flip. Either way the next body is the first one that can
+    /// mount a screen view.
+    private func bindIdentityBeforeScreens() {
+        guard appEnv.auth.hasCheckedInitialSession, !hasBoundIdentity else { return }
+        HeyCatch.bind(userID: appEnv.auth.currentUserID)
+        hasBoundIdentity = true
     }
 
     private func presentScreenshotSheetsIfNeeded() {

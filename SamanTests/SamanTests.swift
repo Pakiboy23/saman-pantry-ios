@@ -708,6 +708,18 @@ struct HeyCatchIdentityTests {
         #expect(!text.contains("HeyCatch.reset()"))
     }
 
+    @Test func splashStaysUntilIdentityBind() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/App/RootView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(text.contains("if !appEnv.auth.hasCheckedInitialSession || !hasBoundIdentity"))
+        let bind = try #require(text.range(of: "HeyCatch.bind(userID: appEnv.auth.currentUserID)"))
+        let reveal = try #require(text.range(of: "hasBoundIdentity = true"))
+        #expect(bind.lowerBound < reveal.lowerBound)
+    }
+
     @Test func recipesScreenViewIsOnTheYoursShelf() throws {
         let file = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
