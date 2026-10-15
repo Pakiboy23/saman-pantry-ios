@@ -363,7 +363,7 @@ struct SamaanPaywallView: View {
             if unlocked {
                 dismiss()
             } else {
-                errorMessage = "No Pro purchase found for this Apple ID."
+                errorMessage = "No Samaan Pro purchase found for this Apple ID."
             }
         } catch {
             AppLogger.error("[Paywall] restore: \(error)")

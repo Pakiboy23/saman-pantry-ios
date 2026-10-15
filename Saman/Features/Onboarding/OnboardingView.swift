@@ -10,7 +10,7 @@ struct OnboardingView: View {
     private let pages: [Page] = [
         Page(
             headline: "Don't lose the recipes that only one person knows.",
-            body: "Record a voice note of them cooking. Samaan Pantry pulls out the recipe, even in mixed Urdu, Hindi, or English.",
+            body: "Record whoever in your family cooks as they explain a dish, in any language. Samaan Pantry pulls out the recipe.",
             cta: "Next"
         ),
         Page(
@@ -20,7 +20,7 @@ struct OnboardingView: View {
         ),
         Page(
             headline: "Start with 5 free extractions.",
-            body: "No credit card needed. Upgrade to Pro when you're ready for unlimited.",
+            body: "New accounts get 5 recipe extractions for life. No credit card needed. Go Samaan Pro when you're ready for unlimited.",
             cta: "Get started"
         ),
     ]

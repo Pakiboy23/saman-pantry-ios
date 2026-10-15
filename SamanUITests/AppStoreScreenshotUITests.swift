@@ -28,7 +28,7 @@ final class AppStoreScreenshotUITests: XCTestCase {
         let app = launch(scene: "recipeReview")
         XCTAssertTrue(app.descendants(matching: .any)["screenshot.recipeReview"].waitForExistence(timeout: 12))
         XCTAssertTrue(app.staticTexts["turmeric"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["haldi — andaza se"].exists)
+        XCTAssertTrue(app.staticTexts["haldi, andaza se"].exists)
         attach(app, name: "02-recipe-review")
     }
 

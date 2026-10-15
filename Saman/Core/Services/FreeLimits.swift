@@ -35,7 +35,7 @@ enum FreeLimits {
 
     static let paywallHeadline = "Don't lose the recipes that only one person knows."
     static let paywallSubheadline =
-        "Samaan Pantry Pro turns voice notes and recordings into recipes you can keep."
+        "Samaan Pro turns voice notes and recordings into recipes you can keep."
     static let paywallCallToAction = "Get Samaan Pro"
     static let paywallRenewalDisclaimer = "Subscription renews automatically. Cancel anytime."
 

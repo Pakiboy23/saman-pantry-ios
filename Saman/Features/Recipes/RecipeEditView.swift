@@ -58,7 +58,7 @@ struct RecipeEditView: View {
             Form {
                 Section("Recipe") {
                     TextField("Title", text: $title)
-                    TextField("From — e.g. Mom", text: $source)
+                    TextField("From, e.g. whoever taught you", text: $source)
                 }
 
                 Section {
@@ -95,10 +95,10 @@ struct RecipeEditView: View {
                     Text("Ingredients")
                 } footer: {
                     if hasInvalidAmounts {
-                        Text("Check the amounts marked in red — use numbers like 2, 0.5, or 1/2.")
+                        Text("Check the amounts marked in red. Use numbers like 2, 0.5, or 1/2.")
                             .foregroundStyle(Color.accentAnaar)
                     } else {
-                        Text("Swipe left to remove. Fractions like 1/2 are fine. Leave the amount empty for andaza — “to taste”.")
+                        Text("Swipe left to remove. Fractions like 1/2 are fine. Leave the amount empty for andaza, to taste.")
                     }
                 }
 
@@ -242,7 +242,7 @@ struct RecipeEditView: View {
     RecipeEditView(recipe: Recipe(
         title: "Chicken Karahi",
         rawTranscript: "Beta listen, chicken karahi bahut easy hai…",
-        extractedJSON: #"{"title":"Chicken Karahi","attribution":"Mom","ingredients":[{"ingredient":"chicken","original_phrase":"ek kilo chicken","amount":1,"unit":"kg","vague":false},{"ingredient":"turmeric","original_phrase":"haldi andaza se","amount":null,"unit":null,"vague":true}],"steps":["Fry the onions until golden.","Add the chicken."],"notes":null}"#
+        extractedJSON: #"{"title":"Chicken Karahi","attribution":"Family","ingredients":[{"ingredient":"chicken","original_phrase":"ek kilo chicken","amount":1,"unit":"kg","vague":false},{"ingredient":"turmeric","original_phrase":"haldi, andaza se","amount":null,"unit":null,"vague":true}],"steps":["Fry the onions until golden.","Add the chicken."],"notes":null}"#
     ))
     .modelContainer(.preview)
 }

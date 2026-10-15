@@ -46,7 +46,7 @@ struct RecipeCaptureView: View {
     }
 
     /// Screenshot / UI-test entry: skip the live extract-recipe call and open
-    /// the review screen with canned ingredients (including "haldi — andaza se").
+    /// the review screen with canned ingredients (including "haldi, andaza se").
     init(demoReview: ExtractedRecipe? = nil) {
         if let demoReview {
             _phase = State(initialValue: .reviewing)
@@ -369,7 +369,7 @@ struct RecipeCaptureView: View {
                         .foregroundStyle(Color.inkKohlSoft)
                         .kerning(0.8)
                         .padding(.top, 10)
-                    TextField("Who gave you this recipe? e.g. Mom", text: $recipeSource)
+                    TextField("Who gave you this recipe? e.g. whoever taught you", text: $recipeSource)
                         .font(.system(size: 15))
                         .foregroundStyle(Color.inkKohl)
                         .textFieldStyle(.plain)
