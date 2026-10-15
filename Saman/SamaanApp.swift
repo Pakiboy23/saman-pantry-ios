@@ -48,10 +48,13 @@ struct SamaanApp: App {
                     bindPurchases(to: appEnv.auth.currentUserID)
                 }
                 .onChange(of: appEnv.auth.currentUserID) { previous, userID in
+                    // identify() refuses a second distinct id. Reset on sign-out and
+                    // on a same-step account swap, then identify the new account.
+                    if let previous, previous != userID {
+                        HeyCatch.reset()
+                    }
                     if let userID {
                         HeyCatch.identify(userID: userID)
-                    } else if previous != nil {
-                        HeyCatch.reset()
                     }
                     if !ScreenshotLaunchConfiguration.current.skipsAuth {
                         appEnv.reconcileLocalStore(currentUserID: userID)
