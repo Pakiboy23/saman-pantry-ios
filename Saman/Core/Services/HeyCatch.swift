@@ -63,6 +63,7 @@ enum HeyCatch {
         // SwiftUI screens are named by hand. UIKit autocapture would reuse
         // navigation titles, and a shopping list's title is the list name.
         config.captureScreenViews = false
+        config.captureApplicationLifecycleEvents = false
         config.captureElementInteractions = false
         config.captureSwiftUIElementInteractions = false
         config.captureAutocaptureElementText = false
