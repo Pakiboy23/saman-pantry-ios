@@ -666,6 +666,128 @@ struct AnalyticsTests {
     }
 }
 
+struct HeyCatchIdentityTests {
+    @Test func freshGuestStaysAnonymous() {
+        #expect(HeyCatchIdentity.action(currentUserID: nil, boundUserID: nil) == .none)
+        #expect(HeyCatchIdentity.action(currentUserID: "  ", boundUserID: nil) == .none)
+        #expect(HeyCatchIdentity.action(currentUserID: "ui-testing", boundUserID: nil) == .none)
+    }
+
+    @Test func coldLaunchGuestDropsThePreviousAccount() {
+        #expect(HeyCatchIdentity.action(currentUserID: nil, boundUserID: "user-a") == .reset)
+        #expect(HeyCatchIdentity.action(currentUserID: "ui-testing", boundUserID: "user-a") == .reset)
+    }
+
+    @Test func sameAccountDoesNotReidentify() {
+        #expect(HeyCatchIdentity.action(currentUserID: "user-a", boundUserID: "user-a") == .none)
+        #expect(HeyCatchIdentity.action(currentUserID: "  user-a  ", boundUserID: "user-a") == .none)
+    }
+
+    @Test func firstSignInIdentifies() {
+        #expect(HeyCatchIdentity.action(currentUserID: "user-a", boundUserID: nil) == .identify("user-a"))
+    }
+
+    @Test func accountSwapResetsBeforeIdentify() {
+        #expect(
+            HeyCatchIdentity.action(currentUserID: "user-b", boundUserID: "user-a")
+                == .resetThenIdentify("user-b")
+        )
+    }
+
+    @Test func appRebindsBeforeAppOpenAndOnUserChange() throws {
+        let app = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/SamaanApp.swift")
+        let text = try String(contentsOf: app, encoding: .utf8)
+        let bindOnCheck = try #require(text.range(of: "HeyCatch.bind(userID: appEnv.auth.currentUserID)"))
+        let appOpen = try #require(text.range(of: "Analytics.track(.appOpen)"))
+        #expect(bindOnCheck.lowerBound < appOpen.lowerBound)
+        #expect(text.contains("HeyCatch.bind(userID: userID)"))
+        #expect(!text.contains("HeyCatch.identify("))
+        #expect(!text.contains("HeyCatch.reset()"))
+    }
+
+    @Test func recipesScreenViewIsOnTheYoursShelf() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Features/Recipes/RecipesView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let yours = try #require(text.range(of: "case .yours:"))
+        let screen = try #require(text.range(of: ".postHogScreenView(\"Recipes\")"))
+        let family = try #require(text.range(of: "case .familyBook:"))
+        #expect(yours.lowerBound < screen.lowerBound)
+        #expect(screen.lowerBound < family.lowerBound)
+        let stackClose = try #require(text.range(of: "        }\n    }\n\n    private var headerSubtitle"))
+        #expect(screen.lowerBound < stackClose.lowerBound)
+        #expect(!text[stackClose.lowerBound...].contains(".postHogScreenView(\"Recipes\")"))
+    }
+
+    @Test func productInteractionIsLinkedAndUserIDIncludesAnalytics() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/PrivacyInfo.xcprivacy")
+        let data = try Data(contentsOf: file)
+        let plist = try #require(
+            PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        )
+        #expect(plist["NSPrivacyTracking"] as? Bool == false)
+        let types = try #require(plist["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
+        func entry(_ name: String) throws -> [String: Any] {
+            try #require(types.first { $0["NSPrivacyCollectedDataType"] as? String == name })
+        }
+        let userID = try entry("NSPrivacyCollectedDataTypeUserID")
+        #expect(userID["NSPrivacyCollectedDataTypeLinked"] as? Bool == true)
+        #expect(userID["NSPrivacyCollectedDataTypeTracking"] as? Bool == false)
+        let userPurposes = try #require(userID["NSPrivacyCollectedDataTypePurposes"] as? [String])
+        #expect(userPurposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"))
+        #expect(userPurposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"))
+        let interaction = try entry("NSPrivacyCollectedDataTypeProductInteraction")
+        #expect(interaction["NSPrivacyCollectedDataTypeLinked"] as? Bool == true)
+        #expect(interaction["NSPrivacyCollectedDataTypeTracking"] as? Bool == false)
+        let email = try entry("NSPrivacyCollectedDataTypeEmailAddress")
+        let emailPurposes = try #require(email["NSPrivacyCollectedDataTypePurposes"] as? [String])
+        #expect(!emailPurposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"))
+    }
+
+    @Test func heycatchCallSitesCarryNoUserContent() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman")
+        let files = try FileManager.default.subpathsOfDirectory(atPath: root.path)
+            .filter { $0.hasSuffix(".swift") }
+        for relative in files {
+            let text = try String(contentsOf: root.appendingPathComponent(relative), encoding: .utf8)
+            for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+                let line = String(rawLine)
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") { continue }
+                if line.contains("postHogScreenView(") {
+                    #expect(line.contains("postHogScreenView(\""), "\(relative): \(line)")
+                    #expect(!line.contains("\\("), "\(relative): \(line)")
+                    #expect(!line.contains("properties"), "\(relative): \(line)")
+                }
+                if line.contains("HeyCatch.capture(") {
+                    let allowed = line.contains("HeyCatch.capture(\"")
+                        || line.contains("HeyCatch.capture(event.rawValue)")
+                    #expect(allowed, "\(relative): \(line)")
+                    #expect(!line.contains("\\("), "\(relative): \(line)")
+                    #expect(!line.contains("properties"), "\(relative): \(line)")
+                }
+                if line.contains("identify(userID:") {
+                    let lowered = line.lowercased()
+                    #expect(!lowered.contains("email"), "\(relative): \(line)")
+                    #expect(!lowered.contains("transcript"), "\(relative): \(line)")
+                    #expect(!lowered.contains("name"), "\(relative): \(line)")
+                }
+            }
+        }
+    }
+}
+
 @MainActor
 struct AIProcessingConsentTests {
     @Test func consentCopyNamesAnthropic() {

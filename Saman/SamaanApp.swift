@@ -35,9 +35,10 @@ struct SamaanApp: App {
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
                     guard checked else { return }
-                    if let userID = appEnv.auth.currentUserID {
-                        HeyCatch.identify(userID: userID)
-                    }
+                    // Rebind before app_open. PostHog restores the last
+                    // identified account, and a killed process never emits
+                    // the nil transition this onChange would have reset.
+                    HeyCatch.bind(userID: appEnv.auth.currentUserID)
                     Analytics.track(.appOpen)
                     if appEnv.auth.currentUserID == nil {
                         Analytics.trackOnce(.guestStart)
@@ -47,12 +48,8 @@ struct SamaanApp: App {
                     }
                     bindPurchases(to: appEnv.auth.currentUserID)
                 }
-                .onChange(of: appEnv.auth.currentUserID) { previous, userID in
-                    if let userID {
-                        HeyCatch.identify(userID: userID)
-                    } else if previous != nil {
-                        HeyCatch.reset()
-                    }
+                .onChange(of: appEnv.auth.currentUserID) { _, userID in
+                    HeyCatch.bind(userID: userID)
                     if !ScreenshotLaunchConfiguration.current.skipsAuth {
                         appEnv.reconcileLocalStore(currentUserID: userID)
                     }
