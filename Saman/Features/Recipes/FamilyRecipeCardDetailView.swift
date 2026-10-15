@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PostHog
 
 /// Read-only family book card. Shows title, steps, original phrases,
 /// attribution, and who added it. A shared link can also open its source.
@@ -54,6 +55,7 @@ struct FamilyRecipeCardDetailView: View {
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
+        .postHogScreenView("Family Recipe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isOwner {

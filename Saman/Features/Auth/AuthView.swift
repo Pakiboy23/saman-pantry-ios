@@ -1,4 +1,5 @@
 import SwiftUI
+import PostHog
 
 struct AuthView: View {
     @Environment(\.appEnv) private var appEnv
@@ -45,6 +46,7 @@ struct AuthView: View {
         .onChange(of: auth.isSignedIn) { _, signedIn in
             if signedIn && allowsDismiss { dismiss() }
         }
+        .postHogScreenView("Auth")
     }
 
     private func mailNoticeView(

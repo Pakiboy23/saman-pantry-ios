@@ -1,4 +1,5 @@
 import SwiftUI
+import PostHog
 
 struct RootView: View {
     @Environment(\.appEnv) private var appEnv
@@ -56,10 +57,12 @@ struct RootView: View {
                             .foregroundStyle(Color.inkKohlSoft)
                     }
                 }
+                .postHogScreenView("Splash")
             } else if appEnv.auth.isRecoveringPassword {
                 AuthView(allowsDismiss: false)
             } else if !hasCompletedOnboarding {
                 OnboardingView {
+                    HeyCatch.capture("onboarding_completed")
                     hasCompletedOnboarding = true
                 }
             } else {

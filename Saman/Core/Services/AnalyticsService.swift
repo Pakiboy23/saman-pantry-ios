@@ -53,6 +53,9 @@ enum Analytics {
 
     static func track(_ event: AnalyticsEvent) {
         guard isEnabled else { return }
+        // Same event name, no properties. HeyCatch must not receive recipe
+        // text, transcripts, or other personal content.
+        HeyCatch.capture(event.rawValue)
         let body = payload(event: event, installID: installID(), appVersion: appVersion)
         Task.detached(priority: .utility) {
             await Analytics.send(body)

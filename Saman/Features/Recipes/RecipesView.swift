@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PostHog
 
 struct RecipesView: View {
     private enum Shelf: String, CaseIterable, Identifiable {
@@ -104,6 +105,7 @@ struct RecipesView: View {
                 Text(familyBookError ?? "")
             }
         }
+        .postHogScreenView("Recipes")
     }
 
     private var headerSubtitle: String {

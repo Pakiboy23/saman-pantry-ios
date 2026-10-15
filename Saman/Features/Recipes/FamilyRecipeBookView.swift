@@ -1,4 +1,5 @@
 import SwiftUI
+import PostHog
 
 /// Signed-in readers browse the family book, newest first.
 /// Transcripts publish on save. A link shows up only after that cook adds it.
@@ -38,6 +39,7 @@ struct FamilyRecipeBookView: View {
         )) {
             AuthView()
         }
+        .postHogScreenView("Family Recipe Book")
     }
 
     private var signInPrompt: some View {

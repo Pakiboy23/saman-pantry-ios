@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PostHog
 
 struct HomeView: View {
     @Environment(\.modelContext) private var context
@@ -44,6 +45,7 @@ struct HomeView: View {
             .sheet(isPresented: $showSettings)  { SettingsView() }
         }
         .accessibilityIdentifier("screenshot.home")
+        .postHogScreenView("Home")
     }
 
     // MARK: - Header

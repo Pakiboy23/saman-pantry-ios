@@ -1,4 +1,5 @@
 import SwiftUI
+import PostHog
 import RevenueCat
 
 /// Local Samaan Pro paywall. Feature bullets come from `FreeLimits`, not from
@@ -41,6 +42,7 @@ struct SamaanPaywallView: View {
         }
         .task { await loadOffering() }
         .onAppear { Analytics.track(.paywallViewed) }
+        .postHogScreenView("Paywall")
     }
 
     @ViewBuilder
@@ -342,7 +344,10 @@ struct SamaanPaywallView: View {
         defer { isPurchasing = false }
         do {
             let unlocked = try await appEnv.purchases.purchase(selectedPackage)
-            if unlocked { dismiss() }
+            if unlocked {
+                HeyCatch.capture("purchase_completed")
+                dismiss()
+            }
         } catch {
             AppLogger.error("[Paywall] purchase: \(error)")
             errorMessage = "Couldn't complete purchase. Try again."

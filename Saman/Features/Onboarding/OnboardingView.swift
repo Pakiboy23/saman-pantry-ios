@@ -1,4 +1,5 @@
 import SwiftUI
+import PostHog
 
 /// First-launch only. Completion is stored in AppStorage and never shown again.
 struct OnboardingView: View {
@@ -59,6 +60,7 @@ struct OnboardingView: View {
             }
         }
         .accessibilityIdentifier("onboarding.root")
+        .postHogScreenView("Onboarding")
     }
 
     private var background: some View {

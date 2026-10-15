@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PostHog
 
 struct AddShoppingListView: View {
     @Environment(\.modelContext) private var context
@@ -16,6 +17,7 @@ struct AddShoppingListView: View {
                 }
             }
             .navigationTitle("New List")
+            .postHogScreenView("Add Shopping List")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

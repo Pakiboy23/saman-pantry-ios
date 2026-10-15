@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PostHog
 
 struct InventoryView: View {
     @Environment(\.modelContext) private var context
@@ -84,6 +85,7 @@ struct InventoryView: View {
             .background(Color.surfaceDoodh)
             .scrollContentBackground(.hidden)
             .accessibilityIdentifier("screenshot.pantry")
+            .postHogScreenView("Pantry")
             .safeAreaInset(edge: .top, spacing: 0) {
                 topHeader
             }
