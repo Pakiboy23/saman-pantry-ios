@@ -30,15 +30,15 @@ struct IngredientQuantityTests {
         #expect(ingredient.amountLabel == expected)
     }
 
-    @Test func missingQuantityOrUnitKeepsPlaceholder() {
+    @Test func missingQuantityOrUnitShowsNothing() {
         let noAmount = ExtractedIngredient(
             ingredient: "salt", originalPhrase: "to taste", amount: nil, unit: "tsp", vague: true
         )
         let noUnit = ExtractedIngredient(
             ingredient: "onion", originalPhrase: "2 onions", amount: 2, unit: nil, vague: false
         )
-        #expect(noAmount.amountLabel == "—")
-        #expect(noUnit.amountLabel == "—")
+        #expect(noAmount.amountLabel == "")
+        #expect(noUnit.amountLabel == "")
     }
 
     @MainActor

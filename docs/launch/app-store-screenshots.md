@@ -58,7 +58,7 @@ screenshot UI tests. It:
 - treats the session as signed in (no Supabase call)
 - uses an in-memory SwiftData store
 - seeds a desi kitchen that matches the shot-list (atta **out**, haldi **low**,
-  Patel Brothers list mid-checkout, Chicken Karahi with `haldi — andaza se`)
+  Patel Brothers list mid-checkout, Chicken Karahi with `haldi, andaza se`)
 - skips pull/push sync so the seed is not uploaded
 
 **Demo account:** set `SAMAN_DEMO_EMAIL` and `SAMAN_DEMO_PASSWORD` to the
@@ -85,13 +85,13 @@ Already signed in on a Simulator and want live data instead of the seed:
 | File | Scene | What you should see |
 |------|-------|---------------------|
 | `01-pantry.png` | Pantry tab | Desi staples, atta out, haldi low |
-| `02-recipe-review.png` | Recipe capture **Review** | `turmeric` next to *haldi — andaza se* |
+| `02-recipe-review.png` | Recipe capture **Review** | `turmeric` next to *haldi, andaza se* |
 | `03-shopping-list.png` | Patel Brothers list | Some rows checked (In Cart), some still To Buy |
 | `04-home.png` | Home dashboard | Running low + the active list together |
 | `05-paywall.png` | RevenueCat paywall | Whatever the live offering UI renders |
 
-Captions (from the metadata draft): “See what's low before you shop”, “Your
-mother's exact words, kept”.
+Captions (from the metadata draft): “See what's low before you shop”, “The
+exact words, kept”.
 
 The recipe-review shot does **not** call `extract-recipe`. The review UI is
 opened with the same canned `ExtractedRecipe` the seeder stores, so a missing

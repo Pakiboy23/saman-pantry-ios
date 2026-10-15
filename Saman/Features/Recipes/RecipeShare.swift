@@ -69,8 +69,8 @@ enum RecipeShareText {
         let name = ingredient.ingredient.trimmingCharacters(in: .whitespacesAndNewlines)
         let phrase = ingredient.originalPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
         var line = name.isEmpty ? phrase : name
-        if ingredient.amountLabel != "—" {
-            line += " — \(ingredient.amountLabel)"
+        if !ingredient.amountLabel.isEmpty {
+            line += ", \(ingredient.amountLabel)"
         }
         if !phrase.isEmpty && phrase.caseInsensitiveCompare(name) != .orderedSame {
             if !name.isEmpty {

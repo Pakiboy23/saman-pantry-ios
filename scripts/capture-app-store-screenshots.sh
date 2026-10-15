@@ -102,7 +102,7 @@ fi
 
 SHOTS=()
 SHOTS+=("01-pantry.png|pantry|See what's low before you shop|Pantry with desi staples + low-stock dots (haldi low, atta out)")
-SHOTS+=("02-recipe-review.png|recipeReview|Your mother's exact words, kept|Recipe capture review: turmeric next to “haldi — andaza se”")
+SHOTS+=("02-recipe-review.png|recipeReview|The exact words, kept|Recipe capture review: turmeric next to “haldi, andaza se”")
 SHOTS+=("03-shopping-list.png|shoppingList|Check off as you shop|Shopping list mid-checkout (Patel Brothers)")
 SHOTS+=("04-home.png|home|Running low and the list, together|Home dashboard: running low + active list")
 if [[ "$SKIP_PAYWALL" -eq 0 ]]; then

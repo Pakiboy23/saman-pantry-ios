@@ -29,7 +29,8 @@ struct RecipeShareTests {
 
         #expect(text.contains("Chicken Karahi"))
         #expect(text.contains("from Mom"))
-        #expect(text.contains("• chicken — 1 kg"))
+        #expect(text.contains("• chicken, 1 kg"))
+        #expect(!text.contains("—"))
         #expect(text.contains("haldi andaza se"))
         #expect(text.contains("1. Heat the oil"))
         #expect(text.contains("Rest it"))

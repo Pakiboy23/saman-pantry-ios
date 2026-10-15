@@ -88,12 +88,12 @@ and on the paywall.
 
 ## Screenshot shot-list (show real use, not empty UI)
 1. Pantry with desi staples + low-stock dots (haldi low, atta out) — the daily value.
-2. Recipe capture review screen showing "haldi — andaza se" preserved next to "turmeric."
+2. Recipe capture review screen showing "haldi, andaza se" preserved next to "turmeric."
 3. Shopping list mid-checkout, a couple items checked off.
 4. Home dashboard: running low + active list together.
 5. (Optional) Paywall framed around more than 30 pantry items + extra Lists-tab lists, not unlimited extract or "support development."
 
-Caption each with the benefit ("See what's low before you shop", "Your mother's exact words, kept").
+Caption each with the benefit ("See what's low before you shop", "The exact words, kept").
 
 Capture from a Mac Simulator (real PNGs only, no mockups):
 [`app-store-screenshots.md`](./app-store-screenshots.md) and

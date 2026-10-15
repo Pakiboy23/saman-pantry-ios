@@ -9,13 +9,13 @@ enum ScreenshotDemoKitchen {
 
     static let karahiTranscript = """
     Beta listen, chicken karahi bahut easy hai. Ek kilo chicken, char tamatar, \
-    adrak lehsun. Haldi — andaza se. Thora sa laal mirch, garam masala last mein. \
-    Ammi's way, don't measure the haldi.
+    adrak lehsun. Haldi, andaza se. Thora sa laal mirch, garam masala last mein. \
+    Don't measure the haldi.
     """
 
     static let chickenKarahiReview = ExtractedRecipe(
         title: recipeTitle,
-        attribution: "Ammi",
+        attribution: "Family",
         ingredients: [
             ExtractedIngredient(
                 ingredient: "chicken",
@@ -26,7 +26,7 @@ enum ScreenshotDemoKitchen {
             ),
             ExtractedIngredient(
                 ingredient: "turmeric",
-                originalPhrase: "haldi — andaza se",
+                originalPhrase: "haldi, andaza se",
                 amount: nil,
                 unit: nil,
                 vague: true
@@ -63,9 +63,9 @@ enum ScreenshotDemoKitchen {
         steps: [
             "Heat ghee, brown the chicken.",
             "Add tamatar and adrak lehsun, cook until the oil returns.",
-            "Haldi — andaza se. Finish with garam masala.",
+            "Haldi, andaza se. Finish with garam masala.",
         ],
-        notes: "Don't invent a number Ammi didn't say."
+        notes: "Don't invent a number the cook didn't say."
     )
 
     private static let pantryStock: [(name: String, unit: String, quantity: Int, minimum: Int)] = [
@@ -114,7 +114,7 @@ enum ScreenshotDemoKitchen {
             title: recipeTitle,
             rawTranscript: karahiTranscript,
             extractedJSON: extractedJSON,
-            attribution: "Ammi"
+            attribution: "Family"
         ))
 
         try? context.save()
