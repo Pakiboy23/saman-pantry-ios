@@ -25,11 +25,16 @@ struct RecipesView: View {
             Group {
                 switch shelf {
                 case .yours:
-                    if recipes.isEmpty {
-                        emptyState
-                    } else {
-                        recipeList
+                    // RecipesView stays mounted when the shelf changes, so the
+                    // screen name has to be on the content that comes and goes.
+                    Group {
+                        if recipes.isEmpty {
+                            emptyState
+                        } else {
+                            recipeList
+                        }
                     }
+                    .heycatchScreen("Recipes")
                 case .familyBook:
                     FamilyRecipeBookView()
                 }

@@ -100,10 +100,10 @@ Capture from a Mac Simulator (real PNGs only, no mockups):
 `./scripts/capture-app-store-screenshots.sh`.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
-- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links), Purchase History, Product Interaction (anonymous install id, event name, app version).
-- Linked to you: email, user id, other user content, purchase history. Product interaction is not linked. None of it is used for tracking.
-- Purpose: App Functionality (+ Purchases for purchase history; Analytics for product interaction).
-- Third parties receiving data: Supabase (backend), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
+- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone).
+- Linked to you: email, user id, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
+- Purpose: App Functionality for email, user id, and other user content. Analytics as well as App Functionality for user id. Purchases and App Functionality for purchase history. Analytics for product interaction and other usage data.
+- Third parties receiving data: Supabase (backend, plus the anonymous events row), HeyCatch (product analytics via the PostHog iOS SDK: fixed screen and event names, and the Supabase user id after sign-in — no recipe text, transcripts, audio, names, or emails), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
 
 ## Category & age
 - Primary: Food & Drink. Secondary: Productivity.

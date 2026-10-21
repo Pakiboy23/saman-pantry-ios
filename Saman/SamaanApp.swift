@@ -14,6 +14,7 @@ struct SamaanApp: App {
         Self.configureNavigationBarAppearance()
         Self.configureTabBarAppearance()
         Self.configureRevenueCat()
+        HeyCatch.start()
 
         let launch = ScreenshotLaunchConfiguration.current
         if launch.isUITesting {
@@ -34,6 +35,13 @@ struct SamaanApp: App {
                 .tint(Color.brandSaag)
                 .onChange(of: appEnv.auth.hasCheckedInitialSession) { _, checked in
                     guard checked else { return }
+                    // Rebind before app_open. PostHog restores the last
+                    // identified account, and a killed process never emits
+                    // the nil transition this onChange would have reset.
+                    HeyCatch.bind(userID: appEnv.auth.currentUserID)
+                    // Splash, Home, Onboarding, and Auth can appear before
+                    // this onChange. Hold their screen events until bind.
+                    HeyCatch.releaseQueuedEvents()
                     Analytics.track(.appOpen)
                     if appEnv.auth.currentUserID == nil {
                         Analytics.trackOnce(.guestStart)
@@ -44,6 +52,7 @@ struct SamaanApp: App {
                     bindPurchases(to: appEnv.auth.currentUserID)
                 }
                 .onChange(of: appEnv.auth.currentUserID) { _, userID in
+                    HeyCatch.bind(userID: userID)
                     if !ScreenshotLaunchConfiguration.current.skipsAuth {
                         appEnv.reconcileLocalStore(currentUserID: userID)
                     }

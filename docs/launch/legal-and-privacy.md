@@ -25,17 +25,28 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 
 - **Who:** Saman Technologies LLC (dba Samaan Technologies), contact email.
 - **What we collect:** account email; an internal user ID; the pantry items, shopping lists,
-  and recipes you enter; subscription/purchase status.
+  and recipes you enter; subscription/purchase status. Product analytics: fixed screen
+  names and fixed event names (for example `recipe_saved`). After sign-in those analytics
+  events are tied to the internal user ID. They do not include recipe text, transcripts,
+  audio, names, emails, list names, item names, barcodes, or prices.
 - **Where it goes / processors:**
-  - **Supabase** — stores your account and your kitchen data (hosting/backend).
+  - **Supabase** — stores your account and your kitchen data (hosting/backend). Also receives
+    an anonymous product-event row (random install id, event name, app version) that is not
+    tied to the account.
+  - **HeyCatch** — product analytics. The app uses the PostHog iOS SDK pointed at HeyCatch
+    ingest. The payload is the screen or event name, and after sign-in the Supabase user id.
+    The SDK also attaches app and device context (app version, OS, device model class such
+    as iPhone, locale, timezone). No recipe text, transcripts, audio, names, or emails.
   - **Anthropic** — receives the recipe text you choose to capture, to structure it
     into ingredients. That text is a transcript, or the page / video description / captions
     fetched from a link you paste. A page that already has a complete schema.org Recipe is
     structured on our server and is not sent to Anthropic. Path: app → our server → Anthropic
     when the model is needed. YouTube Data API, when configured, receives only the video id.
   - **RevenueCat / Apple** — process and verify subscriptions; receive your user ID.
-- **What we do NOT do:** no advertising, no cross-app tracking, no selling data, no analytics
-  SDKs. (Only claim this if it stays true — there are currently no analytics SDKs in the build.)
+- **What we do NOT do:** no advertising, no cross-app tracking, no selling data, no IDFA,
+  and no App Tracking Transparency prompt. Product analytics is first-party measurement
+  inside Samaan, not tracking across other companies' apps. The live privacy page is hosted
+  outside this repo; update it from this section before the release that turns this SDK on.
 - **Data retention & deletion:** you can delete your account and all associated data in-app
   (Settings → Delete Account); describe how, and how long backups persist.
 - **Children:** not directed at children under 13.

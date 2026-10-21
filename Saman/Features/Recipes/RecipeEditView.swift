@@ -127,6 +127,7 @@ struct RecipeEditView: View {
                 }
             }
             .navigationTitle("Edit Recipe")
+            .heycatchScreen("Edit Recipe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -166,6 +166,7 @@ struct RecipeCaptureView: View {
                 resumePendingExtraction()
             }
             .onDisappear { cancelCapture() }
+            .heycatchScreen("Recipe Capture")
         }
     }
 

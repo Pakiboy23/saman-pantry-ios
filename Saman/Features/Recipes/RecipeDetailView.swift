@@ -52,6 +52,7 @@ struct RecipeDetailView: View {
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
+        .heycatchScreen("Recipe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
