@@ -738,6 +738,53 @@ struct HeyCatchIdentityTests {
         )
     }
 
+    @Test func coldLaunchGuestGroupsOnlyAfterReset() {
+        let effects = HeyCatchBind.effects(for: .reset, alreadyGrouped: false)
+        #expect(effects == [.resetSDK, .forgetBoundUser, .registerAndGroup])
+    }
+
+    @Test func accountSwapGroupsAfterTheNewIdentity() {
+        let effects = HeyCatchBind.effects(
+            for: .resetThenIdentify("user-b"),
+            alreadyGrouped: true
+        )
+        #expect(effects == [
+            .resetSDK,
+            .identify("user-b"),
+            .remember("user-b"),
+            .registerAndGroup,
+        ])
+    }
+
+    @Test func firstSignInGroupsAfterIdentify() {
+        #expect(
+            HeyCatchBind.effects(for: .identify("user-a"), alreadyGrouped: false)
+                == [.identify("user-a"), .remember("user-a"), .registerAndGroup]
+        )
+    }
+
+    @Test func sameAccountDoesNotGroupAgain() {
+        #expect(HeyCatchBind.effects(for: .none, alreadyGrouped: true).isEmpty)
+    }
+
+    @Test func firstGuestStillGroupsOnce() {
+        #expect(HeyCatchBind.effects(for: .none, alreadyGrouped: false) == [.registerAndGroup])
+    }
+
+    @Test func startupDoesNotQueueGroupIdentify() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Core/Services/HeyCatch.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let start = try #require(text.range(of: "static func start()"))
+        let registerProject = try #require(text.range(of: "private static func registerProject()"))
+        let startup = text[start.lowerBound..<registerProject.lowerBound]
+        #expect(!startup.contains(".group("))
+        #expect(!startup.contains("registerProject()"))
+        #expect(text.components(separatedBy: "PostHogSDK.shared.group(").count == 2)
+    }
+
     @Test func appRebindsBeforeAppOpenAndOnUserChange() throws {
         let app = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
