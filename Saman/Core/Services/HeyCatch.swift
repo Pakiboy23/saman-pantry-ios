@@ -42,6 +42,45 @@ enum HeyCatchIdentity {
     }
 }
 
+/// What `bind` does, in order. `$groupidentify` is last so it uses the
+/// distinct id for this session. PostHog 3.92.0 `reset()` does not delete
+/// the on-disk event queue, so a group ping queued before the reset would
+/// still flush as the previous account.
+enum HeyCatchBindEffect: Equatable {
+    case resetSDK
+    case identify(String)
+    case remember(String)
+    case forgetBoundUser
+    case registerAndGroup
+}
+
+enum HeyCatchBind {
+    static func effects(
+        for action: HeyCatchIdentity.Action,
+        alreadyGrouped: Bool
+    ) -> [HeyCatchBindEffect] {
+        var effects: [HeyCatchBindEffect] = []
+        switch action {
+        case .none:
+            break
+        case .identify(let id):
+            effects.append(.identify(id))
+            effects.append(.remember(id))
+        case .reset:
+            effects.append(.resetSDK)
+            effects.append(.forgetBoundUser)
+        case .resetThenIdentify(let id):
+            effects.append(.resetSDK)
+            effects.append(.identify(id))
+            effects.append(.remember(id))
+        }
+        if action != .none || !alreadyGrouped {
+            effects.append(.registerAndGroup)
+        }
+        return effects
+    }
+}
+
 /// Screen and product events held until the first session bind. PostHog
 /// restores the last person during setup, and SwiftUI can run `onAppear`
 /// before the `onChange` that calls `bind`.
@@ -119,12 +158,15 @@ enum HeyCatch {
         config.setDefaultPersonProperties = false
         config.disableGeoIp = true
         PostHogSDK.shared.setup(config)
-        registerProject()
+        // Do not call `group()` here. It queues `$groupidentify` with the
+        // distinct id restored from disk, and `reset()` leaves that event
+        // in the queue. `bind` groups only after the id matches this session.
     }
 
-    /// `reset()` clears the registered key and the project group. Call this
-    /// again immediately after every reset.
-    static func registerProject() {
+    /// Super property plus the project group. `group()` sends `$groupidentify`
+    /// for the current distinct id, so call it only after `bind` has reset or
+    /// identified.
+    private static func registerProject() {
         guard Analytics.isEnabled else { return }
         PostHogSDK.shared.register(["heycatch_project_key": projectKey])
         PostHogSDK.shared.group(type: "project", key: projectKey)
@@ -140,19 +182,31 @@ enum HeyCatch {
     static func bind(userID: String?, defaults: UserDefaults = .standard) {
         guard Analytics.isEnabled else { return }
         let bound = defaults.string(forKey: boundUserIDKey)
-        switch HeyCatchIdentity.action(currentUserID: userID, boundUserID: bound) {
-        case .none:
-            return
+        let action = HeyCatchIdentity.action(currentUserID: userID, boundUserID: bound)
+        let effects = groupLock.withLock {
+            HeyCatchBind.effects(for: action, alreadyGrouped: didRegisterProject)
+        }
+        for effect in effects {
+            apply(effect, defaults: defaults)
+        }
+    }
+
+    private static var didRegisterProject = false
+    private static let groupLock = NSLock()
+
+    private static func apply(_ effect: HeyCatchBindEffect, defaults: UserDefaults) {
+        switch effect {
+        case .resetSDK:
+            PostHogSDK.shared.reset()
         case .identify(let id):
             identify(userID: id)
+        case .remember(let id):
             defaults.set(id, forKey: boundUserIDKey)
-        case .reset:
-            reset()
+        case .forgetBoundUser:
             defaults.removeObject(forKey: boundUserIDKey)
-        case .resetThenIdentify(let id):
-            reset()
-            identify(userID: id)
-            defaults.set(id, forKey: boundUserIDKey)
+        case .registerAndGroup:
+            registerProject()
+            groupLock.withLock { didRegisterProject = true }
         }
     }
 
@@ -160,12 +214,6 @@ enum HeyCatch {
     static func identify(userID: String) {
         guard Analytics.isEnabled, !userID.isEmpty, userID != "ui-testing" else { return }
         PostHogSDK.shared.identify(userID)
-    }
-
-    static func reset() {
-        guard Analytics.isEnabled else { return }
-        PostHogSDK.shared.reset()
-        registerProject()
     }
 
     /// A business outcome. Pass no properties: names here are fixed strings.
