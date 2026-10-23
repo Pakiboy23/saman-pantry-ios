@@ -46,9 +46,9 @@ your mother didn't say.
 
 Made for the diaspora kitchen, not a generic grocery app.
 
-Samaan is free to use. Samaan Pro (optional) unlocks more than 30 pantry items
-and extra shopping lists from the Lists tab. Recipe extract is 5 per day for
-everyone.
+Samaan is free to use. New accounts get 5 recipe extractions. Samaan Pro
+(optional) unlocks unlimited voice extractions so every rescued recipe stays
+in your cookbook. Pantry items and shopping lists are unlimited on every plan.
 
 — Your data is yours. Delete your account and everything in it any time, in the app.
 ```
@@ -91,7 +91,7 @@ and on the paywall.
 2. Recipe capture review screen showing "haldi, andaza se" preserved next to "turmeric."
 3. Shopping list mid-checkout, a couple items checked off.
 4. Home dashboard: running low + active list together.
-5. (Optional) Paywall framed around more than 30 pantry items + extra Lists-tab lists, not unlimited extract or "support development."
+5. (Optional) Paywall framed around unlimited voice extractions and keeping rescued recipes, not 30 pantry items or "support development."
 
 Caption each with the benefit ("See what's low before you shop", "The exact words, kept").
 
