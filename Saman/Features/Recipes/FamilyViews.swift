@@ -369,9 +369,9 @@ struct JoinFamilySheet: View {
         Task { @MainActor in
             defer { isWorking = false }
             do {
+                // Saved first so the new member row is stamped with this name.
+                if preview?.alreadyMember == false { try await nameModel.saveIfChanged() }
                 let id = try await FamilyService.shared.join(codeOrToken: joinValue)
-                // Saved after joining so the new family gets the name too.
-                if preview?.alreadyMember == false { try? await nameModel.saveIfChanged() }
                 onJoined(id)
                 dismiss()
             } catch {
