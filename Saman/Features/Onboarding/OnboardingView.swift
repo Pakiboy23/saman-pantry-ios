@@ -14,7 +14,7 @@ struct OnboardingView: View {
         ),
         Page(
             headline: "One cookbook. Every generation.",
-            body: "Every recipe you extract goes into a family cookbook your whole family can cook from.",
+            body: "Keep every recipe in your book, then add it to a family cookbook that only your family can see.",
             cta: "Next"
         ),
         Page(

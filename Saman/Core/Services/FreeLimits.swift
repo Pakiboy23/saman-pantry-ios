@@ -7,9 +7,10 @@ import Foundation
 /// Pro (`Saman Pro` entitlement) is uncapped once the Edge Function can
 /// verify RevenueCat. Pantry items and shopping lists are unlimited for all.
 ///
-/// Do not advertise private cookbook sharing or member invites here until
-/// household sharing ships (THESIS). The public family recipe book is free
-/// for readers and is not a Pro unlock.
+/// Family cookbooks (1.6): starting a family needs Samaan Pro or a
+/// grandfathered account; joining, reading, adding recipes, notes and saving
+/// copies are free. If an owner's Samaan Pro lapses, the family keeps working.
+/// The public community book stays free for readers and is not a Pro unlock.
 enum FreeLimits {
     static let extractLimit = 5
 
@@ -53,6 +54,10 @@ enum FreeLimits {
             subtitle: "No cap on recipes rescued from recordings"
         ),
         ProBenefit(
+            title: "Start family cookbooks",
+            subtitle: "Invite the people who cook with you. Joining is free for them"
+        ),
+        ProBenefit(
             title: "Keep every rescued recipe",
             subtitle: "Your extracts stay in your cookbook, ready to cook from again"
         ),
@@ -81,6 +86,7 @@ enum FreeLimits {
 enum PaywallTrigger: Equatable, Sendable {
     case settings
     case extractionLimit
+    case createFamily
 
     var contextLine: String? {
         switch self {
@@ -88,6 +94,8 @@ enum PaywallTrigger: Equatable, Sendable {
             return nil
         case .extractionLimit:
             return FreeLimits.paywallContextExtractionLimit
+        case .createFamily:
+            return FamilyCopy.paywallContext
         }
     }
 }

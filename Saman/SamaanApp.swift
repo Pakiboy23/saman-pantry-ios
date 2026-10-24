@@ -59,10 +59,23 @@ struct SamaanApp: App {
                     bindPurchases(to: userID)
                 }
                 .onOpenURL { url in
+                    if routeFamilyJoin(url) { return }
                     Task { await appEnv.auth.handleAuthURL(url) }
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    if let url = activity.webpageURL { _ = routeFamilyJoin(url) }
                 }
         }
         .modelContainer(appEnv.modelContainer)
+    }
+
+    /// samanpantry.com/join/<token> opens the join sheet on the Families shelf.
+    /// The RootView tab must be Recipes; see RootView.onChange(familyJoinRequest).
+    private func routeFamilyJoin(_ url: URL) -> Bool {
+        guard let value = FamilyInviteLink.joinValue(from: url) else { return false }
+        appEnv.pendingFamilyJoin = value
+        appEnv.familyJoinRequest += 1
+        return true
     }
 
     /// Identify RevenueCat with the signed-in account, or log out an
