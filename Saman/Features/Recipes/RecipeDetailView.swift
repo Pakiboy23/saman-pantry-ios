@@ -10,6 +10,7 @@ struct RecipeDetailView: View {
     @State private var extracted: ExtractedRecipe? = nil
     @State private var showAddedBanner = false
     @State private var showEditor = false
+    @State private var showAddToFamily = false
     @State private var detailPrompt: DetailPrompt?
     @State private var familyBookAuth = FamilyBookAuthIntent()
     @State private var familyBookError: String?
@@ -32,6 +33,11 @@ struct RecipeDetailView: View {
 
                 VStack(spacing: 12) {
                     addToListButton
+                    Button(FamilyCopy.addToFamilyAction) {
+                        if appEnv.requireAccount() { showAddToFamily = true }
+                    }
+                    .buttonStyle(SamaanSecondaryButtonStyle())
+                    .accessibilityIdentifier("recipe.addToFamily")
                     if recipe.sourceKindValue == .url {
                         Button(recipe.shareInFamilyBook
                             ? FamilyBookShareCopy.removeAction
@@ -52,6 +58,9 @@ struct RecipeDetailView: View {
         .background(Color.surfaceDoodh)
         .scrollContentBackground(.hidden)
         .navigationTitle("")
+        .sheet(isPresented: $showAddToFamily) {
+            AddToFamilySheet(recipeID: recipe.id)
+        }
         .heycatchScreen("Recipe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
