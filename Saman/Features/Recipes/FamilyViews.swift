@@ -31,13 +31,102 @@ enum FamilyCopy {
     static let notesTitle = "Notes"
     static let notePlaceholder = "Add a note, like how Nani adjusts the chilli"
     static let paywallContext = "Starting a family cookbook needs Samaan Pro. Joining one is free."
+    static let yourNameTitle = "Your name"
+    static let yourNamePlaceholder = "Name"
+    static let yourNameFooter = "Members of your families see this name. Leave it blank to use the start of your email."
+    static let editNameAction = "Edit your name"
+    static let unknownAuthor = "A former member"
 
     static var all: [String] {
         [shelfTitle, emptyTitle, emptyBody, signInBody, createAction, joinAction, createTitle,
          inviteAction, membersAction, addToFamilyAction, addToFamilyTitle, addToFamilyBody,
          saveCopyAction, savedCopy, recipesEmpty, leaveAction, leaveMessage, removeMessage,
          deleteAction, deleteMessage, transferAction, joinTitle, joinBody, notesTitle,
-         notePlaceholder, paywallContext]
+         notePlaceholder, paywallContext, yourNameTitle, yourNamePlaceholder, yourNameFooter,
+         editNameAction, unknownAuthor]
+    }
+}
+
+// MARK: - Your name (shown to members)
+
+/// Name field shared by the create, join and members screens.
+struct FamilyNameSection: View {
+    @Binding var name: String
+
+    var body: some View {
+        Section(header: Text(FamilyCopy.yourNameTitle), footer: Text(FamilyCopy.yourNameFooter)) {
+            TextField(FamilyCopy.yourNamePlaceholder, text: $name)
+                .textInputAutocapitalization(.words)
+                .textContentType(.name)
+                .accessibilityIdentifier("families.yourName")
+            if name.count > FamilyDisplayName.maxLength {
+                Text(FamilyError.nameTooLong.localizedDescription).font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
+
+    static func isValid(_ name: String) -> Bool {
+        FamilyDisplayName.normalized(name).count <= FamilyDisplayName.maxLength
+    }
+}
+
+/// Loads the saved name once, and saves it only when it changed.
+@MainActor
+final class FamilyNameModel: ObservableObject {
+    @Published var name = ""
+    private var saved: String?
+    private var loaded = false
+
+    func load() async {
+        guard !loaded else { return }
+        loaded = true
+        saved = await FamilyService.shared.myDisplayName()
+        if name.isEmpty { name = saved ?? "" }
+    }
+
+    func saveIfChanged() async throws {
+        let normalized = FamilyDisplayName.normalized(name)
+        guard normalized != (saved ?? "") else { return }
+        try await FamilyService.shared.setDisplayName(normalized)
+        saved = normalized.isEmpty ? nil : normalized
+        name = normalized
+    }
+}
+
+/// Edit your name from family settings.
+struct EditFamilyNameSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onSaved: () -> Void
+    @StateObject private var model = FamilyNameModel()
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                FamilyNameSection(name: $model.name)
+                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+            }
+            .navigationTitle(FamilyCopy.yourNameTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .disabled(isSaving || !FamilyNameSection.isValid(model.name))
+                }
+            }
+            .task { await model.load() }
+        }
+    }
+
+    private func save() {
+        isSaving = true
+        Task { @MainActor in
+            defer { isSaving = false }
+            do { try await model.saveIfChanged(); onSaved(); dismiss() }
+            catch { errorMessage = error.localizedDescription }
+        }
     }
 }
 
@@ -173,6 +262,7 @@ struct CreateFamilySheet: View {
     @Environment(\.appEnv) private var appEnv
     let onCreated: (Family) -> Void
     @State private var name = ""
+    @StateObject private var nameModel = FamilyNameModel()
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -182,15 +272,18 @@ struct CreateFamilySheet: View {
                 TextField(FamilyCopy.createPlaceholder, text: $name)
                     .textInputAutocapitalization(.words)
                     .accessibilityIdentifier("families.create.name")
+                FamilyNameSection(name: $nameModel.name)
                 if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
             }
+            .task { await nameModel.load() }
             .navigationTitle(FamilyCopy.createTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Start") { save() }
-                        .disabled(isSaving || name.trimmingCharacters(in: .whitespaces).isEmpty || name.count > 60)
+                        .disabled(isSaving || name.trimmingCharacters(in: .whitespaces).isEmpty || name.count > 60
+                                  || !FamilyNameSection.isValid(nameModel.name))
                 }
             }
         }
@@ -201,6 +294,7 @@ struct CreateFamilySheet: View {
         Task { @MainActor in
             defer { isSaving = false }
             do {
+                try await nameModel.saveIfChanged()
                 let family = try await FamilyService.shared.createFamily(name: name, isProOnDevice: appEnv.purchases.isPro)
                 onCreated(family)
                 dismiss()
@@ -218,6 +312,7 @@ struct JoinFamilySheet: View {
     let initialValue: String?
     let onJoined: (UUID) -> Void
     @State private var code = ""
+    @StateObject private var nameModel = FamilyNameModel()
     @State private var preview: FamilyInvitePreview?
     @State private var isWorking = false
     @State private var errorMessage: String?
@@ -231,8 +326,9 @@ struct JoinFamilySheet: View {
                         Text("Started by \(preview.ownerLabel) · \(preview.memberCount) members")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
+                    if !preview.alreadyMember { FamilyNameSection(name: $nameModel.name) }
                     Button(preview.alreadyMember ? "Open family" : "Join \(preview.name)") { join() }
-                        .disabled(isWorking)
+                        .disabled(isWorking || !FamilyNameSection.isValid(nameModel.name))
                         .accessibilityIdentifier("families.join.confirm")
                 } else {
                     Section(footer: Text(FamilyCopy.joinBody)) {
@@ -250,6 +346,7 @@ struct JoinFamilySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .task {
+                await nameModel.load()
                 if let initialValue, preview == nil { lookUp(initialValue) }
             }
         }
@@ -273,6 +370,8 @@ struct JoinFamilySheet: View {
             defer { isWorking = false }
             do {
                 let id = try await FamilyService.shared.join(codeOrToken: joinValue)
+                // Saved after joining so the new family gets the name too.
+                if preview?.alreadyMember == false { try? await nameModel.saveIfChanged() }
                 onJoined(id)
                 dismiss()
             } catch {
@@ -393,6 +492,7 @@ struct FamilyMembersView: View {
     @State private var members: [FamilyMember] = []
     @State private var pending: PendingAction?
     @State private var errorMessage: String?
+    @State private var showEditName = false
 
     private enum PendingAction: Identifiable {
         case remove(FamilyMember), transfer(FamilyMember), leave, delete
@@ -430,6 +530,10 @@ struct FamilyMembersView: View {
                 Text("\(members.count) of 50 members")
             }
             Section {
+                Button(FamilyCopy.editNameAction) { showEditName = true }
+                    .accessibilityIdentifier("families.members.editName")
+            }
+            Section {
                 if iAmOwner {
                     Button(FamilyCopy.deleteAction, role: .destructive) { pending = .delete }
                 } else {
@@ -444,6 +548,9 @@ struct FamilyMembersView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         .task { await reload() }
+        .sheet(isPresented: $showEditName) {
+            EditFamilyNameSheet { Task { await reload() } }
+        }
         .confirmationDialog(dialogTitle, isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
                             titleVisibility: .visible, presenting: pending) { action in
             Button(confirmLabel(action), role: .destructive) { perform(action) }
@@ -515,6 +622,7 @@ struct FamilyRecipeDetailView: View {
     let recipe: FamilyRecipe
     let onRemoved: () -> Void
     @State private var notes: [FamilyRecipeNote] = []
+    @State private var memberNames: [UUID: String] = [:]
     @State private var draft = ""
     @State private var savedCopy = false
     @State private var errorMessage: String?
@@ -566,7 +674,12 @@ struct FamilyRecipeDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(FamilyCopy.notesTitle).font(.headline)
             ForEach(notes) { note in
-                Text(note.body).padding(10).frame(maxWidth: .infinity, alignment: .leading).samaanCard()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(memberNames[note.authorId] ?? FamilyCopy.unknownAuthor)
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.inkKohlSoft)
+                    Text(note.body)
+                }
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading).samaanCard()
             }
             TextField(FamilyCopy.notePlaceholder, text: $draft, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
@@ -600,6 +713,8 @@ struct FamilyRecipeDetailView: View {
 
     private func loadNotes() async {
         notes = (try? await FamilyService.shared.notes(familyID: recipe.familyId, recipeID: recipe.recipeId)) ?? []
+        let members = (try? await FamilyService.shared.members(familyID: recipe.familyId)) ?? []
+        memberNames = Dictionary(members.map { ($0.userId, $0.displayLabel) }, uniquingKeysWith: { a, _ in a })
     }
 
     private func addNote() {

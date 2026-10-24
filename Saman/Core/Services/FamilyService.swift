@@ -153,6 +153,7 @@ enum FamilyError: LocalizedError, Equatable {
     case rateLimited
     case ownerMustTransfer
     case recipeNotSynced
+    case nameTooLong
     case failed
 
     var errorDescription: String? {
@@ -167,6 +168,7 @@ enum FamilyError: LocalizedError, Equatable {
         case .rateLimited: return "Too many tries. Wait an hour and try again."
         case .ownerMustTransfer: return "Hand the family to another member first, or delete it."
         case .recipeNotSynced: return "This recipe hasn't synced yet. Check your connection and try again."
+        case .nameTooLong: return "Use \(FamilyDisplayName.maxLength) characters or fewer for your name."
         case .failed: return "Something went wrong. Check your connection and try again."
         }
     }
@@ -181,8 +183,18 @@ enum FamilyError: LocalizedError, Equatable {
         if text.contains("membership_limit") { return .membershipLimit }
         if text.contains("rate_limited") { return .rateLimited }
         if text.contains("owner_must_transfer") { return .ownerMustTransfer }
+        if text.contains("name_too_long") { return .nameTooLong }
         if text.contains("Recipe not found") { return .recipeNotSynced }
         return .failed
+    }
+}
+
+enum FamilyDisplayName {
+    static let maxLength = 40
+
+    /// Trims the ends and collapses inner runs of spaces, like the server does.
+    static func normalized(_ raw: String) -> String {
+        raw.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
     }
 }
 
@@ -205,6 +217,26 @@ final class FamilyService {
                 .select("is_pro, grandfathered").eq("id", value: uid).execute().value,
               let row = rows.first else { return false }
         return (row.is_pro ?? false) || (row.grandfathered ?? false)
+    }
+
+    /// The name other members see. Nil means the app shows the email fallback.
+    func myDisplayName() async -> String? {
+        struct Row: Decodable { let display_name: String? }
+        guard let uid = try? await requireSignedIn(),
+              let rows: [Row] = try? await client.from("user_accounts")
+                .select("display_name").eq("id", value: uid).execute().value else { return nil }
+        return rows.first?.display_name
+    }
+
+    /// Sets the caller's name in every family. Blank clears it. Returns the label members now see.
+    @discardableResult
+    func setDisplayName(_ name: String) async throws -> String {
+        try await requireSignedIn()
+        let trimmed = FamilyDisplayName.normalized(name)
+        guard trimmed.count <= FamilyDisplayName.maxLength else { throw FamilyError.nameTooLong }
+        do {
+            return try await client.rpc("set_my_display_name", params: ["p_name": trimmed]).execute().value
+        } catch { throw FamilyError.from(error) }
     }
 
     func myFamilies() async throws -> [Family] {

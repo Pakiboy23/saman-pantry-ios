@@ -13,6 +13,15 @@ struct FamilyBookTests {
         #expect(FamilyInviteLink.joinValue(from: URL(string: "samaan://auth-callback")!) == nil)
     }
 
+    @Test func displayNameIsTrimmedAndCollapsed() {
+        #expect(FamilyDisplayName.normalized("   Sam    Rivera  ") == "Sam Rivera")
+        #expect(FamilyDisplayName.normalized("   ").isEmpty)
+        #expect(FamilyNameSection.isValid(String(repeating: "x", count: 40)))
+        #expect(!FamilyNameSection.isValid(String(repeating: "x", count: 41)))
+        struct Fake: Error, CustomStringConvertible { let description: String }
+        #expect(FamilyError.from(Fake(description: "hint: name_too_long")) == .nameTooLong)
+    }
+
     @Test func codeEntryIsNormalized() {
         #expect(FamilyInviteLink.normalizedCode(" abcd-2345 ") == "ABCD2345")
     }
