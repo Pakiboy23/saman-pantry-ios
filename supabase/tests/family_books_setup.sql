@@ -16,9 +16,14 @@ begin
     end if;
   end loop;
 end $$;
-create schema if not exists auth;
-create schema if not exists extensions;
-create table if not exists auth.users (id uuid primary key, email text, created_at timestamptz default now());
+-- Guarded: on Supabase the auth schema exists and isn't writable by this role.
+do $$ begin
+  if to_regnamespace('auth') is null then execute 'create schema auth'; end if;
+  if to_regnamespace('extensions') is null then execute 'create schema extensions'; end if;
+  if to_regclass('auth.users') is null then
+    execute 'create table auth.users (id uuid primary key, email text, created_at timestamptz default now())';
+  end if;
+end $$;
 do $$ begin
   if to_regprocedure('auth.uid()') is null then
     execute $f$create function auth.uid() returns uuid language sql stable as
