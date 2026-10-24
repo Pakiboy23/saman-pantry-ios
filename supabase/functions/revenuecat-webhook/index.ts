@@ -7,7 +7,7 @@
 // RevenueCat does not retry forever.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-import { candidateUserIDs, entitlementID, proFromEvent, type RevenueCatEvent } from "./events.ts";
+import { candidateUserIDs, entitlementID, proForUser, type RevenueCatEvent } from "./events.ts";
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
   let matched = 0;
   for (const id of ids) {
-    const fromEvent = proFromEvent(event);
+    const fromEvent = proForUser(event, id);
     const isPro = fromEvent ?? await lookupPro(id);
     if (isPro == null) {
       console.warn("revenuecat-webhook: could not resolve Pro state", event.type);

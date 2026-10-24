@@ -409,12 +409,16 @@ $$;
 
 -- Keep snapshots fresh while the author edits. Deleting the source recipe
 -- removes it from families (members' saved copies stay in their own books).
+-- Account deletion cascades the recipe too, but that snapshot stays: the
+-- author row is already gone, and added_by is nulled before the cascade.
 create or replace function public.sync_family_recipes()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare s jsonb;
 begin
   if tg_op = 'DELETE' then
-    delete from public.family_recipes where recipe_id = old.id and added_by = old.user_id;
+    if exists (select 1 from auth.users u where u.id = old.user_id) then
+      delete from public.family_recipes where recipe_id = old.id and added_by = old.user_id;
+    end if;
     return old;
   end if;
   s := public.family_recipe_snapshot(new);
@@ -437,6 +441,10 @@ create or replace function public.handoff_families_on_user_delete()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare f record; heir uuid;
 begin
+  -- Null before recipes cascade. sync_family_recipes would otherwise see
+  -- added_by still matching and drop snapshots the family is supposed to keep.
+  -- ON DELETE SET NULL on added_by is not ordered ahead of that cascade.
+  update public.family_recipes set added_by = null where added_by = old.id;
   for f in select id from public.families where owner_id = old.id loop
     select m.user_id into heir from public.family_members m
     where m.family_id = f.id and m.user_id <> old.id order by m.joined_at limit 1;

@@ -106,6 +106,17 @@ begin
   -- Pro lapses: the family keeps working (decision 2).
 end $$;
 reset role;
+-- Explicit recipe delete removes the snapshot. Account deletion keeps it.
+do $$ begin
+  delete from public.recipes where id = '20000000-0000-0000-0000-000000000001';
+  assert not exists (select 1 from public.family_recipes
+    where recipe_id = '20000000-0000-0000-0000-000000000001'),
+    'explicit recipe delete left the family snapshot';
+  delete from auth.users where id = '00000000-0000-0000-0000-0000000000a2';
+  assert exists (select 1 from public.family_recipes
+    where recipe_id = '20000000-0000-0000-0000-000000000002' and added_by is null),
+    'account delete dropped the family snapshot';
+end $$;
 update public.user_accounts set is_pro = false where id = '00000000-0000-0000-0000-0000000000a1';
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';

@@ -71,22 +71,30 @@ struct FamiliesView: View {
         .background(Color.surfaceDoodh)
         .task(id: appEnv.auth.isSignedIn) { await reload() }
         .onChange(of: appEnv.pendingFamilyJoin) { _, value in
-            if value != nil { showJoin = true }
+            if value != nil { presentPendingJoin() }
         }
         .sheet(isPresented: $showCreate) {
             CreateFamilySheet { _ in Task { await reload() } }
         }
-        .sheet(isPresented: $showJoin, onDismiss: { appEnv.pendingFamilyJoin = nil }) {
+        .sheet(isPresented: $showJoin, onDismiss: {
+            // A guest preview fails with sign-in required. Keep the link so
+            // signing in can still open this family.
+            if appEnv.auth.isSignedIn { appEnv.pendingFamilyJoin = nil }
+        }) {
             JoinFamilySheet(initialValue: appEnv.pendingFamilyJoin) { _ in Task { await reload() } }
         }
         .sheet(isPresented: $showPaywall) { SamaanPaywallView(trigger: .createFamily) }
         .fullScreenCover(isPresented: Binding(
             get: { appEnv.isAuthPresented },
             set: { appEnv.isAuthPresented = $0 }
-        )) {
+        ), onDismiss: {
+            // Present after the auth cover is gone. Setting the join sheet
+            // while that cover is up drops the presentation.
+            Task { @MainActor in presentPendingJoin() }
+        }) {
             AuthView()
         }
-        .onAppear { if appEnv.pendingFamilyJoin != nil { showJoin = true } }
+        .onAppear { presentPendingJoin() }
         .heycatchScreen("Families")
     }
 
@@ -154,6 +162,13 @@ struct FamiliesView: View {
                 showPaywall = true
             }
         }
+    }
+
+    /// Invite links often arrive signed out. Don't cover Sign in with a sheet
+    /// that can only fail, and don't drop the token when that sheet is cancelled.
+    private func presentPendingJoin() {
+        guard appEnv.auth.isSignedIn, !appEnv.isAuthPresented, appEnv.pendingFamilyJoin != nil else { return }
+        showJoin = true
     }
 
     private func reload() async {

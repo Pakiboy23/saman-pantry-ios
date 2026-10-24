@@ -20,8 +20,22 @@ export function candidateUserIDs(event: RevenueCatEvent): string[] {
     event.original_app_user_id,
     ...(event.aliases ?? []),
     ...(event.transferred_to ?? []),
+    ...(event.transferred_from ?? []),
   ];
   return [...new Set(ids.filter((id): id is string => !!id && uuidPattern.test(id)).map((id) => id.toLowerCase()))];
+}
+
+// null = this event does not decide Pro for this user; re-check with the REST API.
+// A transfer takes entitlements from transferred_from, so that account is not Pro
+// even when the subscriber lookup is stale or unavailable.
+export function proForUser(event: RevenueCatEvent, userID: string, now = Date.now()): boolean | null {
+  if ((event.type ?? "") === "TRANSFER") {
+    const id = userID.toLowerCase();
+    const from = (event.transferred_from ?? []).map((value) => value.toLowerCase());
+    const to = (event.transferred_to ?? []).map((value) => value.toLowerCase());
+    if (from.includes(id) && !to.includes(id)) return false;
+  }
+  return proFromEvent(event, now);
 }
 
 /** null = this event says nothing about Pro; re-check with the REST API. */
@@ -33,7 +47,8 @@ export function proFromEvent(event: RevenueCatEvent, now = Date.now()): boolean 
   if (grants.includes(type) && mentionsPro) {
     return event.expiration_at_ms == null || event.expiration_at_ms > now;
   }
-  // CANCELLATION keeps access until EXPIRATION. TRANSFER, BILLING_ISSUE etc. re-check.
+  // CANCELLATION keeps access until EXPIRATION. BILLING_ISSUE re-checks.
+  // TRANSFER re-checks the destination; proForUser revokes the source.
   return null;
 }
 

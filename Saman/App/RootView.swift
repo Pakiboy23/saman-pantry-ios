@@ -67,6 +67,7 @@ struct RootView: View {
             } else {
                 tabShell
                     .onAppear {
+                        if appEnv.pendingFamilyJoin != nil { selectedTab = .recipes }
                         if ScreenshotLaunchConfiguration.current.skipsAuth { return }
                         appEnv.reconcileLocalStore(currentUserID: appEnv.auth.currentUserID)
                     }
@@ -87,6 +88,13 @@ struct RootView: View {
             } else {
                 appEnv.extractionQuota.resetForSignOut()
             }
+        }
+        .onChange(of: appEnv.familyJoinRequest) { _, _ in
+            // Splash, onboarding, and password recovery are not the tab shell.
+            // onChange there does not replay once the tabs appear, so select
+            // Recipes while this view is mounted. tabShell.onAppear covers a
+            // link that arrived before this subscription.
+            selectedTab = .recipes
         }
         .sheet(isPresented: $showScreenshotRecipeReview) {
             RecipeCaptureView(demoReview: ScreenshotDemoKitchen.chickenKarahiReview)
@@ -124,7 +132,6 @@ struct RootView: View {
                 .tag(AppTab.recipes)
         }
         .tint(Color.brandSaag)
-        .onChange(of: appEnv.familyJoinRequest) { _, _ in selectedTab = .recipes }
     }
 
     private func presentScreenshotSheetsIfNeeded() {
