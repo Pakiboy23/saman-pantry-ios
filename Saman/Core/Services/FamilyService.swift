@@ -116,12 +116,12 @@ struct FamilyInvitePreview: Hashable, Decodable, Sendable {
     }
 }
 
-/// `https://samanpantry.com/join/<token>` universal links, plus the 8-character code.
+/// `https://www.samanpantry.com/join/<token>` universal links (apex redirects to www, and AASA cannot redirect), plus the 8-character code.
 enum FamilyInviteLink {
     static let host = "samanpantry.com"
 
     static func url(token: String) -> URL {
-        URL(string: "https://\(host)/join/\(token)")!
+        URL(string: "https://www.\(host)/join/\(token)")!
     }
 
     /// Returns the token or code from a join link, or nil for any other URL.
