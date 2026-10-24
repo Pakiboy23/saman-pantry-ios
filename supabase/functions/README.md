@@ -6,7 +6,8 @@ The iOS app calls `https://<project-ref>.supabase.co/functions/v1/extract-recipe
 
 The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected.
 
-Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`):
+Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`). Full
+client + deploy notes: [`docs/billing-and-extract-quota.md`](../../docs/billing-and-extract-quota.md).
 
 - **Grandfathered** accounts (created before 2026-10-12): 5 extractions per rolling 24h
 - **New free** accounts: 5 lifetime extractions
@@ -57,7 +58,9 @@ python3 supabase/tests/recipe_extraction_quota_test.py
 
 ### Deploy
 
-Not deployed from the 1.2 change. After review:
+Owner only, after migration 011 is applied in prod. Last verified live
+function is version 9 (2026-10-07). The billing path on `main` is not live
+until this runs:
 
 ```sh
 supabase functions deploy extract-recipe
