@@ -26,15 +26,18 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 - **Who:** Saman Technologies LLC (dba Samaan Technologies), contact email.
 - **What we collect:** account email; an internal user ID; the pantry items, shopping lists,
   and recipes you enter; subscription/purchase status. Product analytics: fixed screen
-  names and fixed event names (for example `recipe_saved`). After sign-in those analytics
-  events are tied to the internal user ID. They do not include recipe text, transcripts,
-  audio, names, emails, list names, item names, barcodes, or prices.
+  names and fixed event names (for example `recipe_saved`). Before sign-in those events
+  use an app-generated anonymous id. After sign-in, that anonymous id is tied to the
+  internal user ID. If the app opens with no session, it drops the previous analytics
+  identity first. They do not include recipe text, transcripts, audio, names, emails,
+  list names, item names, barcodes, or prices.
 - **Where it goes / processors:**
   - **Supabase** — stores your account and your kitchen data (hosting/backend). Also receives
     an anonymous product-event row (random install id, event name, app version) that is not
     tied to the account.
   - **HeyCatch** — product analytics. The app uses the PostHog iOS SDK pointed at HeyCatch
-    ingest. The payload is the screen or event name, and after sign-in the Supabase user id.
+    ingest. The payload is the screen or event name. Before sign-in the distinct id is an
+    app-generated anonymous id; after sign-in that id is the Supabase user id.
     The SDK also attaches app and device context (app version, OS, device model class such
     as iPhone, locale, timezone). No recipe text, transcripts, audio, names, or emails.
   - **Anthropic** — receives the recipe text you choose to capture, to structure it
