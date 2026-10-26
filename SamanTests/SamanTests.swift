@@ -455,6 +455,73 @@ struct PurchaseSessionBindingTests {
         )
     }
 
+    @Test func revenueCatAppUserIDLowercasesSupabaseUUID() {
+        #expect(
+            RevenueCatAppUserID.normalized("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")
+                == "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        )
+        #expect(RevenueCatAppUserID.normalized("  AbC-def  ") == "abc-def")
+        #expect(RevenueCatAppUserID.normalized("   ") == "")
+    }
+
+    @Test func revenueCatSyncRunsOnceWhenIdentityMatches() {
+        let user = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        #expect(
+            RevenueCatAccountSync.candidate(
+                loggedInAppUserID: user.uppercased(),
+                revenueCatAppUserID: user.uppercased(),
+                revenueCatIsAnonymous: false,
+                attemptedUserIDs: []
+            ) == user
+        )
+        #expect(
+            RevenueCatAccountSync.candidate(
+                loggedInAppUserID: nil,
+                revenueCatAppUserID: user,
+                revenueCatIsAnonymous: false,
+                attemptedUserIDs: []
+            ) == nil
+        )
+        #expect(
+            RevenueCatAccountSync.candidate(
+                loggedInAppUserID: user,
+                revenueCatAppUserID: user,
+                revenueCatIsAnonymous: true,
+                attemptedUserIDs: []
+            ) == nil
+        )
+        #expect(
+            RevenueCatAccountSync.candidate(
+                loggedInAppUserID: user,
+                revenueCatAppUserID: "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
+                revenueCatIsAnonymous: false,
+                attemptedUserIDs: []
+            ) == nil
+        )
+        #expect(
+            RevenueCatAccountSync.candidate(
+                loggedInAppUserID: user,
+                revenueCatAppUserID: user,
+                revenueCatIsAnonymous: false,
+                attemptedUserIDs: [user]
+            ) == nil
+        )
+    }
+
+    @Test func purchaseServiceSyncsIdentifiedProUser() throws {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Core/Services/PurchaseService.swift")
+        let text = try String(contentsOf: source, encoding: .utf8)
+        #expect(text.contains("Purchases.shared.logIn(appUserID)"))
+        #expect(text.contains("Purchases.shared.logOut()"))
+        #expect(text.contains("logOutAnonymousUserError"))
+        #expect(text.contains("functions.invoke(RevenueCatAccountSync.functionName)"))
+        #expect(text.contains("proEntitlementID"))
+        #expect(!text.contains("\"Samaan Pro\""))
+    }
+
     @Test func appBindsPurchasesOnSessionEndAndInitialCheck() throws {
         let app = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
