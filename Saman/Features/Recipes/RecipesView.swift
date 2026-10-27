@@ -123,6 +123,8 @@ struct RecipesView: View {
             return recipes.isEmpty
                 ? "Capture a family recipe"
                 : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
+        case .families:
+            return "Private cookbooks only members can see"
         case .familyBook:
             return "Transcripts and links a cook shared"
         }

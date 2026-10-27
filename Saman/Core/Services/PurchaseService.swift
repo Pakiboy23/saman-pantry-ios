@@ -232,20 +232,21 @@ final class PurchaseService {
     }
 
     static func isAnonymousLogOut(_ error: Error) -> Bool {
-        if let code = error as? ErrorCode {
+        // Supabase also exports `ErrorCode`. These are RevenueCat purchase errors.
+        if let code = error as? RevenueCat.ErrorCode {
             return code == .logOutAnonymousUserError
         }
         // `logOut()` throws `PublicError`, which is an `NSError` in `ErrorCode`'s domain.
         let nsError = error as NSError
-        return nsError.domain == ErrorCode.errorDomain
-            && nsError.code == ErrorCode.logOutAnonymousUserError.rawValue
+        return nsError.domain == RevenueCat.ErrorCode.errorDomain
+            && nsError.code == RevenueCat.ErrorCode.logOutAnonymousUserError.rawValue
     }
 
     static func isPurchaseCancelled(_ error: Error) -> Bool {
-        if let code = error as? ErrorCode {
+        if let code = error as? RevenueCat.ErrorCode {
             return code == .purchaseCancelledError
         }
         let nsError = error as NSError
-        return nsError.code == ErrorCode.purchaseCancelledError.rawValue
+        return nsError.code == RevenueCat.ErrorCode.purchaseCancelledError.rawValue
     }
 }
