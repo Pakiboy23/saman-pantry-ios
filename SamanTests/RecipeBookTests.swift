@@ -7,6 +7,7 @@ struct RecipeBookTests {
     @Test func transcriptSourcePublishesAndUrlDoesNot() {
         #expect(RecipeSourceKind.transcript.publishesToFamilyBook)
         #expect(!RecipeSourceKind.url.publishesToFamilyBook)
+        #expect(!RecipeSourceKind.copied.publishesToFamilyBook)
     }
 
     @Test func transcriptRecipeKeepsAndazaPhraseInExtractedJSON() throws {
@@ -38,6 +39,23 @@ struct RecipeBookTests {
         #expect(json.contains("haldi andaza se"))
         let decoded = try JSONDecoder().decode(ExtractedRecipe.self, from: Data(json.utf8))
         #expect(decoded.ingredients.first?.originalPhrase == "haldi andaza se")
+    }
+
+    @Test func copiedFamilyRecipeDoesNotPublishToFamilyBook() {
+        let recipe = Recipe(
+            title: "Aloo keema",
+            rawTranscript: "",
+            extractedJSON: nil,
+            attribution: "Nani",
+            sourceKind: .copied
+        )
+        #expect(recipe.sourceKindValue == .copied)
+        #expect(!recipe.sourceKindValue.publishesToFamilyBook)
+        #expect(!recipe.isInFamilyBook)
+        #expect(recipe.myBookStatusLabel == "family copy")
+        recipe.setFamilyBookSharing(true)
+        #expect(!recipe.shareInFamilyBook)
+        #expect(!recipe.isInFamilyBook)
     }
 
     @Test func urlRecipeDoesNotPublishToFamilyBook() {

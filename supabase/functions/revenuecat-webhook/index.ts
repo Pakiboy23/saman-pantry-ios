@@ -7,7 +7,7 @@
 // RevenueCat does not retry forever.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-import { candidateUserIDs, entitlementID, proFromEvent, type RevenueCatEvent } from "./events.ts";
+import { candidateUserIDs, entitlementID, isProductionEvent, proFromEvent, type RevenueCatEvent } from "./events.ts";
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -43,6 +43,10 @@ Deno.serve(async (req) => {
     event = ((await req.json()) as { event?: RevenueCatEvent }).event ?? {};
   } catch {
     return new Response("bad json", { status: 400 });
+  }
+
+  if (!isProductionEvent(event)) {
+    return Response.json({ ok: true, ignored: "non-production" });
   }
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

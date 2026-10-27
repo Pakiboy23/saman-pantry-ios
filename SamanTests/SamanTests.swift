@@ -464,6 +464,15 @@ struct PurchaseSessionBindingTests {
         #expect(RevenueCatAppUserID.normalized("   ") == "")
     }
 
+    @Test func revenueCatIdentityKeepsHistoricalUppercaseUUID() {
+        #expect(
+            RevenueCatAppUserID.revenueCatIdentity("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+                == "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+        )
+        #expect(RevenueCatAppUserID.revenueCatIdentity("  AbC-def  ") == "ABC-DEF")
+        #expect(RevenueCatAppUserID.revenueCatIdentity("   ") == "")
+    }
+
     @Test func revenueCatSyncRunsOnceWhenIdentityMatches() {
         let user = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         #expect(
@@ -515,11 +524,16 @@ struct PurchaseSessionBindingTests {
             .appendingPathComponent("Saman/Core/Services/PurchaseService.swift")
         let text = try String(contentsOf: source, encoding: .utf8)
         #expect(text.contains("Purchases.shared.logIn(appUserID)"))
+        #expect(text.contains("RevenueCatAppUserID.revenueCatIdentity(id)"))
+        #expect(!text.contains("let appUserID = RevenueCatAppUserID.normalized(id)"))
         #expect(text.contains("Purchases.shared.logOut()"))
         #expect(text.contains("logOutAnonymousUserError"))
         #expect(text.contains("functions.invoke(RevenueCatAccountSync.functionName)"))
         #expect(text.contains("proEntitlementID"))
         #expect(!text.contains("\"Samaan Pro\""))
+        let login = try #require(text.range(of: "func setAppUserID(_ id: String)"))
+        let observe = try #require(text.range(of: "private func startObservingCustomerInfo()"))
+        #expect(!text[login.lowerBound..<observe.lowerBound].contains("requestRevenueCatSync()"))
     }
 
     @Test func appBindsPurchasesOnSessionEndAndInitialCheck() throws {

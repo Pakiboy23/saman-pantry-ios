@@ -4,9 +4,11 @@ import SwiftData
 enum RecipeSourceKind: String, Codable, CaseIterable {
     case transcript
     case url
+    /// A member's private copy of a family recipe. Never a community card.
+    case copied
 
     /// True when a save publishes with no extra step. URL extracts stay private
-    /// until the owner sets `Recipe.shareInFamilyBook`.
+    /// until the owner sets `Recipe.shareInFamilyBook`. Family copies stay private.
     var publishesToFamilyBook: Bool { self == .transcript }
 }
 
@@ -121,7 +123,7 @@ final class Recipe {
     var rawTranscript: String
     var extractedJSON: String?
     var attribution: String?
-    /// `transcript` or `url`. Transcript saves become public family-book cards.
+    /// `transcript`, `url`, or `copied`. Transcript saves become public family-book cards.
     var sourceKind: String = RecipeSourceKind.transcript.rawValue
     /// Owner opt-in for a link recipe. Transcripts publish either way.
     var shareInFamilyBook: Bool = false
@@ -162,6 +164,8 @@ final class Recipe {
             return true
         case .url:
             return shareInFamilyBook
+        case .copied:
+            return false
         }
     }
 
@@ -172,6 +176,8 @@ final class Recipe {
             return "in the family book"
         case .url:
             return shareInFamilyBook ? "link · in the family book" : "link"
+        case .copied:
+            return "family copy"
         }
     }
 

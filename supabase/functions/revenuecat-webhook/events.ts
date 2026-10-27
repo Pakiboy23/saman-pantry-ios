@@ -14,12 +14,17 @@ export type RevenueCatEvent = {
   environment?: string;
 };
 
+export function isProductionEvent(event: RevenueCatEvent): boolean {
+  return (event.environment ?? "").toUpperCase() === "PRODUCTION";
+}
+
 export function candidateUserIDs(event: RevenueCatEvent): string[] {
   const ids = [
     event.app_user_id,
     event.original_app_user_id,
     ...(event.aliases ?? []),
     ...(event.transferred_to ?? []),
+    ...(event.transferred_from ?? []),
   ];
   return [...new Set(ids.filter((id): id is string => !!id && uuidPattern.test(id)).map((id) => id.toLowerCase()))];
 }

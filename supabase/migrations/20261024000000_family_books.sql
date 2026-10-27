@@ -97,6 +97,11 @@ create index if not exists family_invite_attempts_user_idx
 
 alter table public.recipes add column if not exists copied_from uuid;
 
+-- Private copies of a family recipe stay off the community book.
+alter table public.recipes drop constraint if exists recipes_source_kind_check;
+alter table public.recipes add constraint recipes_source_kind_check
+  check (source_kind in ('transcript', 'url', 'copied'));
+
 -- Helpers. security definer avoids RLS recursion on family_members.
 create or replace function public.is_family_member(fid uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -407,14 +412,17 @@ begin
 end;
 $$;
 
--- Keep snapshots fresh while the author edits. Deleting the source recipe
--- removes it from families (members' saved copies stay in their own books).
+-- Keep snapshots fresh while the author edits. A cook deleting one recipe
+-- removes their family copies. Account deletion cascade must not: the
+-- author row is already gone, and snapshots are supposed to outlive it.
 create or replace function public.sync_family_recipes()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare s jsonb;
 begin
   if tg_op = 'DELETE' then
-    delete from public.family_recipes where recipe_id = old.id and added_by = old.user_id;
+    if exists (select 1 from auth.users where id = old.user_id) then
+      delete from public.family_recipes where recipe_id = old.id and added_by = old.user_id;
+    end if;
     return old;
   end if;
   s := public.family_recipe_snapshot(new);

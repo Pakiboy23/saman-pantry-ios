@@ -72,6 +72,9 @@ struct RootView: View {
                     }
             }
         }
+        // Observe on the root, not tabShell. A /join link during splash,
+        // onboarding, or password recovery still selects Recipes.
+        .onChange(of: appEnv.familyJoinRequest) { _, _ in selectedTab = .recipes }
         .task { await appEnv.auth.startListening() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && appEnv.auth.isSignedIn { appEnv.syncNow() }
@@ -124,7 +127,6 @@ struct RootView: View {
                 .tag(AppTab.recipes)
         }
         .tint(Color.brandSaag)
-        .onChange(of: appEnv.familyJoinRequest) { _, _ in selectedTab = .recipes }
     }
 
     private func presentScreenshotSheetsIfNeeded() {

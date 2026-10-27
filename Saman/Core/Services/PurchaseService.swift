@@ -32,11 +32,18 @@ enum PurchaseSessionBinding {
     }
 }
 
-/// RevenueCat app user ids are case-sensitive. `UUID.uuidString` is
-/// uppercase; `user_accounts.id` and Supabase auth ids are lowercase.
+/// RevenueCat app user ids are case-sensitive. Production subscribers were
+/// identified with `UUID.uuidString` (uppercase). `user_accounts.id` and
+/// Supabase auth ids are lowercase, so sync matching still lowercases.
 enum RevenueCatAppUserID {
     static func normalized(_ supabaseUserID: String) -> String {
         supabaseUserID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Identity passed to `Purchases.logIn`. Lowercasing here creates a second
+    /// RevenueCat customer and drops the existing Pro entitlement.
+    static func revenueCatIdentity(_ supabaseUserID: String) -> String {
+        supabaseUserID.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
     }
 }
 
@@ -111,7 +118,7 @@ final class PurchaseService {
     }
 
     func setAppUserID(_ id: String) {
-        let appUserID = RevenueCatAppUserID.normalized(id)
+        let appUserID = RevenueCatAppUserID.revenueCatIdentity(id)
         guard !appUserID.isEmpty else { return }
         identityGeneration += 1
         let generation = identityGeneration
@@ -120,12 +127,10 @@ final class PurchaseService {
             do {
                 let (info, _) = try await Purchases.shared.logIn(appUserID)
                 guard generation == self.identityGeneration else { return }
-                loggedInAppUserID = appUserID
-                // Pro on this customer info syncs inside applyCustomerInfo.
-                // A free account still syncs once here. Either way the attempt
-                // is recorded, so later customerInfoStream updates do not POST again.
+                loggedInAppUserID = RevenueCatAppUserID.normalized(id)
+                // applyCustomerInfo syncs only when Pro is active, so a free
+                // login does not consume the one-shot and block a later purchase.
                 _ = await applyCustomerInfo(info)
-                requestRevenueCatSync()
             } catch {
                 AppLogger.error("[RevenueCat] logIn error: \(error)")
             }

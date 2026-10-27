@@ -49,6 +49,41 @@ struct FamilyBookTests {
         #expect(FamilyCopy.paywallContext.contains("Samaan Pro"))
     }
 
+    @Test func joinLinkSelectsRecipesTabOnRootView() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/App/RootView.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let rootChange = try #require(text.range(of: ".onChange(of: appEnv.familyJoinRequest)"))
+        let tabShell = try #require(text.range(of: "private var tabShell: some View"))
+        #expect(rootChange.lowerBound < tabShell.lowerBound)
+        #expect(!text[tabShell.lowerBound...].contains("familyJoinRequest"))
+    }
+
+    @Test func savedCopyUsesPrivateCopiedSource() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Saman/Features/Recipes/FamilyViews.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(text.contains("sourceKind: .copied"))
+        #expect(!text.contains("sourceKind: recipe.sourceUrl == nil ? .transcript : .url"))
+        #expect(text.contains("presentPendingJoin"))
+        #expect(text.contains("try await nameModel.saveIfChanged()"))
+        #expect(!text.contains("try? await nameModel.saveIfChanged()"))
+    }
+
+    @Test func familyBooksMigrationKeepsCopiedSourcePrivateAndSurvivesAccountDelete() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("supabase/migrations/20261024000000_family_books.sql")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        #expect(text.contains("check (source_kind in ('transcript', 'url', 'copied'))"))
+        #expect(text.contains("if exists (select 1 from auth.users where id = old.user_id)"))
+    }
+
     @Test func savedCopyDecodesAsExtractedRecipe() throws {
         let recipe = FamilyRecipe(
             familyId: UUID(), recipeId: UUID(), addedBy: nil, addedByLabel: "a cook",

@@ -78,10 +78,10 @@ struct SamaanApp: App {
         return true
     }
 
-    /// Identify RevenueCat with the signed-in Supabase user id (lowercased
-    /// in `setAppUserID`), or log out an identified leftover after sign-out
-    /// / a vanished session. Leave an anonymous guest alone so their own
-    /// purchase survives relaunch.
+    /// Identify RevenueCat with the signed-in Supabase user id (uppercase
+    /// `UUID.uuidString` in `setAppUserID`), or log out an identified leftover
+    /// after sign-out / a vanished session. Leave an anonymous guest alone
+    /// so their own purchase survives relaunch.
     private func bindPurchases(to userID: String?) {
         switch PurchaseSessionBinding.action(
             currentUserID: userID,

@@ -161,12 +161,19 @@ struct FamiliesView: View {
         .background(Color.surfaceDoodh)
         .task(id: appEnv.auth.isSignedIn) { await reload() }
         .onChange(of: appEnv.pendingFamilyJoin) { _, value in
-            if value != nil { showJoin = true }
+            presentPendingJoin(value)
+        }
+        .onChange(of: appEnv.auth.isSignedIn) { _, signedIn in
+            if signedIn { presentPendingJoin(appEnv.pendingFamilyJoin) }
         }
         .sheet(isPresented: $showCreate) {
             CreateFamilySheet { _ in Task { await reload() } }
         }
-        .sheet(isPresented: $showJoin, onDismiss: { appEnv.pendingFamilyJoin = nil }) {
+        .sheet(isPresented: $showJoin, onDismiss: {
+            // Only the signed-in join sheet clears the token. A signed-out
+            // invite keeps pendingFamilyJoin until AuthView finishes.
+            if appEnv.auth.isSignedIn { appEnv.pendingFamilyJoin = nil }
+        }) {
             JoinFamilySheet(initialValue: appEnv.pendingFamilyJoin) { _ in Task { await reload() } }
         }
         .sheet(isPresented: $showPaywall) { SamaanPaywallView(trigger: .createFamily) }
@@ -176,7 +183,7 @@ struct FamiliesView: View {
         )) {
             AuthView()
         }
-        .onAppear { if appEnv.pendingFamilyJoin != nil { showJoin = true } }
+        .onAppear { presentPendingJoin(appEnv.pendingFamilyJoin) }
         .heycatchScreen("Families")
     }
 
@@ -243,6 +250,17 @@ struct FamiliesView: View {
             } else {
                 showPaywall = true
             }
+        }
+    }
+
+    /// Signed-out invite links keep the token and open AuthView. The join
+    /// sheet waits until there is a session so dismiss cannot drop the link.
+    private func presentPendingJoin(_ value: String?) {
+        guard value != nil else { return }
+        if appEnv.auth.isSignedIn {
+            showJoin = true
+        } else {
+            appEnv.requireAccount()
         }
     }
 
@@ -370,9 +388,10 @@ struct JoinFamilySheet: View {
         Task { @MainActor in
             defer { isWorking = false }
             do {
+                // Same order as create: write the name first so redeem can
+                // stamp the member row. A failed save must not look like success.
+                if preview?.alreadyMember == false { try await nameModel.saveIfChanged() }
                 let id = try await FamilyService.shared.join(codeOrToken: joinValue)
-                // Saved after joining so the new family gets the name too.
-                if preview?.alreadyMember == false { try? await nameModel.saveIfChanged() }
                 onJoined(id)
                 dismiss()
             } catch {
@@ -696,7 +715,7 @@ struct FamilyRecipeDetailView: View {
             rawTranscript: recipe.sourceUrl ?? "",
             extractedJSON: recipe.copyExtractedJSON,
             attribution: recipe.attribution,
-            sourceKind: recipe.sourceUrl == nil ? .transcript : .url
+            sourceKind: .copied
         )
         context.insert(copy)
         try? context.save()
