@@ -27,7 +27,7 @@ final class AppEnvironment {
         self.supabase = supabase
         self.syncManager = SyncManager(supabase: supabase)
         self.auth = AuthService(supabase: supabase)
-        self.purchases = PurchaseService()
+        self.purchases = PurchaseService(supabase: supabase)
         self.extractionQuota = ExtractionQuotaService(supabase: supabase)
     }
 
