@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
   const ev = body?.event;
   if (!ev?.type) return new Response("ok", { status: 200 });
+  if (ev.environment !== "PRODUCTION") return new Response("ignored sandbox", { status: 200 });
 
   const ents: string[] = ev.entitlement_ids ?? (ev.entitlement_id ? [ev.entitlement_id] : []);
   if (ev.type !== "TRANSFER" && ents.length && !ents.includes(ENTITLEMENT_ID)) return new Response("ignored", { status: 200 });
