@@ -124,6 +124,7 @@ struct RootView: View {
                 .tag(AppTab.recipes)
         }
         .tint(Color.brandSaag)
+        .onChange(of: appEnv.familyJoinRequest) { _, _ in selectedTab = .recipes }
     }
 
     private func presentScreenshotSheetsIfNeeded() {

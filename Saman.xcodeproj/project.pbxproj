@@ -40,6 +40,7 @@
 		F469BF062FE86B7800E1F6EB /* Exceptions for "Saman" folder in "Saman" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Saman.entitlements,
 				Secrets.xcconfig,
 			);
 			target = F4460CB62F841F5600949A76 /* Saman */;
@@ -479,6 +480,7 @@
 				MARKETING_VERSION = 1.6;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
+				CODE_SIGN_ENTITLEMENTS = Saman/Saman.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.Saman;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -556,6 +558,7 @@
 				MARKETING_VERSION = 1.6;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
+				CODE_SIGN_ENTITLEMENTS = Saman/Saman.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samanpantry.Saman;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

@@ -14,6 +14,10 @@ final class AppEnvironment {
     /// Presents `AuthView` from Settings or recipe capture (nested cover)
     /// when a guest hits Sync, AI extract, or account deletion.
     var isAuthPresented = false
+    /// Token or code from a samanpantry.com/join link, waiting for the Families shelf.
+    var pendingFamilyJoin: String?
+    /// Set with pendingFamilyJoin so RecipesView can switch to the Families shelf.
+    var familyJoinRequest = 0
 
     init(
         modelContainer: ModelContainer = .shared,

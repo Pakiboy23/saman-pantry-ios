@@ -576,9 +576,10 @@ struct MonetizationCopyTests {
     }
 
     @Test func paywallBenefitsAreTheRealUnlocks() {
-        #expect(FreeLimits.proBenefits.count == 2)
+        #expect(FreeLimits.proBenefits.count == 3)
         #expect(FreeLimits.proBenefits.map(\.title) == [
             "Unlimited voice extractions",
+            "Start family cookbooks",
             "Keep every rescued recipe",
         ])
         #expect(FreeLimits.paywallHeadline.contains("Don't lose the recipes"))

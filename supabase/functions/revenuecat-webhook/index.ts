@@ -1,39 +1,76 @@
+// RevenueCat webhook: caches the `Saman Pro` entitlement in user_accounts.is_pro
+// so SQL (create_family) can check Pro without calling RevenueCat.
+//
+// Deploy with verify_jwt = false (see config.toml). RevenueCat sends the
+// Authorization header value set in its dashboard; it must equal the
+// REVENUECAT_WEBHOOK_AUTH secret. Unmatched users are logged and get 200 so
+// RevenueCat does not retry forever.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ENTITLEMENT_ID = "entlec857d8f70";
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const GRANT = new Set(["INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "NON_RENEWING_PURCHASE", "PRODUCT_CHANGE", "SUBSCRIPTION_EXTENDED", "TEMPORARY_ENTITLEMENT_GRANT"]);
-const REVOKE = new Set(["EXPIRATION"]);
+import { candidateUserIDs, entitlementID, proFromEvent, type RevenueCatEvent } from "./events.ts";
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function lookupPro(appUserId: string): Promise<boolean | null> {
+  const secret = Deno.env.get("REVENUECAT_SECRET_API_KEY")?.trim();
+  if (!secret) return null;
+  const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
+    headers: { Authorization: `Bearer ${secret}` },
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) return null;
+  const body = await res.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string | null }> } };
+  const ent = body.subscriber?.entitlements?.[entitlementID];
+  if (!ent) return false;
+  return ent.expires_date == null || Date.parse(ent.expires_date) > Date.now();
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  const secret = Deno.env.get("REVENUECAT_WEBHOOK_AUTH");
-  if (!secret) return new Response("not configured", { status: 503 });
-  const auth = req.headers.get("Authorization") ?? "";
-  if (auth !== secret && auth !== `Bearer ${secret}`) return new Response("unauthorized", { status: 401 });
+  const expected = Deno.env.get("REVENUECAT_WEBHOOK_AUTH")?.trim();
+  const got = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!expected || !timingSafeEqual(got, expected)) {
+    return new Response("unauthorized", { status: 401 });
+  }
 
-  let body: any;
-  try { body = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
-  const ev = body?.event;
-  if (!ev?.type) return new Response("ok", { status: 200 });
-  if (ev.environment !== "PRODUCTION") return new Response("ignored sandbox", { status: 200 });
+  let event: RevenueCatEvent;
+  try {
+    event = ((await req.json()) as { event?: RevenueCatEvent }).event ?? {};
+  } catch {
+    return new Response("bad json", { status: 400 });
+  }
 
-  const ents: string[] = ev.entitlement_ids ?? (ev.entitlement_id ? [ev.entitlement_id] : []);
-  if (ev.type !== "TRANSFER" && ents.length && !ents.includes(ENTITLEMENT_ID)) return new Response("ignored", { status: 200 });
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const ids = candidateUserIDs(event);
+  if (ids.length === 0) {
+    console.warn("revenuecat-webhook: no Supabase user id on event", event.type);
+    return Response.json({ ok: true, matched: 0 });
+  }
 
-  let isPro: boolean | null = null;
-  if (GRANT.has(ev.type)) isPro = true;
-  else if (REVOKE.has(ev.type)) isPro = false;
-  if (isPro === null) return new Response("ignored", { status: 200 });
-
-  const ids = [ev.app_user_id, ev.original_app_user_id, ...(ev.aliases ?? [])]
-    .filter((x) => typeof x === "string").map((x: string) => x.toLowerCase()).filter((x) => UUID_RE.test(x));
-  const uniq = [...new Set(ids)];
-  if (!uniq.length) return new Response("no supabase user", { status: 200 });
-
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { error } = await admin.from("user_accounts")
-    .update({ is_pro: isPro, pro_updated_at: new Date().toISOString() }).in("id", uniq);
-  if (error) { console.error("update failed", error.message); return new Response("db error", { status: 500 }); }
-  return new Response("ok", { status: 200 });
+  let matched = 0;
+  for (const id of ids) {
+    const fromEvent = proFromEvent(event);
+    const isPro = fromEvent ?? await lookupPro(id);
+    if (isPro == null) {
+      console.warn("revenuecat-webhook: could not resolve Pro state", event.type);
+      continue;
+    }
+    const { data, error } = await supabase
+      .from("user_accounts")
+      .update({ is_pro: isPro, pro_updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id");
+    if (error) {
+      console.error("revenuecat-webhook: update failed", error.code);
+      return new Response("db error", { status: 500 }); // RevenueCat retries
+    }
+    matched += data?.length ?? 0;
+  }
+  if (matched === 0) console.warn("revenuecat-webhook: no user_accounts row matched", event.type);
+  return Response.json({ ok: true, matched });
 });

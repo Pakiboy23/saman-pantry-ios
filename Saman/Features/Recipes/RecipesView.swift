@@ -4,7 +4,9 @@ import SwiftData
 struct RecipesView: View {
     private enum Shelf: String, CaseIterable, Identifiable {
         case yours = "Yours"
-        case familyBook = "Family book"
+        case families = "Families"
+        // The public book every signed-in cook can read. Private families sit next to it.
+        case familyBook = "Community"
         var id: String { rawValue }
     }
 
@@ -35,6 +37,8 @@ struct RecipesView: View {
                         }
                     }
                     .heycatchScreen("Recipes")
+                case .families:
+                    FamiliesView()
                 case .familyBook:
                     FamilyRecipeBookView()
                 }
@@ -59,6 +63,8 @@ struct RecipesView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCapture) { RecipeCaptureView() }
+            .onChange(of: appEnv.familyJoinRequest) { _, _ in shelf = .families }
+            .onAppear { if appEnv.pendingFamilyJoin != nil { shelf = .families } }
             .fullScreenCover(isPresented: $showFamilyBookAuth, onDismiss: {
                 guard let recipeID = familyBookAuth.resolve(signedIn: appEnv.auth.isSignedIn) else { return }
                 Task { @MainActor in
@@ -117,6 +123,8 @@ struct RecipesView: View {
             return recipes.isEmpty
                 ? "Capture a family recipe"
                 : "\(recipes.count) recipe\(recipes.count == 1 ? "" : "s") saved"
+        case .families:
+            return "Private cookbooks only members can see"
         case .familyBook:
             return "Transcripts and links a cook shared"
         }
