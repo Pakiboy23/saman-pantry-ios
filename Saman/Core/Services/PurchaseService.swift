@@ -1,5 +1,6 @@
 import Foundation
 import RevenueCat
+import Supabase
 
 /// Decide whether this app session should identify, log out, or leave
 /// RevenueCat alone. Guest browse after #20 can follow a Pro account on
@@ -31,6 +32,36 @@ enum PurchaseSessionBinding {
     }
 }
 
+/// RevenueCat app user ids are case-sensitive. `UUID.uuidString` is
+/// uppercase; `user_accounts.id` and Supabase auth ids are lowercase.
+enum RevenueCatAppUserID {
+    static func normalized(_ supabaseUserID: String) -> String {
+        supabaseUserID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+}
+
+/// One `revenuecat-sync` POST per signed-in user for this process.
+/// Anonymous buyers, and a RevenueCat id that is not the signed-in user,
+/// stay local until `logIn` has finished.
+enum RevenueCatAccountSync {
+    static let functionName = "revenuecat-sync"
+
+    static func candidate(
+        loggedInAppUserID: String?,
+        revenueCatAppUserID: String,
+        revenueCatIsAnonymous: Bool,
+        attemptedUserIDs: Set<String>
+    ) -> String? {
+        guard !revenueCatIsAnonymous else { return nil }
+        guard let loggedInAppUserID else { return nil }
+        let id = RevenueCatAppUserID.normalized(loggedInAppUserID)
+        guard !id.isEmpty else { return nil }
+        guard RevenueCatAppUserID.normalized(revenueCatAppUserID) == id else { return nil }
+        guard !attemptedUserIDs.contains(id) else { return nil }
+        return id
+    }
+}
+
 @Observable
 final class PurchaseService {
 
@@ -54,9 +85,22 @@ final class PurchaseService {
     /// sign-out and before `logOut()` finishes.
     private var suppressIdentifiedEntitlements = false
 
+    /// Supabase user id last passed to `logIn`, lowercased. Nil until that
+    /// call finishes, and cleared on sign-out so a cached Pro snapshot
+    /// cannot sync against the wrong account.
+    private var loggedInAppUserID: String?
+
+    /// Users this process already tried to sync. Failures count, so a
+    /// missing `revenuecat-sync` function cannot retry on every customer-info
+    /// update. The next launch gets a fresh set.
+    private var revenueCatSyncAttemptedUserIDs: Set<String> = []
+
+    private let supabase: SupabaseClient
+
     // MARK: - Init
 
-    init() {
+    init(supabase: SupabaseClient = .shared) {
+        self.supabase = supabase
         Task { await startObservingCustomerInfo() }
     }
 
@@ -67,14 +111,21 @@ final class PurchaseService {
     }
 
     func setAppUserID(_ id: String) {
+        let appUserID = RevenueCatAppUserID.normalized(id)
+        guard !appUserID.isEmpty else { return }
         identityGeneration += 1
         let generation = identityGeneration
         suppressIdentifiedEntitlements = false
         Task {
             do {
-                let (info, _) = try await Purchases.shared.logIn(id)
+                let (info, _) = try await Purchases.shared.logIn(appUserID)
                 guard generation == self.identityGeneration else { return }
+                loggedInAppUserID = appUserID
+                // Pro on this customer info syncs inside applyCustomerInfo.
+                // A free account still syncs once here. Either way the attempt
+                // is recorded, so later customerInfoStream updates do not POST again.
                 _ = await applyCustomerInfo(info)
+                requestRevenueCatSync()
             } catch {
                 AppLogger.error("[RevenueCat] logIn error: \(error)")
             }
@@ -87,6 +138,7 @@ final class PurchaseService {
         identityGeneration += 1
         let generation = identityGeneration
         suppressIdentifiedEntitlements = true
+        loggedInAppUserID = nil
         Task { @MainActor in
             customerInfo = nil
             isPro = false
@@ -95,7 +147,9 @@ final class PurchaseService {
                 guard generation == self.identityGeneration else { return }
                 _ = applyCustomerInfo(info)
             } catch {
-                // Already anonymous, or SDK not configured in tests.
+                // Already anonymous is expected for a guest. Other failures
+                // (SDK not configured in tests, network) are non-fatal.
+                if Self.isAnonymousLogOut(error) { return }
                 AppLogger.error("[RevenueCat] logOut error: \(error)")
             }
         }
@@ -147,7 +201,44 @@ final class PurchaseService {
         let unlocked = info.entitlements[Self.proEntitlementID]?.isActive == true
         customerInfo = info
         isPro = unlocked
+        if unlocked {
+            requestRevenueCatSync()
+        }
         return unlocked
+    }
+
+    /// POST `revenuecat-sync` with the signed-in session. At most once per
+    /// user for this process; a failure is logged and does not retry.
+    private func requestRevenueCatSync() {
+        guard let id = RevenueCatAccountSync.candidate(
+            loggedInAppUserID: loggedInAppUserID,
+            revenueCatAppUserID: Purchases.shared.appUserID,
+            revenueCatIsAnonymous: Purchases.shared.isAnonymous,
+            attemptedUserIDs: revenueCatSyncAttemptedUserIDs
+        ) else { return }
+        revenueCatSyncAttemptedUserIDs.insert(id)
+        let client = supabase
+        Task {
+            do {
+                let sessionID = try await client.auth.session.user.id.uuidString.lowercased()
+                guard sessionID == id else { return }
+                // Discard the body. The no-decode overload is ambiguous with
+                // `invoke<T: Decodable>` when the result is unused.
+                try await client.functions.invoke(RevenueCatAccountSync.functionName) { _, _ in () }
+            } catch {
+                AppLogger.error("[RevenueCat] revenuecat-sync error: \(error)")
+            }
+        }
+    }
+
+    static func isAnonymousLogOut(_ error: Error) -> Bool {
+        if let code = error as? ErrorCode {
+            return code == .logOutAnonymousUserError
+        }
+        // `logOut()` throws `PublicError`, which is an `NSError` in `ErrorCode`'s domain.
+        let nsError = error as NSError
+        return nsError.domain == ErrorCode.errorDomain
+            && nsError.code == ErrorCode.logOutAnonymousUserError.rawValue
     }
 
     static func isPurchaseCancelled(_ error: Error) -> Bool {
