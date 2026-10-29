@@ -59,4 +59,34 @@ struct FamilyBookTests {
         #expect(decoded.title == "Aloo keema")
         #expect(decoded.ingredients.first?.originalPhrase == "andaza namak")
     }
+
+    @Test @MainActor func savedCopyOfSpokenFamilyRecipeStaysOutOfTheVillageBook() {
+        let recipe = FamilyRecipe(
+            familyId: UUID(), recipeId: UUID(), addedBy: nil, addedByLabel: "a cook",
+            title: "Aloo keema", attribution: "Nani", steps: ["Fry onions"],
+            ingredientPhrases: ["andaza namak"], sourceUrl: nil, addedAt: .now
+        )
+        let copy = recipe.ownedCopy()
+        #expect(copy.sourceKindValue == .url)
+        #expect(!copy.sourceKindValue.publishesToFamilyBook)
+        #expect(!copy.shareInFamilyBook)
+        #expect(!copy.isInFamilyBook)
+        #expect(copy.rawTranscript.isEmpty)
+        #expect(copy.title == "Aloo keema")
+        #expect(copy.attribution == "Nani")
+    }
+
+    @Test @MainActor func savedCopyOfLinkedFamilyRecipeStaysPrivateUntilOptIn() {
+        let url = "https://www.youtube.com/watch?v=example"
+        let recipe = FamilyRecipe(
+            familyId: UUID(), recipeId: UUID(), addedBy: nil, addedByLabel: "a cook",
+            title: "YouTube Karahi", attribution: "Ammi", steps: ["Fry onions"],
+            ingredientPhrases: ["andaza namak"], sourceUrl: url, addedAt: .now
+        )
+        let copy = recipe.ownedCopy()
+        #expect(copy.sourceKindValue == .url)
+        #expect(!copy.shareInFamilyBook)
+        #expect(!copy.isInFamilyBook)
+        #expect(copy.rawTranscript == url)
+    }
 }

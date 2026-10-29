@@ -691,13 +691,7 @@ struct FamilyRecipeDetailView: View {
 
     /// A local recipe the member owns. It syncs like any other recipe and survives leaving.
     private func saveCopy() {
-        let copy = Recipe(
-            title: recipe.title,
-            rawTranscript: recipe.sourceUrl ?? "",
-            extractedJSON: recipe.copyExtractedJSON,
-            attribution: recipe.attribution,
-            sourceKind: recipe.sourceUrl == nil ? .transcript : .url
-        )
+        let copy = recipe.ownedCopy()
         context.insert(copy)
         try? context.save()
         savedCopy = true
