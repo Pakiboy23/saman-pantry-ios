@@ -6,7 +6,8 @@ The iOS app calls `https://<project-ref>.supabase.co/functions/v1/extract-recipe
 
 The caller must send the **user JWT** (`Authorization: Bearer <access_token>`). The anon key as Bearer is rejected.
 
-Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`):
+Free-tier quota (migration `011_billing_grandfathered_and_quota.sql`). Full
+client + deploy notes: [`docs/billing-and-extract-quota.md`](../../docs/billing-and-extract-quota.md).
 
 - **Grandfathered** accounts (created before 2026-10-12): 5 extractions per rolling 24h
 - **New free** accounts: 5 lifetime extractions
@@ -57,7 +58,9 @@ python3 supabase/tests/recipe_extraction_quota_test.py
 
 ### Deploy
 
-Not deployed from the 1.2 change. After review:
+Owner only, after migration 011 is applied in prod. Last verified live
+function is version 9 (2026-10-07). The billing path on `main` is not live
+until this runs:
 
 ```sh
 supabase functions deploy extract-recipe
@@ -87,3 +90,37 @@ supabase functions deploy delete-account
 
 Verify that every table's `user_id` foreign key is declared `on delete cascade`
 (see `supabase/migrations/001_initial_schema.sql`) so deletion fully removes user data.
+Family cookbooks hand off ownership first (`handoff_families_on_user_delete`).
+
+## `revenuecat-webhook`
+
+RevenueCat → `user_accounts.is_pro`. Deploy with **verify_jwt = false**
+(`supabase/config.toml`). Auth is `Authorization: Bearer` matching
+`REVENUECAT_WEBHOOK_AUTH` (timing-safe). Fallback subscriber lookup uses
+`REVENUECAT_SECRET_API_KEY` (v1, same secret as extract-recipe).
+
+A test event with no matching `user_accounts` row returns **200**
+`{ ok: true, matched: 0 }` so RevenueCat does not retry. DB errors return 500.
+
+On `main` this function does not filter sandbox events. Draft #78 would.
+Owner dashboard + deploy steps: [`docs/family-books-go-steps.md`](../../docs/family-books-go-steps.md).
+
+```sh
+supabase secrets set REVENUECAT_WEBHOOK_AUTH=<long random string>
+supabase functions deploy revenuecat-webhook --no-verify-jwt
+```
+
+## `revenuecat-sync`
+
+iOS POSTs this with the user JWT after `Purchases.logIn` and when customer
+info shows active Pro (`PurchaseService.requestRevenueCatSync`). Deploy with
+**verify_jwt on**. Writes `user_accounts.is_pro` from RevenueCat v2 using
+**`REVENUECAT_SECRET_KEY`** (not the v1 API key). Project `proje8d554d5`,
+entitlement id `entlec857d8f70` ("Saman Pro").
+
+```sh
+supabase secrets set REVENUECAT_SECRET_KEY=<revenuecat-v2-secret>
+supabase functions deploy revenuecat-sync
+```
+
+401 invalid JWT, 502 RevenueCat down, 500 secret missing or update failed.
