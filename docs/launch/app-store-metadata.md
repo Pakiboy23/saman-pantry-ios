@@ -46,9 +46,10 @@ your mother didn't say.
 
 Made for the diaspora kitchen, not a generic grocery app.
 
-Samaan is free to use. Samaan Pro (optional) unlocks more than 30 pantry items
-and extra shopping lists from the Lists tab. Recipe extract is 5 per day for
-everyone.
+Samaan is free to use. New accounts get 5 recipe extractions. Samaan Pro
+(optional) unlocks unlimited voice extractions so every rescued recipe stays
+in your cookbook, and lets you start a family cookbook. Joining a family is
+free. Pantry items and shopping lists are unlimited on every plan.
 
 — Your data is yours. Delete your account and everything in it any time, in the app.
 ```
@@ -57,14 +58,17 @@ everyone.
 > accurate to whatever you actually ship. Pull-sync exists. Guest browse exists: pantry /
 > lists / recipes work without an account; sync and recipe extract still need a session.
 
-## What's New (version 1.0)
-`First release. Track your pantry, keep a shopping list, and capture family recipes exactly how they were said.`
+## What's New (version 1.6, draft — use when submitting 1.6)
+`Family cookbooks you invite people into, unlimited extracts on Samaan Pro, and a quieter first launch. Pantry and lists stay unlimited for everyone.`
+
+Prior 1.0 line, kept for history: `First release. Track your pantry, keep a shopping list, and capture family recipes exactly how they were said.`
 
 ## App Review notes (critical — prevents the reviewer lockout)
 ```
-Guest browse: launch without an account reaches Home / Pantry / Lists / Recipes
-(local SwiftData). Account is required only for Sync now, Extract Recipe, and
-Delete account. AuthView has "Not now".
+Guest browse: first launch is a 3-page onboarding, then Home / Pantry / Lists /
+Recipes (local SwiftData) without an account. Account is required only for Sync
+now, Extract Recipe, community-book opt-in, family cookbooks, and Delete account.
+AuthView has "Not now".
 
 DEMO ACCOUNT (needed for extract / sync / delete; pantry UI does not require it):
   email: review@samanpantry.com   password: <set a real one>
@@ -91,7 +95,7 @@ and on the paywall.
 2. Recipe capture review screen showing "haldi, andaza se" preserved next to "turmeric."
 3. Shopping list mid-checkout, a couple items checked off.
 4. Home dashboard: running low + active list together.
-5. (Optional) Paywall framed around more than 30 pantry items + extra Lists-tab lists, not unlimited extract or "support development."
+5. (Optional) Paywall framed around unlimited voice extractions and starting a family cookbook, not 30 pantry items or "support development."
 
 Caption each with the benefit ("See what's low before you shop", "The exact words, kept").
 
@@ -100,7 +104,7 @@ Capture from a Mac Simulator (real PNGs only, no mockups):
 `./scripts/capture-app-store-screenshots.sh`.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
-- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone).
+- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links, family cookbook names, chosen display names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). Invitee emails are not collected; invites are a code or link the user shares.
 - Linked to you: email, user id, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
 - Purpose: App Functionality for email, user id, and other user content. Analytics as well as App Functionality for user id. Purchases and App Functionality for purchase history. Analytics for product interaction and other usage data.
 - Third parties receiving data: Supabase (backend, plus the anonymous events row), HeyCatch (product analytics via the PostHog iOS SDK: fixed screen and event names, an app-generated anonymous id before sign-in, and the Supabase user id after sign-in — no recipe text, transcripts, audio, names, or emails), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.

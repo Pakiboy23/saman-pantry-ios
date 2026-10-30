@@ -25,12 +25,17 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 
 - **Who:** Saman Technologies LLC (dba Samaan Technologies), contact email.
 - **What we collect:** account email; an internal user ID; the pantry items, shopping lists,
-  and recipes you enter; subscription/purchase status. Product analytics: fixed screen
+  and recipes you enter; subscription/purchase status. If you start or join a family
+  cookbook: a display name you choose (or the part of your email before @ if you leave it
+  blank), the family name, notes you add, and snapshots of recipes you add to that family
+  (title, steps, ingredient phrases, and a source link when the recipe came from a URL).
+  We do not collect invitee emails; you share a code or link yourself. Recordings and the
+  original transcript stay in your own book. Product analytics: fixed screen
   names and fixed event names (for example `recipe_saved`). Before sign-in those events
   use an app-generated anonymous id. After sign-in, that anonymous id is tied to the
-  internal user ID. If the app opens with no session, it drops the previous analytics
-  identity first. They do not include recipe text, transcripts, audio, names, emails,
-  list names, item names, barcodes, or prices.
+  internal user ID. Guests are not identified. If the app opens with no session, it drops
+  the previous analytics identity first. Analytics events do not include recipe text,
+  transcripts, audio, names, emails, list names, item names, barcodes, or prices.
 - **Where it goes / processors:**
   - **Supabase** — stores your account and your kitchen data (hosting/backend). Also receives
     an anonymous product-event row (random install id, event name, app version) that is not
@@ -49,7 +54,8 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
 - **What we do NOT do:** no advertising, no cross-app tracking, no selling data, no IDFA,
   and no App Tracking Transparency prompt. Product analytics is first-party measurement
   inside Samaan, not tracking across other companies' apps. The live privacy page is hosted
-  outside this repo; update it from this section before the release that turns this SDK on.
+  outside this repo; update it from this section before the 1.6 submit (HeyCatch is already
+  on `main`).
 - **Data retention & deletion:** you can delete your account and all associated data in-app
   (Settings → Delete Account); describe how, and how long backups persist.
 - **Children:** not directed at children under 13.
