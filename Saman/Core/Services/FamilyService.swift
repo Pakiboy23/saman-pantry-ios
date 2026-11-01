@@ -387,4 +387,20 @@ extension FamilyRecipe {
         let data = (try? JSONEncoder().encode(recipe)) ?? Data("{}".utf8)
         return String(decoding: data, as: UTF8.self)
     }
+
+    /// A recipe the member owns. It syncs like any other row and survives leaving.
+    ///
+    /// Always `.url` with the village-book flag off. A family snapshot is
+    /// member-only; `.transcript` would auto-publish title, steps, and phrases
+    /// to `recipe_book_cards` the next time the copy uploads.
+    func ownedCopy() -> Recipe {
+        Recipe(
+            title: title,
+            rawTranscript: sourceUrl ?? "",
+            extractedJSON: copyExtractedJSON,
+            attribution: attribution,
+            sourceKind: .url,
+            shareInFamilyBook: false
+        )
+    }
 }
