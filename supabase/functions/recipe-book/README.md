@@ -1,6 +1,9 @@
 # Family recipe book (local acceptance harness)
 
-`008_recipe_book.sql` is the original family-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. The owner applies both; do not apply them from agents.
+This harness is the **public community book** (`recipe_book_cards`). Private
+invite-only cookbooks are a different surface: [`docs/family-cookbooks.md`](../../../docs/family-cookbooks.md).
+
+`008_recipe_book.sql` is the original community-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. The owner applies both; do not apply them from agents.
 
 `recipe_book.ts` mirrors the publish rules so Linux CI can run the A / Sally cases without an iOS simulator or production Supabase:
 

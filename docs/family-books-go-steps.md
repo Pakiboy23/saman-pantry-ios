@@ -2,6 +2,10 @@
 
 Nothing here is applied, deployed, or configured yet. Each step needs Haaris's go.
 
+Architecture and iOS usage (shelves, RPCs, invite URLs, snapshot rules):
+[`family-cookbooks.md`](./family-cookbooks.md). Billing / RevenueCat identity:
+[`billing-and-extract-quota.md`](./billing-and-extract-quota.md).
+
 ## 1. Database (project mcknboqvblbonmaebmjg)
 Two files, applied in order:
 - `supabase/migrations/20261024000000_family_books.sql`: tables, RLS, RPCs.
@@ -22,16 +26,20 @@ Two files, applied in order:
 2. Production: `supabase db push --project-ref mcknboqvblbonmaebmjg`, or apply the two files in order
    in the SQL editor. Only these files. 010 is not applied on prod and is not part of this step.
 
-## 2. RevenueCat webhook Edge Function
+## 2. RevenueCat webhook and sync
 1. `supabase secrets set REVENUECAT_WEBHOOK_AUTH=<long random string> --project-ref mcknboqvblbonmaebmjg`
-   (`REVENUECAT_SECRET_API_KEY` is already set for extract-recipe.)
-2. `supabase functions deploy revenuecat-webhook --no-verify-jwt --project-ref mcknboqvblbonmaebmjg`
-3. RevenueCat > project Saman (proje8d554d5) > Integrations > Webhooks > Add:
+   (`REVENUECAT_SECRET_API_KEY` is the v1 key used by extract-recipe and this webhook's fallback lookup. Set it if it is not already set.)
+2. `supabase secrets set REVENUECAT_SECRET_KEY=<revenuecat-v2-secret> --project-ref mcknboqvblbonmaebmjg`
+   then `supabase functions deploy revenuecat-sync --project-ref mcknboqvblbonmaebmjg`
+   (JWT on. iOS calls this after `Purchases.logIn`. Different secret name from the v1 key.)
+3. `supabase functions deploy revenuecat-webhook --no-verify-jwt --project-ref mcknboqvblbonmaebmjg`
+4. RevenueCat > project Saman (proje8d554d5) > Integrations > Webhooks > Add:
    URL `https://mcknboqvblbonmaebmjg.supabase.co/functions/v1/revenuecat-webhook`,
-   Authorization header = the same secret, all events, production + sandbox.
-4. Send a test event; it should return 200 with `matched: 0`.
-5. Backfill current Pro users once (set `user_accounts.is_pro` from RevenueCat customers),
-   or have each Pro user reopen the app after a renewal event. Grandfathered users can already create families.
+   Authorization header = the same webhook secret, all events, production + sandbox.
+   On `main` the function does not ignore sandbox events (draft #78 would).
+5. Send a test event; it should return 200 with `matched: 0`.
+6. Backfill current Pro users once (set `user_accounts.is_pro` from RevenueCat customers),
+   or have each Pro user reopen the app after a renewal event so `revenuecat-sync` runs. Grandfathered users can already create families.
 
 ## 3. Apple
 1. Developer portal > Identifiers > com.samanpantry.Saman > enable Associated Domains, regenerate profiles
