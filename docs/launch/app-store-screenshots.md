@@ -40,8 +40,8 @@ artifacts/app-store-screenshots/MANIFEST.md
 
 ## Auth: guest browse vs `-UITesting` vs demo account
 
-Production already **guest-browses**: unsigned launch shows Home / Pantry / Lists / Recipes
-on local SwiftData (#20). Auth is only for Sync, Extract Recipe, and Delete account.
+Production already **guest-browses**: after onboarding, unsigned launch shows Home / Pantry / Lists / Recipes
+on local SwiftData (#20). Auth is only for Sync, Extract Recipe, community-book opt-in, family cookbooks, and Delete account.
 
 Screenshot capture still uses `-UITesting` so the Simulator is not an empty guest kitchen
 and does not depend on Supabase.
@@ -88,7 +88,7 @@ Already signed in on a Simulator and want live data instead of the seed:
 | `02-recipe-review.png` | Recipe capture **Review** | `turmeric` next to *haldi, andaza se* |
 | `03-shopping-list.png` | Patel Brothers list | Some rows checked (In Cart), some still To Buy |
 | `04-home.png` | Home dashboard | Running low + the active list together |
-| `05-paywall.png` | RevenueCat paywall | Whatever the live offering UI renders |
+| `05-paywall.png` | `SamaanPaywallView` | Yearly / Monthly cards from the offering (fixture $7.99 / $59.99 if StoreKit has no packages) |
 
 Captions (from the metadata draft): “See what's low before you shop”, “The
 exact words, kept”.
@@ -97,9 +97,9 @@ The recipe-review shot does **not** call `extract-recipe`. The review UI is
 opened with the same canned `ExtractedRecipe` the seeder stores, so a missing
 Edge Function cannot block screenshots.
 
-The paywall is the real `PaywallView()`. If StoreKit/RevenueCat shows a
-spinner or empty offering, that is still the honest capture — do not paste in
-a Figma frame.
+The paywall is the in-app `SamaanPaywallView` (`FreeLimits` bullets, offering
+prices). If StoreKit/RevenueCat shows a spinner or empty offering, that is
+still the honest capture — do not paste in a Figma frame.
 
 ## XCUITest (optional)
 
