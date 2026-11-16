@@ -1,6 +1,6 @@
-import SwiftUI
-import SwiftData
-import Supabase
+@preconcurrency import SwiftUI
+@preconcurrency import SwiftData
+@preconcurrency import Supabase
 
 @Observable
 final class AppEnvironment {
@@ -19,6 +19,7 @@ final class AppEnvironment {
     /// Set with pendingFamilyJoin so RecipesView can switch to the Families shelf.
     var familyJoinRequest = 0
 
+    @MainActor
     init(
         modelContainer: ModelContainer = .shared,
         supabase: SupabaseClient = .shared
@@ -34,12 +35,14 @@ final class AppEnvironment {
     /// Returns `true` when a session already exists. Otherwise presents
     /// `AuthView` and returns `false` so the caller can wait or abort.
     @discardableResult
+    @MainActor
     func requireAccount() -> Bool {
         if auth.isSignedIn { return true }
         isAuthPresented = true
         return false
     }
 
+    @MainActor
     func syncNow() {
         // Screenshot / UI-test seeds are local-only. Pulling would race the
         // canned kitchen, and a fake "ui-testing" user must not push to prod.
@@ -57,6 +60,7 @@ final class AppEnvironment {
     /// Wait until dirty uploads and tombstone deletes have had a chance to
     /// reach the server. Sign-out must call this *before* dropping the
     /// session; `clearLocalStore()` wipes SwiftData and the delete queue.
+    @MainActor
     func flushPendingSync() async {
         if ScreenshotLaunchConfiguration.current.shouldSeedDemoKitchen { return }
         await syncManager.syncAll(context: modelContainer.mainContext)
