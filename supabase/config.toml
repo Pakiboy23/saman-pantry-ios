@@ -390,6 +390,9 @@ deno_version = 2
 [edge_runtime.secrets]
 ANTHROPIC_API_KEY = "env(ANTHROPIC_API_KEY)"
 ANTHROPIC_MODEL = "env(ANTHROPIC_MODEL)"
+# Audio route. Unset key returns "not configured" (500) for multipart requests
+# only; JSON transcript and URL requests are unaffected.
+ELEVENLABS_API_KEY = "env(ELEVENLABS_API_KEY)"
 
 [analytics]
 enabled = false

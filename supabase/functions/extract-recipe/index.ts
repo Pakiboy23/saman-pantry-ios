@@ -5,6 +5,12 @@ import {
   resolveRecipeSource,
   SourceError,
 } from "./recipe_source.ts";
+import {
+  createTranscriptionProvider,
+  TranscriptionError,
+  transcriptionConfigFromEnv,
+} from "./transcribe.ts";
+import { ingredientMapForPrompt } from "./vocabulary.ts";
 
 // Recipe extraction is proxied so the Anthropic key never ships in the iOS
 // binary. The caller must be a signed-in user: the anon key as Bearer is a
@@ -17,12 +23,18 @@ import {
 // opens the paywall on 402 for free users.
 // Counted in recipe_extraction_events (service role only; see 004, 009, 011).
 //
-// Body is { transcript } and/or { url }. A transcript that is only an http(s)
-// link is read as a URL. Text transcripts still consume a slot before the
-// model call, including when the provider fails. URL fetches that fail
-// (blocked, Instagram caption missing, no recipe text) do not consume a slot.
-// A URL that returns a complete schema.org Recipe, or that is sent to the
-// model, consumes one slot.
+// Body is JSON { transcript } and/or { url }, or multipart/form-data with one
+// `audio` part. A transcript that is only an http(s) link is read as a URL.
+// Text transcripts still consume a slot before the model call, including when
+// the provider fails. URL fetches that fail (blocked, Instagram caption
+// missing, no recipe text) do not consume a slot. A URL that returns a
+// complete schema.org Recipe, or that is sent to the model, consumes one slot.
+//
+// Audio: type and size are checked before the quota. The slot is taken before
+// the transcription call, so a user with no slot never reaches the paid
+// provider. A transcription failure or an empty transcript releases the slot.
+// Once a transcript reaches the model, the text rule applies. Audio is never
+// stored or logged; it passes through to the provider.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +50,18 @@ const TRANSCRIPT_NO_RECIPE =
 const LINK_NO_RECIPE =
   "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that.";
 
-type ExtractRoute = "transcript" | "url";
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+const MIN_TRANSCRIPT_CHARS = 20;
+const AUDIO_TYPES = new Set([
+  "audio/mp4",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/mpeg",
+  "audio/wav",
+]);
+
+type ExtractRoute = "transcript" | "url" | "audio";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -72,8 +95,18 @@ Deno.serve(async (request) => {
   }
   const userId = userData.user.id;
 
+  let slotId: string | null = null;
   let transcript = "";
   let url = "";
+  const contentType = request.headers.get("content-type") ?? "";
+  if (/^multipart\/form-data\b/i.test(contentType)) {
+    return await handleAudio(request, contentType, {
+      anthropicKey: apiKey,
+      takeQuotaSlot: () => takeQuotaSlot(),
+      releaseSlot: () => releaseSlot(),
+    });
+  }
+
   try {
     const body = await request.json();
     transcript = String(body.transcript ?? "").trim();
@@ -89,8 +122,6 @@ Deno.serve(async (request) => {
   if (!url && !transcript) {
     return json({ error: "A recipe transcript or link is required." }, 400);
   }
-
-  let slotId: string | null = null;
 
   async function takeQuotaSlot(): Promise<Response | null> {
     const entitlement = await lookupProEntitlement(userId);
@@ -149,6 +180,14 @@ Deno.serve(async (request) => {
     return null;
   }
 
+  // Free-tier rows only. Pro never wrote one, so there is nothing to release.
+  async function releaseSlot(): Promise<void> {
+    if (slotId === null) return;
+    const { error } = await admin.from("recipe_extraction_events").delete().eq("id", slotId);
+    if (error) console.error("quota release failed:", error.message);
+    slotId = null;
+  }
+
   if (url) {
     let source;
     try {
@@ -175,9 +214,9 @@ Deno.serve(async (request) => {
 
     const userText = `Recipe source:\n\n${source.text}\n\nReturn the structured recipe as JSON.`;
     const response = await extractWithModel(apiKey, userText, pageSystemPrompt, "url");
-    if (response.status === 422 && slotId !== null) {
+    if (response.status === 422) {
       // The page had no usable recipe: same as a failed fetch, no slot used.
-      await admin.from("recipe_extraction_events").delete().eq("id", slotId);
+      await releaseSlot();
     }
     return response;
   }
@@ -188,6 +227,151 @@ Deno.serve(async (request) => {
   const userText = `Transcript:\n\n${transcript}\n\nReturn the structured recipe as JSON.`;
   return await extractWithModel(apiKey, userText, systemPrompt, "transcript");
 });
+
+type AudioDeps = {
+  anthropicKey: string;
+  takeQuotaSlot: () => Promise<Response | null>;
+  releaseSlot: () => Promise<void>;
+};
+
+async function handleAudio(request: Request, contentType: string, deps: AudioDeps): Promise<Response> {
+  const config = transcriptionConfigFromEnv();
+  if (!config) {
+    return json({ error: "Recipe extraction is not configured." }, 500);
+  }
+
+  // Size and type are checked before any paid call or quota write.
+  const declaredLength = Number(request.headers.get("content-length") ?? "");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_AUDIO_BYTES) {
+    await request.body?.cancel();
+    return audioTooLarge();
+  }
+  const bytes = await readBodyCapped(request, MAX_AUDIO_BYTES);
+  if (bytes === null) return audioTooLarge();
+
+  let audio: File;
+  try {
+    const form = await new Response(bytes, { headers: { "content-type": contentType } }).formData();
+    const part = form.get("audio");
+    if (!(part instanceof File) || part.size === 0) {
+      return json({ error: "A recording is required.", code: "audio_missing" }, 400);
+    }
+    audio = part;
+  } catch {
+    return json({ error: "Request body must be multipart form data.", code: "audio_missing" }, 400);
+  }
+
+  const audioType = audio.type.split(";")[0].trim().toLowerCase();
+  if (!AUDIO_TYPES.has(audioType)) {
+    return json(
+      { error: "That recording format isn't supported. Use M4A, AAC, MP3, or WAV.", code: "audio_unsupported_type" },
+      415,
+    );
+  }
+
+  const slot = await deps.takeQuotaSlot();
+  if (slot) return slot;
+
+  const provider = createTranscriptionProvider(config);
+  const started = Date.now();
+  let text: string;
+  try {
+    const result = await provider.transcribe(audio, audio.name || "recording.m4a");
+    text = result.text.trim();
+    logTranscription({
+      provider: result.provider,
+      model: result.model,
+      providerStatus: 200,
+      audioBytes: audio.size,
+      audioType,
+      durationMs: Date.now() - started,
+      transcriptLength: text.length,
+      languageCode: result.languageCode ?? null,
+      outcome: text.length < MIN_TRANSCRIPT_CHARS ? "no_speech" : "ok",
+    });
+  } catch (error) {
+    const known = error instanceof TranscriptionError ? error : null;
+    logTranscription({
+      provider: provider.provider,
+      model: provider.model,
+      providerStatus: known?.providerStatus ?? null,
+      audioBytes: audio.size,
+      audioType,
+      durationMs: Date.now() - started,
+      transcriptLength: null,
+      languageCode: null,
+      outcome: known?.reason ?? "error",
+    });
+    await deps.releaseSlot();
+    return json(
+      { error: "Couldn't turn that recording into text. Try again.", code: "transcription_failed", source: "audio" },
+      502,
+    );
+  }
+
+  if (text.length < MIN_TRANSCRIPT_CHARS) {
+    await deps.releaseSlot();
+    return json({ error: TRANSCRIPT_NO_RECIPE, code: "audio_no_speech", source: "audio" }, 422);
+  }
+
+  // From here the text rule applies: model failures keep the slot.
+  const userText = `Transcript:\n\n${text}\n\nReturn the structured recipe as JSON.`;
+  return await extractWithModel(deps.anthropicKey, userText, systemPrompt, "audio", { transcript: text });
+}
+
+function audioTooLarge(): Response {
+  return json({ error: "That recording is too long to upload. Keep it under 10 minutes.", code: "audio_too_large" }, 413);
+}
+
+/** Reads at most `max` bytes. Returns null as soon as the body is larger. */
+async function readBodyCapped(request: Request, max: number): Promise<Uint8Array<ArrayBuffer> | null> {
+  if (!request.body) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
+function logTranscription(entry: {
+  provider: string;
+  model: string;
+  providerStatus: number | null;
+  audioBytes: number;
+  audioType: string;
+  durationMs: number;
+  transcriptLength: number | null;
+  languageCode: string | null;
+  outcome: string;
+}) {
+  console.log(JSON.stringify({
+    event: "extract_recipe_transcription",
+    provider: entry.provider,
+    model: entry.model,
+    provider_status: entry.providerStatus,
+    audio_bytes: entry.audioBytes,
+    audio_type: entry.audioType,
+    duration_ms: entry.durationMs,
+    transcript_length: entry.transcriptLength,
+    language_code: entry.languageCode,
+    outcome: entry.outcome,
+  }));
+}
 
 type ProEntitlementLookup = "active" | "inactive" | "unknown";
 
@@ -242,6 +426,7 @@ async function extractWithModel(
   userText: string,
   system: string,
   route: ExtractRoute,
+  extra: Record<string, string> = {},
 ): Promise<Response> {
   const anthropicResponse = await fetch(anthropicEndpoint, {
     method: "POST",
@@ -282,7 +467,7 @@ async function extractWithModel(
       outcome: "provider_error",
       noRecipeReason: null,
     });
-    return json({ error: "Recipe extraction provider failed.", source: route }, 502);
+    return json({ error: "Recipe extraction provider failed.", source: route, ...extra }, 502);
   }
 
   if (!rawText) {
@@ -294,7 +479,7 @@ async function extractWithModel(
       outcome: "empty_reply",
       noRecipeReason: null,
     });
-    return json({ error: "Recipe extraction returned no content.", source: route }, 502);
+    return json({ error: "Recipe extraction returned no content.", source: route, ...extra }, 502);
   }
 
   const classified = classifyModelRecipe(rawText);
@@ -310,9 +495,10 @@ async function extractWithModel(
       });
       return json(
         {
-          error: route === "transcript" ? TRANSCRIPT_NO_RECIPE : LINK_NO_RECIPE,
+          error: route === "url" ? LINK_NO_RECIPE : TRANSCRIPT_NO_RECIPE,
           code: "no_recipe_text",
           source: route,
+          ...extra,
         },
         422,
       );
@@ -325,7 +511,7 @@ async function extractWithModel(
         outcome: "unparseable",
         noRecipeReason: null,
       });
-      return json({ error: "Recipe extraction returned invalid JSON.", source: route }, 502);
+      return json({ error: "Recipe extraction returned invalid JSON.", source: route, ...extra }, 502);
     case "recipe":
       logModelCall({
         status: anthropicResponse.status,
@@ -335,7 +521,7 @@ async function extractWithModel(
         outcome: "recipe",
         noRecipeReason: null,
       });
-      return json({ recipe: classified.recipe, raw_json: JSON.stringify(classified.recipe) });
+      return json({ recipe: classified.recipe, raw_json: JSON.stringify(classified.recipe), ...extra });
     default: {
       const unreachable: never = classified;
       return unreachable;
@@ -382,7 +568,7 @@ RULE 2 - NEVER DISCARD HER WORDS.
 For every ingredient, original_phrase holds the speaker's exact phrasing, code-switch intact ("haldi just a little, andaza se").
 
 RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
-ingredient is the English shopping term so it can go on a list (haldi -> turmeric, pyaaz -> onion, zeera/jeera -> cumin, lehsun -> garlic, adrak -> ginger, tamatar -> tomato, dhaniya -> cilantro/coriander, chawal -> rice, doodh -> milk, cheeni -> sugar, elaichi -> cardamom, namak -> salt, laal mirch -> red chili, gobi -> cauliflower, aloo -> potato, dahi -> yogurt). original_phrase still keeps the original word.
+ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
 
 Return ONLY valid JSON matching this schema, no prose, no markdown fences:
 {"title":"string - recipe name","attribution":"string|null","ingredients":[{"ingredient":"string - English grocery-list term","original_phrase":"string - speaker's exact words","amount":"number|null - ONLY if a real quantity was spoken, else null","unit":"string|null","vague":"boolean - true if measurement was approximate"}],"steps":["string - loose step, no invented precision"],"notes":"string|null"}
@@ -401,7 +587,7 @@ RULE 2 - NEVER DISCARD THE SOURCE WORDS.
 For every ingredient, original_phrase holds the source's exact phrasing, code-switch intact ("haldi just a little, andaza se").
 
 RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
-ingredient is the English shopping term so it can go on a list (haldi -> turmeric, pyaaz -> onion, zeera/jeera -> cumin, lehsun -> garlic, adrak -> ginger, tamatar -> tomato, dhaniya -> cilantro/coriander, chawal -> rice, doodh -> milk, cheeni -> sugar, elaichi -> cardamom, namak -> salt, laal mirch -> red chili, gobi -> cauliflower, aloo -> potato, dahi -> yogurt). original_phrase still keeps the original word.
+ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
 If a channel or author is given, use it as attribution. Otherwise attribution is null.
 If the source lists several recipes, return only the single main recipe (the first complete one with ingredients). If the source has no recipe with ingredients, return exactly {"error":"no_recipe"}.
 

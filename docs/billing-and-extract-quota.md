@@ -38,8 +38,12 @@ RecipeCaptureView
     → extract-recipe
         1. lookupProEntitlement (RevenueCat secret, 2.5s timeout)
         2. if inactive: reserve_recipe_extraction (advisory lock + count + insert)
-        3. fetch URL / call Anthropic
+        3. fetch URL / transcribe audio (ElevenLabs) / call Anthropic
 ```
+
+The audio route (multipart, part `audio`, repo only until deployed) checks
+type and size before step 1, so an oversized or wrong-type upload never
+touches the meter.
 
 The capture screen does **not** refuse locally from `ExtractionQuotaService`.
 402 from the server is authoritative so a returning Pro user can still extract
@@ -56,11 +60,22 @@ display only. Pro hides it.
 | 402 | `quota_exceeded` (+ `grandfathered`) | Open the Pro paywall |
 | 503 | `entitlement_unavailable` | Alert "Could not verify subscription. Try again." **Not** a paywall. Quota is not reserved. |
 | 401 | — | Re-auth, then retry |
-| 422 | `instagram_caption_unavailable`, `url_not_allowed`, `url_fetch_failed`, `no_recipe_text` | Alert. No slot consumed |
+| 422 | `instagram_caption_unavailable`, `url_not_allowed`, `url_fetch_failed`, `no_recipe_text` | Alert. No slot consumed (except `no_recipe_text` on text and audio, see below) |
+| 413 | `audio_too_large` | Alert. No slot consumed |
+| 415 | `audio_unsupported_type` | Alert. No slot consumed |
+| 400 | `audio_missing` | Alert. No slot consumed |
+| 502 | `transcription_failed` | Retry. Slot released |
+| 422 | `audio_no_speech` | Alert, offer re-record. Slot released |
 
 A transcript that reaches the model consumes a slot even when the provider
 fails. A URL that returns a complete schema.org Recipe, or that is sent to
 the model, consumes one. Failed URL fetches do not.
+
+Audio takes the slot **before** transcription, so a user with no slot never
+reaches the paid speech provider. If transcription fails or returns under 20
+characters, the slot row is deleted (same release the URL route uses for a
+422). Once the transcript reaches the model, the text rule applies. Pro has
+no slot row, so there is nothing to release.
 
 ## RevenueCat identity
 
@@ -138,7 +153,9 @@ stay reachable.
 
 1. Apply `011_billing_grandfathered_and_quota.sql` in prod (owner).
 2. Set `REVENUECAT_SECRET_API_KEY` if Pro should skip the extract quota.
-3. `supabase functions deploy extract-recipe` (owner).
+3. `supabase functions deploy extract-recipe` (owner). Set
+   `ELEVENLABS_API_KEY` first if the audio route should work; without it,
+   multipart requests return 500 and JSON requests are unaffected.
 4. For family create to trust `is_pro`: set `REVENUECAT_SECRET_KEY`, deploy
    `revenuecat-sync`, then the webhook steps in
    [`family-books-go-steps.md`](./family-books-go-steps.md).

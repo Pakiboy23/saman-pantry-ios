@@ -1,5 +1,5 @@
 # Project Memory
-Last updated: 2026-11-06 | Branch: cursor/documentation-automation-system-d1cb
+Last updated: 2026-11-16 | Branch: claude/sweet-cray-r4t7zf
 Memory health: 8/10
 
 ## Project Overview
@@ -9,10 +9,12 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - **App Store:** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 2026-10-05 (`788fafd`: recording, audio-file intake, public family recipe book). Do not claim 1.5 or 1.6 is live without App Store Connect.
 - **main:** marketing **1.6**. Train: billing + onboarding (#66), 1.5 bump (#67), community-book URL opt-in (#68), HeyCatch (#69/#71), Samaan copy (#70), RevenueCat `logIn` (#76), private family cookbooks (#74), family `saveCopy` stays out of Community (#79). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` (108) in the pbxproj is not the App Store Connect build number.
 - **Server:** last verified live `extract-recipe` is **version 9** (2026-10-07, `2632437`). #63 and #66 are on `main` and need `supabase functions deploy extract-recipe` after migration 011. Migrations 001–009 were applied (009s on 2026-10-06). **011, 012, and the 20261024 family-books pair are repo-only until Haaris applies them.** Webhook/sync functions are repo-only until deployed.
+- **Server transcription (spec `docs/server-transcription-spec.md`, #82):** PR A (audio route in `extract-recipe`, ElevenLabs Scribe v2, `transcribe.ts` + `vocabulary.ts`) is in review, repo only. Not live until the owner sets `ELEVENLABS_API_KEY` and deploys. Shipping 1.3 still transcribes on device. PRs B (prompt + eval), C (iOS upload), D (copy/privacy) follow.
 - **Next immediate step:** Owner applies 011 + 012 and deploys `extract-recipe` (set `REVENUECAT_SECRET_API_KEY` if Pro should skip quota), then family-books go-steps. Nothing goes to App Review without Haaris's explicit OK.
 - **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
+- 2026-11-16 Server transcription spec merged (#82). PR A built: multipart `audio` route, slot before transcription, slot released on transcription failure or empty text.
 - 2026-11-06 Docs: skill and MEMORY match 1.6 including #71/#74/#76/#79. Runbooks: `docs/billing-and-extract-quota.md`, `docs/analytics.md`, `docs/family-cookbooks.md`. Prior docs PRs #72 and #80 never merged.
 - 2026-11-01 Family `saveCopy` stays a private `.url` recipe and does not auto-publish to Community (#79).
 - 2026-10-24 Family cookbooks for 1.6 (#74): private families, invites, snapshots, RevenueCat webhook/sync in-repo. Go-steps in `docs/family-books-go-steps.md`.
@@ -52,6 +54,8 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [ ] Update hosted `samanpantry.com/privacy` for HeyCatch and family cookbooks before the 1.6 submit
 - [ ] With Haaris's OK: attach a 1.6 TestFlight build and submit
 - [ ] Draft #78: ignore sandbox RevenueCat webhooks; revoke TRANSFER donors
+- [ ] Server transcription PR A review/merge; owner sets `ELEVENLABS_API_KEY` and deploys `extract-recipe`
+- [ ] Server transcription PRs B, C, D (spec section 4). Owner decisions open in spec section 9
 - [x] #79: family `saveCopy` stays out of the public community book
 - [ ] Owner, confirm don't assume: old Anthropic key revoked
 - [ ] Owner, confirm don't assume: pre-confirmed App Review demo account still works
@@ -67,12 +71,13 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-11-16 | Move recording transcription to the server (ElevenLabs Scribe v2), engine as a server setting | Apple on-device mangles desi words and duplicates partials; Scribe v2 got bhindi/zeera right on a real recording | extract-recipe, RecipeAudioTranscriber (removed in PR C), privacy copy (PR D) |
 | 2026-10-24 | Private family cookbooks; Pro/grandfathered to create; join free | Recipe sharing among invited members is not household mode | FamilyService, family_* tables, paywall `.createFamily` |
 | 2026-10-26 | Identify RevenueCat with the lowercased Supabase user UUID | Webhook/sync/extract-recipe all key off that id; keep guest anonymous purchases | PurchaseSessionBinding, revenuecat-sync |
 | 2026-10-21 | HeyCatch + anonymous Supabase events; bind after session | Product analytics without recipe text or personal properties; no guest identify | HeyCatch, AnalyticsService, privacy docs |
 | 2026-10-12 | URL recipes opt into the community book | Transcripts stay auto-public; link extracts stay private until the owner adds them | Recipe.shareInFamilyBook, 012, recipe-book harness |
 | 2026-10-12 | Split free extract quota; Pro is unlimited extracts; pantry/lists unlimited | New accounts get 5 lifetime; pre-2026-10-12 keep 5/day. 402 opens paywall. 503 is retry. | FreeLimits, extract-recipe, 011, OnboardingView |
-| 2026-10-04 | Transcribe on device; extract on the server | Audio stays on the phone; extraction needs the model and the quota | RecipeAudioTranscriber, extract-recipe |
+| 2026-10-04 | Transcribe on device; extract on the server (superseded 2026-11-16 once PR C ships) | Audio stays on the phone; extraction needs the model and the quota | RecipeAudioTranscriber, extract-recipe |
 | 2026-09-18 | Delete June launch reports; truth-up skill/MEMORY/THESIS | Stale launch copy would send the next agent to undo #20/#21 | launch docs, skill |
 | 2026-09-17 | Delete ReorderView + Pages thesis binaries | Unreachable tab; live loop is item detail → list → mark bought. `.pages` copies were ~777KB each next to THESIS.md | ReorderView, LowStockBanner |
 | 2026-09-15 | Guest browse; legal links without login | App Review 5.1.1(v) + 3.1.2(c). Auth only for sync / extract / delete | RootView, AuthView, Settings, paywall |
