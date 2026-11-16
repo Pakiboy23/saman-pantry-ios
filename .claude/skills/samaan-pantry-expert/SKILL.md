@@ -35,7 +35,8 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Onboarding.** First launch shows `OnboardingView` until `samaan.hasCompletedOnboarding`. Then the tab shell. Guest browse still ships: unsigned launch reaches Home / Pantry / Lists / Recipes on local SwiftData. Sign-in is asked for only on Sync now, Extract Recipe, community-book opt-in, family cookbooks, and Delete account. `-UITesting` skips onboarding. Do not restore a login wall.
 
 **Recipe capture.** Four intakes: record, choose an audio file, paste a link (YouTube, Instagram, recipe sites), or paste text.
-- Recording and audio files are transcribed **on device** (`RecipeAudioTranscriber`, `requiresOnDeviceRecognition = true`). Audio never leaves the phone. The recognizer follows the phone's language setting; Apple's on-device recognition covers Hindi but not Urdu or Punjabi, so desi words may come out spelled by ear.
+- **Shipping builds (1.3 and any TestFlight before PR C)** transcribe on device with Apple's recognizer. It mangles desi words ("bhindi" -> "beans", "zeera" -> "0").
+- **On `main` after PR C**, the app records mono AAC to a temp file (`RecipeAudioRecorder`, 10-minute cap, timer + level meter, no live text) and uploads it to `extract-recipe` (`RecipeExtractionService.extract(recording:)`), which transcribes with ElevenLabs. Picked files are re-encoded to AAC unless already AAC/MP3 under the cap. The file is kept until a recipe comes back so a failed upload can be retried, then deleted. The speech permission and `Speech` framework are gone. Consent key is `samaan.consent.recipeProcessing.v2` (everyone is asked again); its copy is a draft until PR D.
 - **Moving to server transcription** (`docs/server-transcription-spec.md`). PR A (#83, live in v19) added a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters. No shipping app calls it yet. Until the iOS PR C ships, the on-device claim above stays true for the app; do not update privacy copy ahead of PR D.
 - **Prompts live in `prompts.ts`.** Any change must pass `scripts/recipe-eval.ts` against Haaris's private recording set before it merges. The script refuses paths inside the repo. Never commit recordings, real transcripts, or manifests.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota is the table above (`011_billing_grandfathered_and_quota.sql`).
@@ -46,7 +47,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Analytics.** Dual sink: anonymous Supabase `events` row + HeyCatch (PostHog iOS SDK). `HeyCatch.bind` identifies only a signed-in Supabase user id (#71). No recipe text or personal content as properties. Details: `docs/analytics.md`. Tests / previews / screenshots never start HeyCatch.
 
 **Supabase (verified 16 Nov 2026 through the Supabase connector; re-check before claiming).**
-- `extract-recipe` **version 20** is live and byte-identical to `main` at #84: billing, URL extraction, the audio route, and speech prompt rules 4-6. v19 (#83) is the rollback.
+- `extract-recipe` **version 21** is live and byte-identical to `main` at #85: billing, URL extraction, the audio route, speech prompt rules 4-6, and alternatives as one ingredient. v20 (#84) and v19 (#83) are rollbacks.
 - All migrations on `main` are applied, including 011, 012, and both family-books migrations.
 - Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, `asr-bakeoff` v4 (not in the repo).
 - **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file.** It ignores sandbox events but ignores `TRANSFER`, so it does not revoke donors the way #78 on `main` does.
@@ -67,7 +68,8 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 - Anon key in `Config.swift` is expected (RLS). Service role is not.
 - Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary.
-- Do not claim the recipe extraction happens on the phone. Only transcription does, and only until server transcription (PR C) ships.
+- Do not claim the recipe extraction happens on the phone. Builds before PR C transcribe on the phone; PR C builds upload the recording. Do not say "audio never leaves the phone" for a PR C build.
+- PR C and PR D (privacy copy, PrivacyInfo audio data, store listing) ship in the same App Store release. Never submit a PR C build without PR D.
 - Audio route: never log audio bytes or transcript text, never store audio, never commit recordings or real transcripts. Size/type checks run before the quota; the slot runs before the paid STT call.
 - Do not say Pro leaves extract capped, or that free users are limited to 30 pantry items / extra lists. Those 1.2 claims are dead.
 - Do not locally refuse extract from the quota RPC. 402 is the gate; 503 is not a paywall.

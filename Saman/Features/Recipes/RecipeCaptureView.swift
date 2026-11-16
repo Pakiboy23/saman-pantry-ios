@@ -27,7 +27,10 @@ struct RecipeCaptureView: View {
     @State private var capturedSource = ""
     @State private var capturedSourceKind: RecipeSourceKind = .transcript
     @State private var resumeExtractAfterAuth = false
-    @StateObject private var transcriber = RecipeAudioTranscriber()
+    @StateObject private var recorder = RecipeAudioRecorder()
+    /// The recording waiting to go up. Kept until the server returns a recipe
+    /// so a failed upload can be retried without recording again.
+    @State private var pendingRecording: RecipeRecording?
     @State private var showAudioPicker = false
     @State private var transcribingAudio = false
     @State private var resumeFromAudio = false
@@ -76,7 +79,8 @@ struct RecipeCaptureView: View {
         _capturedSourceKind = State(initialValue: .transcript)
         _recipeLink = State(initialValue: "")
         _resumeExtractAfterAuth = State(initialValue: false)
-        _transcriber = StateObject(wrappedValue: RecipeAudioTranscriber())
+        _recorder = StateObject(wrappedValue: RecipeAudioRecorder())
+        _pendingRecording = State(initialValue: nil)
         _showAudioPicker = State(initialValue: false)
         _transcribingAudio = State(initialValue: false)
         _resumeFromAudio = State(initialValue: false)
@@ -138,6 +142,10 @@ struct RecipeCaptureView: View {
             }
             .onChange(of: recipeLink) { _, _ in inlineError = nil }
             .onChange(of: transcript) { _, _ in inlineError = nil }
+            .onChange(of: recorder.autoStopCount) { _, _ in
+                // The 10-minute cap (or a call) stopped the recorder: send what it has.
+                startCaptureTask { await finishRecording() }
+            }
             .fileImporter(
                 isPresented: $showAudioPicker,
                 allowedContentTypes: RecipeAudioFile.acceptedTypes,
@@ -146,7 +154,7 @@ struct RecipeCaptureView: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
-                    startCaptureTask { await transcribePickedFile(url) }
+                    startCaptureTask { await preparePickedFile(url) }
                 case .failure:
                     presentError(
                         "Couldn't open that recording. Try another audio file, or record it in the app.",
@@ -304,14 +312,16 @@ struct RecipeCaptureView: View {
 
             Button("Extract Recipe") { startCaptureTask { await runExtraction() } }
                 .buttonStyle(SamaanPrimaryButtonStyle())
-                .disabled(!canExtract || transcriber.isRecording)
+                .disabled(!canExtract || recorder.isRecording)
                 .accessibilityIdentifier("recipe.extract")
                 .alert(AIProcessingConsent.title, isPresented: $showAIConsent) {
                     Button("Allow and Extract") {
                         hasAIConsent = true
                         let audio = resumeFromAudio
                         resumeFromAudio = false
-                        startCaptureTask { await runExtraction(fromAudio: audio) }
+                        startCaptureTask {
+                            if audio { await uploadRecording() } else { await runExtraction() }
+                        }
                     }
                     Button("Read Privacy Policy") {
                         if let url = URL(string: Config.privacyPolicyURL) { openURL(url) }
@@ -457,27 +467,73 @@ struct RecipeCaptureView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.inkKohlSoft)
                 .kerning(0.8)
-            Button(transcriber.isRecording ? "Stop and read the recipe" : "Record a recipe") {
+            Button(recorder.isRecording ? "Stop and read the recipe" : "Record a recipe") {
                 startCaptureTask { await toggleRecording() }
             }
             .buttonStyle(SamaanPrimaryButtonStyle())
-            .accessibilityIdentifier(transcriber.isRecording ? "recipe.record.stop" : "recipe.record")
+            .accessibilityIdentifier(recorder.isRecording ? "recipe.record.stop" : "recipe.record")
             Button("Choose a recording") { showAudioPicker = true }
                 .buttonStyle(SamaanSecondaryButtonStyle())
-                .disabled(transcriber.isRecording)
+                .disabled(recorder.isRecording)
                 .accessibilityIdentifier("recipe.pickAudio")
-            if transcriber.isRecording {
-                Text(transcriber.partialTranscript.isEmpty
-                     ? "Listening. Tap stop when you're done."
-                     : transcriber.partialTranscript)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.inkKohlSoft)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("recipe.recording.partial")
+            if recorder.isRecording {
+                recordingStatus
+            } else if pendingRecording != nil {
+                savedRecordingActions
             }
         }
         .padding(Samaan.Space.md)
         .samaanCard()
+    }
+
+    /// Timer and level meter. There is no live text: the words come back from the server.
+    private var recordingStatus: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(Color.accentMasala)
+                    .frame(width: 8, height: 8)
+                Text(RecipeAudioFile.clock(recorder.elapsed))
+                    .font(.samaanMono(14))
+                    .foregroundStyle(Color.inkKohl)
+                    .accessibilityIdentifier("recipe.recording.timer")
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.borderAkhrotSoft.opacity(0.4))
+                        Capsule()
+                            .fill(Color.brandSaag)
+                            .frame(width: geo.size.width * CGFloat(recorder.level))
+                    }
+                }
+                .frame(height: 6)
+                .accessibilityHidden(true)
+            }
+            Text(recorder.isNearLimit
+                 ? "Recording stops at 10:00. Finish the recipe, then tap stop."
+                 : "Listening. Tap stop when you're done.")
+                .font(.system(size: 13))
+                .foregroundStyle(recorder.isNearLimit ? Color.accentMasala : Color.inkKohlSoft)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("recipe.recording.status")
+        }
+    }
+
+    /// A recording that has not gone through yet. Retry needs no new take.
+    private var savedRecordingActions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Your recording is saved on this iPhone until it goes through.")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.inkKohlSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Button("Send it again") { startCaptureTask { await uploadRecording() } }
+                    .buttonStyle(SamaanSecondaryButtonStyle())
+                    .accessibilityIdentifier("recipe.recording.retry")
+                Button("Discard") { discardRecording() }
+                    .buttonStyle(SamaanSecondaryButtonStyle())
+                    .accessibilityIdentifier("recipe.recording.discard")
+            }
+        }
     }
 
     /// Starts one capture action at a time; repeated taps leave the active action running.
@@ -499,7 +555,8 @@ struct RecipeCaptureView: View {
         captureGeneration = UUID()
         captureTask?.cancel()
         captureTask = nil
-        transcriber.cancelRecording()
+        recorder.cancel()
+        discardRecording()
         if transcribingAudio {
             transcribingAudio = false
             phase = .idle
@@ -513,7 +570,9 @@ struct RecipeCaptureView: View {
         resumeExtractAfterAuth = false
         let audio = resumeFromAudio
         resumeFromAudio = false
-        startCaptureTask { await runExtraction(fromAudio: audio) }
+        startCaptureTask {
+            if audio { await uploadRecording() } else { await runExtraction() }
+        }
     }
 
     /// True when the view is still active and `generation` matches the current capture attempt.
@@ -521,79 +580,121 @@ struct RecipeCaptureView: View {
         captureIsActive && captureGeneration == generation && !Task.isCancelled
     }
 
-    /// Starts or stops microphone recording, then kicks off extraction once a recording finishes.
+    /// Starts recording, or stops and sends the recording.
     private func toggleRecording() async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }
-        if transcriber.isRecording {
-            transcribingAudio = true
-            phase = .extracting
-            let text: String
-            do {
-                text = try await transcriber.stopRecording()
-                guard acceptsCapture(generation) else { return }
-            } catch {
-                guard acceptsCapture(generation) else { return }
-                transcribingAudio = false
-                presentError(error.localizedDescription, title: "Didn't catch that")
-                return
-            }
-            transcribingAudio = false
-            phase = .idle
-            transcript = text
-            await runExtraction(fromAudio: true)
+        if recorder.isRecording {
+            await finishRecording()
             return
         }
+        // A new take replaces a recording that never went through.
+        discardRecording()
         do {
-            try await transcriber.startRecording()
+            try await recorder.start()
         } catch {
             guard acceptsCapture(generation) else { return }
             presentError(error.localizedDescription, title: "Can't record")
         }
     }
 
-    /// Copies and transcribes a picked audio file, then extracts a recipe from the result.
-    private func transcribePickedFile(_ url: URL) async {
+    /// Takes the file from the recorder and sends it. Also runs when the
+    /// recorder stops on its own at 10 minutes.
+    private func finishRecording() async {
+        guard acceptsCapture(captureGeneration) else { return }
+        guard let recording = recorder.stop() else {
+            if pendingRecording == nil {
+                presentError("I didn't catch any words. Record again, or type the recipe.", title: "Didn't catch that")
+            }
+            return
+        }
+        pendingRecording = recording
+        await uploadRecording()
+    }
+
+    /// Copies a picked file, re-encodes it if needed, then sends it.
+    private func preparePickedFile(_ url: URL) async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }
+        discardRecording()
         transcribingAudio = true
         phase = .extracting
-        let copy: URL
         do {
-            copy = try RecipeAudioTranscriber.temporaryCopy(of: url)
+            let recording = try await RecipeAudioFile.prepareUpload(from: url)
+            guard acceptsCapture(generation) else {
+                recording.delete()
+                return
+            }
+            pendingRecording = recording
         } catch {
+            guard acceptsCapture(generation) else { return }
             transcribingAudio = false
             presentError(error.localizedDescription, title: "Couldn't open the recording")
             return
         }
-        let text: String
+        transcribingAudio = false
+        phase = .idle
+        await uploadRecording()
+    }
+
+    private func discardRecording() {
+        pendingRecording?.delete()
+        pendingRecording = nil
+    }
+
+    /// Sends the pending recording to the server, which transcribes it and
+    /// extracts the recipe. Consent and sign-in come first, as for text.
+    private func uploadRecording() async {
+        let generation = captureGeneration
+        guard acceptsCapture(generation), let recording = pendingRecording else { return }
+        recipeLink = ""
+        if !hasAIConsent {
+            resumeFromAudio = true
+            showAIConsent = true
+            return
+        }
+        if !appEnv.requireAccount() {
+            resumeFromAudio = true
+            resumeExtractAfterAuth = true
+            return
+        }
+        resumeFromAudio = false
+        extractingFromLink = false
+        transcribingAudio = true
+        phase = .extracting
         do {
-            defer { try? FileManager.default.removeItem(at: copy) }
-            text = try await transcriber.transcribeFile(at: copy)
+            let result = try await RecipeExtractionService.shared.extract(recording: recording)
             guard acceptsCapture(generation) else { return }
+            transcribingAudio = false
+            discardRecording()
+            let heard = result.transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            transcript = heard
+            capturedSource = heard
+            capturedSourceKind = .transcript
+            showReview(result, link: nil)
+        } catch let error as RecipeExtractionService.ExtractionError {
+            guard acceptsCapture(generation) else { return }
+            transcribingAudio = false
+            if !error.keepsRecordingForRetry { discardRecording() }
+            if case .noRecipeInRecording(let heard) = error, let heard, !heard.isEmpty {
+                // The slot is spent. Hand the words back so the cook can fix them.
+                transcript = heard
+            }
+            handleExtractionError(error, audio: true)
         } catch {
             guard acceptsCapture(generation) else { return }
             transcribingAudio = false
-            presentError(error.localizedDescription, title: "Couldn't transcribe that")
-            return
+            presentError(error.localizedDescription, title: "Couldn't send the recording")
         }
-        transcribingAudio = false
-        phase = .idle
-        transcript = text
-        await runExtraction(fromAudio: true)
     }
 
     /// Validates the link or transcript, ensures consent and sign-in, then calls the extraction service.
-    private func runExtraction(fromAudio: Bool = false) async {
+    private func runExtraction() async {
         let generation = captureGeneration
         guard acceptsCapture(generation) else { return }
-        let audio = fromAudio || resumeFromAudio
-        if audio {
-            recipeLink = ""
-        }
         let link: String?
         let text: String
-        switch RecipeCaptureRoute.route(linkRaw: recipeLink, transcriptRaw: transcript, fromAudio: audio) {
+        switch RecipeCaptureRoute.route(linkRaw: recipeLink, transcriptRaw: transcript, fromAudio: false) {
         case .empty:
             return
         case .invalidLink:
@@ -610,12 +711,12 @@ struct RecipeCaptureView: View {
             text = value
         }
         if !hasAIConsent {
-            resumeFromAudio = audio
+            resumeFromAudio = false
             showAIConsent = true
             return
         }
         if !appEnv.requireAccount() {
-            resumeFromAudio = audio
+            resumeFromAudio = false
             resumeExtractAfterAuth = true
             return
         }
@@ -638,43 +739,52 @@ struct RecipeCaptureView: View {
                 capturedSource = text
                 capturedSourceKind = .transcript
             }
-            recipeTitle = result.recipe.title
-            if let attribution = result.recipe.attribution?.trimmingCharacters(in: .whitespacesAndNewlines), !attribution.isEmpty {
-                recipeSource = attribution
-            } else if let link, let host = RecipeLinkInput.hostLabel(link) {
-                recipeSource = host
-            } else {
-                recipeSource = ""
-            }
-            selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
-            extractedJSON = result.rawJSON
-            Analytics.track(.recipeExtracted)
-            if !appEnv.purchases.isPro {
-                appEnv.extractionQuota.noteLocalExtraction()
-                Task { await appEnv.extractionQuota.refresh() }
-            }
-            phase = .reviewing
+            showReview(result, link: link)
         } catch let error as RecipeExtractionService.ExtractionError {
             guard acceptsCapture(generation) else { return }
-            switch error {
-            case .unauthorized:
-                resumeFromAudio = audio
-                resumeExtractAfterAuth = true
-                appEnv.requireAccount()
-                extractingFromLink = false
-                phase = .idle
-            case .quotaExceeded:
-                extractingFromLink = false
-                phase = .idle
-                showPaywall = true
-                Task { await appEnv.extractionQuota.refresh() }
-            case .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
-                 .apiError, .serviceError:
-                presentError(error.localizedDescription, title: error.captureAlertTitle)
-            }
+            handleExtractionError(error, audio: false)
         } catch {
             guard acceptsCapture(generation) else { return }
             presentError(error.localizedDescription)
+        }
+    }
+
+    private func showReview(_ result: ExtractionResult, link: String?) {
+        recipeTitle = result.recipe.title
+        if let attribution = result.recipe.attribution?.trimmingCharacters(in: .whitespacesAndNewlines), !attribution.isEmpty {
+            recipeSource = attribution
+        } else if let link, let host = RecipeLinkInput.hostLabel(link) {
+            recipeSource = host
+        } else {
+            recipeSource = ""
+        }
+        selections   = result.recipe.ingredients.map { IngredientSelection(ingredient: $0) }
+        extractedJSON = result.rawJSON
+        Analytics.track(.recipeExtracted)
+        if !appEnv.purchases.isPro {
+            appEnv.extractionQuota.noteLocalExtraction()
+            Task { await appEnv.extractionQuota.refresh() }
+        }
+        phase = .reviewing
+    }
+
+    private func handleExtractionError(_ error: RecipeExtractionService.ExtractionError, audio: Bool) {
+        switch error {
+        case .unauthorized:
+            resumeFromAudio = audio
+            resumeExtractAfterAuth = true
+            appEnv.requireAccount()
+            extractingFromLink = false
+            phase = .idle
+        case .quotaExceeded:
+            extractingFromLink = false
+            phase = .idle
+            showPaywall = true
+            Task { await appEnv.extractionQuota.refresh() }
+        case .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText,
+             .apiError, .serviceError, .audioTooLarge, .audioUnreadable, .audioNoSpeech,
+             .transcriptionFailed, .noRecipeInRecording:
+            presentError(error.localizedDescription, title: error.captureAlertTitle)
         }
     }
 
@@ -733,9 +843,11 @@ struct RecipeCaptureView: View {
 // MARK: - AI processing consent
 
 enum AIProcessingConsent {
-    static let storageKey = "samaan.consent.anthropicExtraction.v1"
-    static let title = "Send this recipe to Anthropic?"
-    static let message = "To pull out the ingredients and steps, Samaan sends the recipe text or link you give it to our server. That includes words you paste, words from a recording made in the app, and words from an audio file you choose. The recording is transcribed on your iPhone and is not uploaded. If it isn't already a structured recipe, that text goes to Anthropic, our AI provider. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
+    // v2: recordings are now uploaded, so everyone is asked again.
+    // DRAFT copy: owner approves the final wording (server-transcription spec, PR D).
+    static let storageKey = "samaan.consent.recipeProcessing.v2"
+    static let title = "Send this recipe to our AI providers?"
+    static let message = "To pull out the ingredients and steps, Samaan sends what you give it to our server: a recording, an audio file you choose, a link, or words you paste. Recordings and audio files go to ElevenLabs, which turns speech into text. That text, or the words or link you gave, goes to Anthropic, our AI provider, unless it is already a structured recipe. Recordings are not saved on our server. Nothing else from your pantry or account goes with it. We only ask once. See our Privacy Policy for details."
 }
 
 // MARK: - Ingredient row

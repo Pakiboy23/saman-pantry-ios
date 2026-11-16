@@ -99,9 +99,9 @@ python3 supabase/tests/recipe_extraction_quota_test.py
 
 ### Deploy
 
-Owner approves every deploy. Live is version 20 (2026-11-16): billing,
-URL extraction, the audio route, and the speech prompt rules, matching
-`main` at #84. Migrations
+Owner approves every deploy. Live is version 21 (2026-11-16): billing,
+URL extraction, the audio route, the speech prompt rules, and alternatives
+as one ingredient, matching `main` at #85. Migrations
 011, 012, and the family-books pair are applied in prod.
 
 ```sh
