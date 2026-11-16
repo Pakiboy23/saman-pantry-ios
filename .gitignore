@@ -68,5 +68,13 @@ fastlane/test_output
 # Generated App Store Simulator captures (never commit fake marketing images)
 artifacts/
 
+# Recipe eval: recordings, transcripts, and manifests stay outside this public
+# repo (scripts/recipe-eval.ts refuses paths inside it). Belt and braces:
+recipe-eval/
+*.m4a
+*.aac
+*.mp3
+*.wav
+
 # Claude Code local config
 .claude/

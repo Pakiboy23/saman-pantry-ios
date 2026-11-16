@@ -36,7 +36,8 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 **Recipe capture.** Four intakes: record, choose an audio file, paste a link (YouTube, Instagram, recipe sites), or paste text.
 - Recording and audio files are transcribed **on device** (`RecipeAudioTranscriber`, `requiresOnDeviceRecognition = true`). Audio never leaves the phone. The recognizer follows the phone's language setting; Apple's on-device recognition covers Hindi but not Urdu or Punjabi, so desi words may come out spelled by ear.
-- **Moving to server transcription** (`docs/server-transcription-spec.md`). PR A adds a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters. Repo only until deployed. Until the iOS PR C ships, the on-device claim above stays true for the app; do not update privacy copy ahead of PR D.
+- **Moving to server transcription** (`docs/server-transcription-spec.md`). PR A (#83, live in v19) added a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters. No shipping app calls it yet. Until the iOS PR C ships, the on-device claim above stays true for the app; do not update privacy copy ahead of PR D.
+- **Prompts live in `prompts.ts`.** Any change must pass `scripts/recipe-eval.ts` against Haaris's private recording set before it merges. The script refuses paths inside the repo. Never commit recordings, real transcripts, or manifests.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota is the table above (`011_billing_grandfathered_and_quota.sql`).
 - Transcript saves publish a public card to the **community** book. URL extracts stay private unless the owner opts that recipe in (`share_in_family_book` / `012_recipe_book_url_opt_in.sql`). A shared link card shows the source link and attribution.
 
@@ -44,12 +45,13 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 **Analytics.** Dual sink: anonymous Supabase `events` row + HeyCatch (PostHog iOS SDK). `HeyCatch.bind` identifies only a signed-in Supabase user id (#71). No recipe text or personal content as properties. Details: `docs/analytics.md`. Tests / previews / screenshots never start HeyCatch.
 
-**Supabase (repo vs last verified live).**
-- Last verified live `extract-recipe` is **version 9** (7 Oct 2026, `2632437`). #63 (meta/caption scan) and #66 (billing) are on `main` and are **not** live until `supabase functions deploy extract-recipe` after migration 011.
-- `delete-account` last verified live is version 3.
-- Migrations 001 through 009 were applied by 6 Oct 2026. **011, 012, and the 20261024 family-books pair are on `main`; owner applies them.** Deploying #66's function before 011 makes every extract 500.
-- `revenuecat-webhook` and `revenuecat-sync` exist in the repo and are not live until deployed.
-- Agents do not deploy or run production SQL.
+**Supabase (verified 16 Nov 2026 through the Supabase connector; re-check before claiming).**
+- `extract-recipe` **version 19** is live and byte-identical to `main` at #83: billing, URL extraction, and the audio route.
+- All migrations on `main` are applied, including 011, 012, and both family-books migrations.
+- Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, `asr-bakeoff` v4 (not in the repo).
+- **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file.** It ignores sandbox events but ignores `TRANSFER`, so it does not revoke donors the way #78 on `main` does.
+- The connector cannot list secret names. Do not claim a secret is set; ask or have Haaris check.
+- Agents deploy or run production SQL only with Haaris's explicit OK for that deploy. The Supabase connector can deploy; verify the deployed files against `main` afterwards.
 
 **Legal URLs** `samanpantry.com/privacy` and `/support` are live and in the binary (Settings, Auth, paywall). Update the hosted privacy page from `docs/launch/legal-and-privacy.md` before shipping HeyCatch / family cookbooks.
 
@@ -91,7 +93,7 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 - Old Anthropic key revoked in the Anthropic console.
 - Pre-confirmed App Review demo account exists and still signs in.
 - `samaan://auth-callback` is in Supabase Auth → URL Configuration → Redirect URLs.
-- Production has migrations 011, 012, and family-books, plus `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_SECRET_KEY`, `REVENUECAT_WEBHOOK_AUTH`, and the matching function deploys.
+- Production secrets `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_SECRET_KEY`, `REVENUECAT_WEBHOOK_AUTH`, and the ElevenLabs key name. (Migrations and function versions can be checked with the Supabase connector.)
 
 ## Do not
 
@@ -105,10 +107,10 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 
 ## Next repo work (order)
 
-1. Owner applies 011 + 012, sets the RevenueCat v1 secret if Pro should be uncapped, and deploys `extract-recipe`.
-2. Owner follows `docs/family-books-go-steps.md` (family SQL, webhook, Associated Domains / AASA, App Privacy).
+1. Server transcription: PR B passes the private test set, then merge + deploy with Haaris's OK. Then PR C (iOS) and PR D (copy) together.
+2. Owner finishes `docs/family-books-go-steps.md` (Associated Domains / AASA, App Privacy) and decides whether to replace the hand-deployed webhook with the repo version (#78).
 3. Update the hosted privacy page for HeyCatch and family cookbooks before a 1.6 submit.
 4. Then, with Haaris's OK, pick a 1.6 TestFlight build for App Review.
 5. Household mode only after the THESIS gates.
 
-Open drafts, not shipped: #78 (sandbox webhook + TRANSFER donors). #79 (family copies stay out of Community) is on `main`.
+#78 (sandbox webhook + TRANSFER donors) and #79 (family copies stay out of Community) are on `main`. #78 is not what the live webhook runs.
