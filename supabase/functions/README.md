@@ -24,6 +24,24 @@ Body is `{ "transcript" }` and/or `{ "url" }`. A transcript that is only an http
 - **Instagram** — best effort. If the caption cannot be read, **422** `{ code: "instagram_caption_unavailable" }` asks the user to paste the caption. That failure does not consume a slot.
 - Other fetch failures (`url_not_allowed`, `url_fetch_failed`, `no_recipe_text`) do not consume a slot. A URL that returns a recipe, or that is sent to the model, consumes one.
 
+### Audio route (repo only, not live)
+
+`multipart/form-data` with one part named `audio`. The server transcribes it,
+then runs the same transcript extraction. Old clients sending JSON are
+unaffected. Spec: [`docs/server-transcription-spec.md`](../../docs/server-transcription-spec.md).
+
+- Types: `audio/mp4`, `audio/m4a`, `audio/x-m4a`, `audio/aac`, `audio/mpeg`, `audio/wav` (parameters such as `; codecs=` are ignored). Others: **415** `audio_unsupported_type`.
+- Body cap 12 MiB (`12 * 1024 * 1024`). Larger: **413** `audio_too_large`. Checked from `Content-Length` and again while streaming.
+- Missing or empty `audio` part, or an unparseable form: **400** `audio_missing`.
+- Order: JWT → type/size → quota slot → transcription → extraction. No slot means no transcription call.
+- Transcription error, timeout (60 s), or unreadable reply: slot released, **502** `transcription_failed`.
+- Transcript under 20 characters after trimming: slot released, **422** `audio_no_speech` with the "I only caught part of that" copy.
+- After a transcript reaches the model, the text rule applies: model failures keep the slot.
+- Success adds `transcript` to the usual `{ recipe, raw_json }`. The client stores it as `rawTranscript`. Model failures on this route (`502`, `422 no_recipe_text`) also return `transcript` so the client can offer an edit-and-retry without recording again.
+- Audio is forwarded to the provider as a Blob. It is never stored. Logs (`extract_recipe_transcription`) carry provider, model, status, byte count, type, timing, transcript length, and language code. Never audio or text.
+
+Provider code is in `transcribe.ts`. The desi vocabulary in `vocabulary.ts` feeds both prompt rule 3 and the optional keyterms.
+
 Outbound fetches are http/https only, reject private and internal addresses (and DNS answers or redirects that point at them), time out, and cap the body size.
 
 Requires migrations `004`, `009`, and `011` applied in prod before this deploy, or
@@ -43,6 +61,14 @@ supabase secrets set YOUTUBE_API_KEY=<youtube-data-api-v3-key>
 # Optional until new Pro products are live. When set, extract-recipe skips the
 # free-tier quota for subscribers with the Saman Pro entitlement.
 supabase secrets set REVENUECAT_SECRET_API_KEY=<revenuecat-secret-api-key>
+# Audio route. Required for multipart requests only. The function also reads
+# the lowercase name `elevenlabs_api_key` as a fallback.
+supabase secrets set ELEVENLABS_API_KEY=<elevenlabs-key>
+# Optional overrides. Defaults: elevenlabs, scribe_v2, keyterms off.
+supabase secrets set TRANSCRIBE_PROVIDER=elevenlabs
+supabase secrets set ELEVENLABS_STT_MODEL=scribe_v2
+# Keyterms cost about 20% more. Leave off unless the recording test set shows a gain.
+supabase secrets set TRANSCRIBE_KEYTERMS=false
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically. Do not put `YOUTUBE_API_KEY` in the app.
@@ -66,7 +92,7 @@ until this runs:
 supabase functions deploy extract-recipe
 ```
 
-Files in this function: `index.ts` (HTTP, auth, quota, model) and `recipe_source.ts` (URL classification, fetch, JSON-LD). `recipe_source_test.ts` is tests only; it is not the entrypoint.
+Files in this function: `index.ts` (HTTP, auth, quota, audio route, model), `recipe_source.ts` (URL classification, fetch, JSON-LD), `transcribe.ts` (speech-to-text provider adapter), and `vocabulary.ts` (desi ingredient map shared by the prompts and keyterms). `*_test.ts` files are tests only; they are not the entrypoint.
 
 After deployment, revoke/rotate any Anthropic key that was previously committed or shipped in a client binary.
 

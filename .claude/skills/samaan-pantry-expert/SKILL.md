@@ -36,6 +36,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 **Recipe capture.** Four intakes: record, choose an audio file, paste a link (YouTube, Instagram, recipe sites), or paste text.
 - Recording and audio files are transcribed **on device** (`RecipeAudioTranscriber`, `requiresOnDeviceRecognition = true`). Audio never leaves the phone. The recognizer follows the phone's language setting; Apple's on-device recognition covers Hindi but not Urdu or Punjabi, so desi words may come out spelled by ear.
+- **Moving to server transcription** (`docs/server-transcription-spec.md`). PR A adds a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters. Repo only until deployed. Until the iOS PR C ships, the on-device claim above stays true for the app; do not update privacy copy ahead of PR D.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota is the table above (`011_billing_grandfathered_and_quota.sql`).
 - Transcript saves publish a public card to the **community** book. URL extracts stay private unless the owner opts that recipe in (`share_in_family_book` / `012_recipe_book_url_opt_in.sql`). A shared link card shows the source link and attribution.
 
@@ -64,7 +65,8 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 - Anon key in `Config.swift` is expected (RLS). Service role is not.
 - Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary.
-- Do not claim the recipe extraction happens on the phone. Only transcription does.
+- Do not claim the recipe extraction happens on the phone. Only transcription does, and only until server transcription (PR C) ships.
+- Audio route: never log audio bytes or transcript text, never store audio, never commit recordings or real transcripts. Size/type checks run before the quota; the slot runs before the paid STT call.
 - Do not say Pro leaves extract capped, or that free users are limited to 30 pantry items / extra lists. Those 1.2 claims are dead.
 - Do not locally refuse extract from the quota RPC. 402 is the gate; 503 is not a paywall.
 - Without `REVENUECAT_SECRET_API_KEY`, Pro subscribers are metered as free.
