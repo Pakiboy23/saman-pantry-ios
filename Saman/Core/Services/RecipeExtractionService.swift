@@ -53,6 +53,8 @@ struct ExtractedRecipe: Codable {
 struct ExtractionResult {
     let recipe: ExtractedRecipe
     let rawJSON: String
+    /// The server's transcript of an uploaded recording. Nil for text and links.
+    var transcript: String? = nil
 }
 
 final class RecipeExtractionService {
@@ -69,8 +71,54 @@ final class RecipeExtractionService {
         try await perform(RequestBody(transcript: nil, url: url), route: .url)
     }
 
-    /// Sends the extraction request with an auth token and decodes the recipe, mapping failures to `ExtractionError`.
+    /// Uploads a recording. The server transcribes it, then runs the same
+    /// extraction as a transcript; the result carries that transcript.
+    func extract(recording: RecipeRecording) async throws -> ExtractionResult {
+        let audio: Data
+        do {
+            audio = try Data(contentsOf: recording.url)
+        } catch {
+            throw RecipeAudioError.unreadableFile
+        }
+        let boundary = "samaan-\(UUID().uuidString)"
+        let body = Self.multipartBody(
+            audio: audio,
+            filename: recording.uploadFilename,
+            mimeType: recording.mimeType,
+            boundary: boundary
+        )
+        return try await send(
+            body: body,
+            contentType: "multipart/form-data; boundary=\(boundary)",
+            // Transcription (up to 60 s) plus the model call.
+            timeout: 150,
+            route: .audio
+        )
+    }
+
+    /// One `audio` part, as `extract-recipe` expects.
+    static func multipartBody(audio: Data, filename: String, mimeType: String, boundary: String) -> Data {
+        var body = Data()
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"audio\"; filename=\"\(filename)\"\r\n".utf8))
+        body.append(Data("Content-Type: \(mimeType)\r\n\r\n".utf8))
+        body.append(audio)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        return body
+    }
+
+    /// Sends a JSON extraction request (transcript or link).
     private func perform(_ body: RequestBody, route: RecipeExtractionRoute) async throws -> ExtractionResult {
+        try await send(
+            body: try JSONEncoder().encode(body),
+            contentType: "application/json",
+            timeout: 60,
+            route: route
+        )
+    }
+
+    /// Posts to `extract-recipe` with the user JWT and decodes the recipe, mapping failures to `ExtractionError`.
+    private func send(body: Data, contentType: String, timeout: TimeInterval, route: RecipeExtractionRoute) async throws -> ExtractionResult {
         let token: String
         do {
             token = try await SupabaseClient.shared.auth.session.accessToken
@@ -80,19 +128,26 @@ final class RecipeExtractionService {
         try Task.checkCancellation()
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = timeout
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.httpBody = try JSONEncoder().encode(body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.upload(for: request, from: body)
+        } catch let error as URLError where error.code != .cancelled {
+            // Offline or timed out. For a recording, the file is kept for a retry.
+            throw ExtractionError.apiError
+        }
         guard let http = response as? HTTPURLResponse else { throw ExtractionError.apiError }
         guard (200...299).contains(http.statusCode) else {
             throw Self.failure(status: http.statusCode, data: data, route: route)
         }
 
         let serviceResp = try JSONDecoder().decode(EdgeFunctionResponse.self, from: data)
-        return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON)
+        return ExtractionResult(recipe: serviceResp.recipe, rawJSON: serviceResp.rawJSON, transcript: serviceResp.transcript)
     }
 
     /// Maps an HTTP error status and response body to the matching `ExtractionError`.
@@ -111,9 +166,22 @@ final class RecipeExtractionService {
             case .urlFetchFailed:
                 return .urlFetchFailed
             case .noRecipeText:
-                return .noRecipeText(resolvedRoute(from: body?.source, fallback: route))
+                let resolved = resolvedRoute(from: body?.source, fallback: route)
+                if resolved == .audio {
+                    return .noRecipeInRecording(transcript: body?.transcript)
+                }
+                return .noRecipeText(resolved)
+            case .audioTooLarge:
+                return .audioTooLarge
+            case .audioUnsupportedType, .audioMissing:
+                return .audioUnreadable
+            case .audioNoSpeech:
+                return .audioNoSpeech
+            case .transcriptionFailed:
+                return .transcriptionFailed
             }
         }
+        if status == 413 { return .audioTooLarge }
         if let message = body?.message, !message.isEmpty {
             return .serviceError(message)
         }
@@ -128,6 +196,8 @@ final class RecipeExtractionService {
             return .url
         case RecipeExtractionRoute.transcript.rawValue:
             return .transcript
+        case RecipeExtractionRoute.audio.rawValue:
+            return .audio
         default:
             return fallback
         }
@@ -137,6 +207,21 @@ final class RecipeExtractionService {
         case apiError, serviceError(String), quotaExceeded, unauthorized
         case instagramCaptionUnavailable, urlNotAllowed, urlFetchFailed
         case noRecipeText(RecipeExtractionRoute)
+        case audioTooLarge, audioUnreadable, audioNoSpeech, transcriptionFailed
+        /// The recording became text but held no recipe. The slot is spent,
+        /// so the transcript comes back for the cook to fix and resend.
+        case noRecipeInRecording(transcript: String?)
+
+        /// Whether a recording is worth keeping for a retry after this error.
+        var keepsRecordingForRetry: Bool {
+            switch self {
+            case .apiError, .serviceError, .quotaExceeded, .unauthorized, .transcriptionFailed:
+                return true
+            case .audioTooLarge, .audioUnreadable, .audioNoSpeech, .noRecipeInRecording,
+                 .instagramCaptionUnavailable, .urlNotAllowed, .urlFetchFailed, .noRecipeText:
+                return false
+            }
+        }
 
         var captureAlertTitle: String {
             switch self {
@@ -146,8 +231,14 @@ final class RecipeExtractionService {
                 return "Paste the caption"
             case .urlNotAllowed, .urlFetchFailed, .noRecipeText(.url):
                 return "Couldn't open that link"
-            case .noRecipeText(.transcript):
+            case .noRecipeText(.transcript), .noRecipeText(.audio), .noRecipeInRecording:
                 return "Couldn't find a recipe"
+            case .audioTooLarge, .audioUnreadable:
+                return "Couldn't send the recording"
+            case .audioNoSpeech:
+                return "Didn't catch that"
+            case .transcriptionFailed:
+                return "Couldn't read the recording"
             case .apiError, .serviceError, .unauthorized:
                 return "Extraction failed"
             }
@@ -169,10 +260,23 @@ final class RecipeExtractionService {
                 return "That link isn't one I can open. Paste a public http or https recipe link."
             case .urlFetchFailed:
                 return "Couldn't open that link. Check it and try again, or paste the recipe text."
-            case .noRecipeText(.transcript):
+            case .noRecipeText(.transcript), .noRecipeText(.audio):
                 return "I only caught part of that. Try recording again, or type the ingredients and steps."
             case .noRecipeText(.url):
                 return "Couldn't find a recipe in that link. Paste the description or caption text and I'll try from that."
+            case .noRecipeInRecording(let transcript):
+                if let transcript, !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return "I couldn't find a recipe in that. The words I heard are in the box below. Fix them and tap Extract Recipe."
+                }
+                return "I only caught part of that. Try recording again, or type the ingredients and steps."
+            case .audioTooLarge:
+                return "That recording is too big to send. Keep it under 10 minutes."
+            case .audioUnreadable:
+                return "Couldn't read that recording. Try an m4a or mp3 file, or record it in the app."
+            case .audioNoSpeech:
+                return "I didn't catch any words. Record again, or type the recipe."
+            case .transcriptionFailed:
+                return "Couldn't turn your recording into text. It's saved, so you can try again."
             }
         }
     }
@@ -181,6 +285,7 @@ final class RecipeExtractionService {
 enum RecipeExtractionRoute: String, Equatable {
     case transcript
     case url
+    case audio
 }
 
 // MARK: - Link field
@@ -276,15 +381,22 @@ private extension RecipeExtractionService {
         case urlNotAllowed = "url_not_allowed"
         case urlFetchFailed = "url_fetch_failed"
         case noRecipeText = "no_recipe_text"
+        case audioTooLarge = "audio_too_large"
+        case audioUnsupportedType = "audio_unsupported_type"
+        case audioMissing = "audio_missing"
+        case audioNoSpeech = "audio_no_speech"
+        case transcriptionFailed = "transcription_failed"
     }
 
     struct EdgeFunctionResponse: Decodable {
         let recipe: ExtractedRecipe
         let rawJSON: String
+        let transcript: String?
 
         enum CodingKeys: String, CodingKey {
             case recipe
             case rawJSON = "raw_json"
+            case transcript
         }
     }
 
@@ -292,12 +404,14 @@ private extension RecipeExtractionService {
         let message: String
         let code: String?
         let source: String?
+        let transcript: String?
 
         enum CodingKeys: String, CodingKey {
             case message
             case error
             case code
             case source
+            case transcript
         }
 
         init(from decoder: Decoder) throws {
@@ -307,6 +421,7 @@ private extension RecipeExtractionService {
                 ?? "Recipe extraction failed. Please try again."
             code = try? c.decode(String.self, forKey: .code)
             source = try c.decodeIfPresent(String.self, forKey: .source)
+            transcript = try? c.decodeIfPresent(String.self, forKey: .transcript)
         }
     }
 }

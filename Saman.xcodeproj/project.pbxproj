@@ -462,7 +462,6 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Samaan uses the camera to scan barcodes.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Samaan uses the microphone so you can record a recipe out loud.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Samaan turns a recording into text on this iPhone so it can read the recipe. The audio stays on your phone.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -540,7 +539,6 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Samaan uses the camera to scan barcodes.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Samaan uses the microphone so you can record a recipe out loud.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Samaan turns a recording into text on this iPhone so it can read the recipe. The audio stays on your phone.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
