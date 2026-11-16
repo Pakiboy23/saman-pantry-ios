@@ -8,9 +8,9 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 ## Where We Left Off
 - **App Store:** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 2026-10-05 (`788fafd`: recording, audio-file intake, public family recipe book). Do not claim 1.5 or 1.6 is live without App Store Connect.
 - **main:** marketing **1.6**. Train: billing + onboarding (#66), 1.5 bump (#67), community-book URL opt-in (#68), HeyCatch (#69/#71), Samaan copy (#70), RevenueCat `logIn` (#76), private family cookbooks (#74), family `saveCopy` stays out of Community (#79). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` (108) in the pbxproj is not the App Store Connect build number.
-- **Server (verified 2026-11-16 via the Supabase connector):** `extract-recipe` **version 19** is live and byte-identical to `main` at #83 (billing, URL extraction, audio route). Migrations through `011`, `012`, and both family-books migrations are applied. Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. Secret names are not visible to the connector; confirm in the dashboard.
-- **Server transcription (spec `docs/server-transcription-spec.md`, #82):** PR A (#83) merged and live in v19. Haaris set the ElevenLabs secret in the dashboard (exact name unverified; code reads `ELEVENLABS_API_KEY` or `elevenlabs_api_key`). PR B (prompt rules 4-6 in `prompts.ts` + `scripts/recipe-eval.ts`) is in review and must pass the private recording test set before merge. Shipping 1.3 still transcribes on device. PRs C (iOS upload) and D (copy/privacy) follow.
-- **Next immediate step:** Haaris runs the recording test set on PR B, then merges and approves the deploy. Then PR C. Nothing goes to App Review without Haaris's explicit OK.
+- **Server (verified 2026-11-16 via the Supabase connector):** `extract-recipe` **version 20** is live and byte-identical to `main` at #84 (billing, URL extraction, audio route, speech prompt rules 4-6). v19 = #83, a known-good rollback. Migrations through `011`, `012`, and both family-books migrations are applied. Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. Secret names are not visible to the connector; confirm in the dashboard.
+- **Server transcription (spec `docs/server-transcription-spec.md`, #82):** PR A (#83) merged and live in v19. Haaris set the ElevenLabs secret in the dashboard (exact name unverified; code reads `ELEVENLABS_API_KEY` or `elevenlabs_api_key`). PR B (#84, prompt rules 4-6 + `scripts/recipe-eval.ts`) merged and live in v20. Haaris chose to test in the app instead of running the recording set first. App test on the okra recording: okra fixed (beans kept in original_phrase), no invented onion count, but cumin lost (Apple heard "0") and "lemon juice or vinegar" split into two items. The alternatives rule is the follow-up PR. Shipping 1.3 still transcribes on device. PRs C (iOS upload) and D (copy/privacy) follow.
+- **Next immediate step:** merge + deploy the alternatives prompt fix with Haaris's OK, then PR C (iOS record-to-file + upload), which fixes cumin at the source. Nothing goes to App Review without Haaris's explicit OK.
 - **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
@@ -59,7 +59,8 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [ ] With Haaris's OK: attach a 1.6 TestFlight build and submit
 - [x] #78 on `main`: ignore sandbox RevenueCat webhooks; revoke TRANSFER donors (not the live variant)
 - [x] Server transcription PR A (#83) merged and live
-- [ ] Server transcription PR B: run the private test set, then merge + deploy with Haaris's OK
+- [x] Server transcription PR B (#84) merged, live in v20
+- [ ] Prompt follow-up: alternatives ("X or Y") stay one ingredient
 - [ ] Server transcription PRs C, D (spec section 4). Owner decisions open in spec section 9
 - [x] #79: family `saveCopy` stays out of the public community book
 - [ ] Owner, confirm don't assume: old Anthropic key revoked

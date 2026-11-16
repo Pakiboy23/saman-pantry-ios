@@ -46,7 +46,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Analytics.** Dual sink: anonymous Supabase `events` row + HeyCatch (PostHog iOS SDK). `HeyCatch.bind` identifies only a signed-in Supabase user id (#71). No recipe text or personal content as properties. Details: `docs/analytics.md`. Tests / previews / screenshots never start HeyCatch.
 
 **Supabase (verified 16 Nov 2026 through the Supabase connector; re-check before claiming).**
-- `extract-recipe` **version 19** is live and byte-identical to `main` at #83: billing, URL extraction, and the audio route.
+- `extract-recipe` **version 20** is live and byte-identical to `main` at #84: billing, URL extraction, the audio route, and speech prompt rules 4-6. v19 (#83) is the rollback.
 - All migrations on `main` are applied, including 011, 012, and both family-books migrations.
 - Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, `asr-bakeoff` v4 (not in the repo).
 - **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file.** It ignores sandbox events but ignores `TRANSFER`, so it does not revoke donors the way #78 on `main` does.

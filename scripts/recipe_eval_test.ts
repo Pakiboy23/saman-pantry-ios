@@ -86,3 +86,8 @@ Deno.test("paths inside the repo are refused", () => {
     Deno.removeSync(outside);
   }
 });
+
+Deno.test("a combined alternative satisfies must_include_any", () => {
+  const result = checkIngredients(["okra", "onion", "cumin", "salt", "red chili", "lemon juice or vinegar"], okra);
+  assert(passed(result));
+});
