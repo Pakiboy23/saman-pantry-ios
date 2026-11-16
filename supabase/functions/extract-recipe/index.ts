@@ -10,7 +10,7 @@ import {
   TranscriptionError,
   transcriptionConfigFromEnv,
 } from "./transcribe.ts";
-import { ingredientMapForPrompt } from "./vocabulary.ts";
+import { DEFAULT_ANTHROPIC_MODEL, pageSystemPrompt, systemPrompt, transcriptUserText } from "./prompts.ts";
 
 // Recipe extraction is proxied so the Anthropic key never ships in the iOS
 // binary. The caller must be a signed-in user: the anon key as Bearer is a
@@ -43,7 +43,7 @@ const corsHeaders = {
 };
 
 const anthropicEndpoint = "https://api.anthropic.com/v1/messages";
-const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-6";
+const anthropicModel = Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
 const revenueCatEntitlementID = "Saman Pro";
 const TRANSCRIPT_NO_RECIPE =
   "I only caught part of that. Try recording again, or type the ingredients and steps.";
@@ -224,8 +224,7 @@ Deno.serve(async (request) => {
   const slot = await takeQuotaSlot();
   if (slot) return slot;
 
-  const userText = `Transcript:\n\n${transcript}\n\nReturn the structured recipe as JSON.`;
-  return await extractWithModel(apiKey, userText, systemPrompt, "transcript");
+  return await extractWithModel(apiKey, transcriptUserText(transcript), systemPrompt, "transcript");
 });
 
 type AudioDeps = {
@@ -315,8 +314,7 @@ async function handleAudio(request: Request, contentType: string, deps: AudioDep
   }
 
   // From here the text rule applies: model failures keep the slot.
-  const userText = `Transcript:\n\n${text}\n\nReturn the structured recipe as JSON.`;
-  return await extractWithModel(deps.anthropicKey, userText, systemPrompt, "audio", { transcript: text });
+  return await extractWithModel(deps.anthropicKey, transcriptUserText(text), systemPrompt, "audio", { transcript: text });
 }
 
 function audioTooLarge(): Response {
@@ -554,43 +552,3 @@ function json(body: unknown, status = 200): Response {
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
 }
-
-const systemPrompt = `
-You convert a spoken, phone-call recipe into a structured recipe. The speaker is a South Asian parent. The transcript is code-switched (Urdu/Hindi/Punjabi + English) and the measurements are mostly approximate.
-
-You will follow three rules without exception:
-
-RULE 1 - NEVER INVENT A NUMBER.
-If the speaker gave a vague measurement ("andaza se", "thori si", "a handful", "to taste", "apne hisaab se", "mutthi bhar", "chutki bhar"), set amount to null and vague to true. Do NOT convert vague amounts into grams, cups, or any number. Inventing "30g" for "a fistful" is the single worst thing you can do.
-A number is allowed ONLY when the speaker actually said one: "ek pyaaz" -> 1, "do cup" -> 2, "half teaspoon" -> 0.5 tsp, "ek kilo" -> 1 kg.
-
-RULE 2 - NEVER DISCARD HER WORDS.
-For every ingredient, original_phrase holds the speaker's exact phrasing, code-switch intact ("haldi just a little, andaza se").
-
-RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
-ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
-
-Return ONLY valid JSON matching this schema, no prose, no markdown fences:
-{"title":"string - recipe name","attribution":"string|null","ingredients":[{"ingredient":"string - English grocery-list term","original_phrase":"string - speaker's exact words","amount":"number|null - ONLY if a real quantity was spoken, else null","unit":"string|null","vague":"boolean - true if measurement was approximate"}],"steps":["string - loose step, no invented precision"],"notes":"string|null"}
-`;
-
-const pageSystemPrompt = `
-You convert a recipe page, video description, or caption into a structured recipe. The cook is a South Asian home cook. The text may be English or code-switched Urdu/Hindi/Punjabi. It may include a title, channel, or author line.
-
-You will follow three rules without exception:
-
-RULE 1 - NEVER INVENT A NUMBER.
-If the source gave a vague measurement ("andaza se", "thori si", "a handful", "to taste", "apne hisaab se", "mutthi bhar", "chutki bhar"), set amount to null and vague to true. Do NOT convert vague amounts into grams, cups, or any number. Inventing "30g" for "a fistful" is the single worst thing you can do.
-A number is allowed ONLY when the source text actually states one: "ek pyaaz" -> 1, "2 cups" -> 2, "half teaspoon" -> 0.5 tsp, "1 kg" -> 1 kg.
-
-RULE 2 - NEVER DISCARD THE SOURCE WORDS.
-For every ingredient, original_phrase holds the source's exact phrasing, code-switch intact ("haldi just a little, andaza se").
-
-RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
-ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
-If a channel or author is given, use it as attribution. Otherwise attribution is null.
-If the source lists several recipes, return only the single main recipe (the first complete one with ingredients). If the source has no recipe with ingredients, return exactly {"error":"no_recipe"}.
-
-Return ONLY valid JSON matching this schema, no prose, no markdown fences:
-{"title":"string - recipe name","attribution":"string|null","ingredients":[{"ingredient":"string - English grocery-list term","original_phrase":"string - source's exact words","amount":"number|null - ONLY if a real quantity was written, else null","unit":"string|null","vague":"boolean - true if measurement was approximate"}],"steps":["string - step from the source, no invented precision"],"notes":"string|null"}
-`;

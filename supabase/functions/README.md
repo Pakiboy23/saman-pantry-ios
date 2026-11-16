@@ -24,7 +24,7 @@ Body is `{ "transcript" }` and/or `{ "url" }`. A transcript that is only an http
 - **Instagram** — best effort. If the caption cannot be read, **422** `{ code: "instagram_caption_unavailable" }` asks the user to paste the caption. That failure does not consume a slot.
 - Other fetch failures (`url_not_allowed`, `url_fetch_failed`, `no_recipe_text`) do not consume a slot. A URL that returns a recipe, or that is sent to the model, consumes one.
 
-### Audio route (repo only, not live)
+### Audio route (live since version 19, 2026-11-16)
 
 `multipart/form-data` with one part named `audio`. The server transcribes it,
 then runs the same transcript extraction. Old clients sending JSON are
@@ -41,6 +41,19 @@ unaffected. Spec: [`docs/server-transcription-spec.md`](../../docs/server-transc
 - Audio is forwarded to the provider as a Blob. It is never stored. Logs (`extract_recipe_transcription`) carry provider, model, status, byte count, type, timing, transcript length, and language code. Never audio or text.
 
 Provider code is in `transcribe.ts`. The desi vocabulary in `vocabulary.ts` feeds both prompt rule 3 and the optional keyterms.
+
+### Prompts and the recording test set
+
+Prompts live in `prompts.ts`. The speech prompt (`systemPrompt`, used for `{ transcript }` and audio) adds rules 4 to 6 for speech-recognition input: repair a misheard ingredient only when context supports it and say so in `notes`, never repair `original_phrase`, do not double ingredients for repeated phrases, and leave unrelated personal talk out of the recipe. The page prompt has no speech rules.
+
+Any prompt change must pass the private recording test set before it merges:
+
+```sh
+ELEVENLABS_API_KEY=... ANTHROPIC_API_KEY=... \
+deno run --allow-env --allow-read --allow-net scripts/recipe-eval.ts --manifest ~/samaan-eval/manifest.json
+```
+
+The script runs this checkout's transcription adapter and prompt against the providers directly, so it tests a change before deploy. Manifest schema: `scripts/recipe-eval.schema.json`. Cases can point at a recording or at a plain-text transcript (old on-device transcripts are useful regression inputs). The script refuses any manifest, recording, or transcript path inside the repo.
 
 Outbound fetches are http/https only, reject private and internal addresses (and DNS answers or redirects that point at them), time out, and cap the body size.
 
@@ -77,6 +90,8 @@ supabase secrets set TRANSCRIBE_KEYTERMS=false
 
 ```sh
 deno test --allow-env supabase/functions/extract-recipe/
+# Eval script unit tests (no network, no recordings).
+deno test --allow-read --allow-write --allow-env scripts/
 # Real concurrency/RLS checks in an isolated temporary PostgreSQL cluster.
 # Requires PostgreSQL 17 (initdb, pg_ctl, psql) and uuid-ossp; run as non-root.
 python3 supabase/tests/recipe_extraction_quota_test.py
@@ -84,15 +99,15 @@ python3 supabase/tests/recipe_extraction_quota_test.py
 
 ### Deploy
 
-Owner only, after migration 011 is applied in prod. Last verified live
-function is version 9 (2026-10-07). The billing path on `main` is not live
-until this runs:
+Owner approves every deploy. Live is version 19 (2026-11-16): billing,
+URL extraction, and the audio route, matching `main` at #83. Migrations
+011, 012, and the family-books pair are applied in prod.
 
 ```sh
 supabase functions deploy extract-recipe
 ```
 
-Files in this function: `index.ts` (HTTP, auth, quota, audio route, model), `recipe_source.ts` (URL classification, fetch, JSON-LD), `transcribe.ts` (speech-to-text provider adapter), and `vocabulary.ts` (desi ingredient map shared by the prompts and keyterms). `*_test.ts` files are tests only; they are not the entrypoint.
+Files in this function: `index.ts` (HTTP, auth, quota, audio route, model call), `prompts.ts` (extraction prompts), `recipe_source.ts` (URL classification, fetch, JSON-LD), `transcribe.ts` (speech-to-text provider adapter), and `vocabulary.ts` (desi ingredient map shared by the prompts and keyterms). `*_test.ts` files are tests only; they are not the entrypoint.
 
 After deployment, revoke/rotate any Anthropic key that was previously committed or shipped in a client binary.
 
@@ -128,7 +143,7 @@ RevenueCat → `user_accounts.is_pro`. Deploy with **verify_jwt = false**
 A test event with no matching `user_accounts` row returns **200**
 `{ ok: true, matched: 0 }` so RevenueCat does not retry. DB errors return 500.
 
-On `main` this function does not filter sandbox events. Draft #78 would.
+On `main` (#78) it ignores non-PRODUCTION events and revokes Pro from TRANSFER donors. The live v9 (checked 2026-11-16) is a hand-deployed variant: it ignores sandbox events but not TRANSFER donors. Deploying the repo file replaces it.
 Owner dashboard + deploy steps: [`docs/family-books-go-steps.md`](../../docs/family-books-go-steps.md).
 
 ```sh

@@ -41,7 +41,7 @@ RecipeCaptureView
         3. fetch URL / transcribe audio (ElevenLabs) / call Anthropic
 ```
 
-The audio route (multipart, part `audio`, repo only until deployed) checks
+The audio route (multipart, part `audio`, live since version 19) checks
 type and size before step 1, so an oversized or wrong-type upload never
 touches the meter.
 
@@ -107,9 +107,10 @@ row returns 200 `{ matched: 0 }` so RevenueCat does not retry.
 Those two secret names are different on purpose. Mix them up and sync
 500s (`not_configured`) while extract-recipe still verifies Pro.
 
-On `main`, the webhook does **not** ignore sandbox events. Draft
-[#78](https://github.com/Pakiboy23/saman-pantry-ios/pull/78) would skip
-non-PRODUCTION and revoke TRANSFER donors. Do not treat that as shipped.
+On `main` ([#78](https://github.com/Pakiboy23/saman-pantry-ios/pull/78)) the
+webhook skips non-PRODUCTION events and revokes TRANSFER donors. The live
+function (v9, checked 2026-11-16) is a hand-deployed variant that skips
+sandbox but ignores TRANSFER. Deploy the repo file to get donor revoke.
 
 ## Pro verification in extract-recipe
 

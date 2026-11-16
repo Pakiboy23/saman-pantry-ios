@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Samaan recipe eval manifest",
+  "description": "Private recording test set for scripts/recipe-eval.ts. The manifest, recordings, and transcripts live outside this repo. Paths are relative to the manifest.",
+  "type": "object",
+  "required": ["cases"],
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "oneOf": [{ "required": ["audio"] }, { "required": ["transcript"] }],
+        "anyOf": [
+          { "required": ["must_include"] },
+          { "required": ["must_include_any"] },
+          { "required": ["must_not_include"] }
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" },
+          "audio": {
+            "type": "string",
+            "pattern": "\\.(m4a|mp4|aac|mp3|wav)$",
+            "description": "Recording trimmed to the recipe. Sent to the transcription provider."
+          },
+          "transcript": {
+            "type": "string",
+            "description": "Plain-text transcript, for example from an old on-device build. Skips transcription."
+          },
+          "must_include": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "English ingredient names that must each appear."
+          },
+          "must_include_any": {
+            "type": "array",
+            "items": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "description": "Groups where at least one name must appear."
+          },
+          "must_not_include": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Names that must not appear, such as known mishearings."
+          }
+        }
+      }
+    }
+  }
+}

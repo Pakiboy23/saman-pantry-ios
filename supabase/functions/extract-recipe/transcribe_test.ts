@@ -69,10 +69,10 @@ Deno.test("provider forwards bytes as a Blob to the speech-to-text endpoint", as
   assertEquals(new Uint8Array(await file.arrayBuffer()), new Uint8Array([1, 2, 3]));
 });
 
-Deno.test("prompt map is byte-identical to the pre-refactor rule 3 text", () => {
+Deno.test("prompt map matches the rule 3 text", () => {
   assertEquals(
     ingredientMapForPrompt(),
-    "haldi -> turmeric, pyaaz -> onion, zeera/jeera -> cumin, lehsun -> garlic, adrak -> ginger, tamatar -> tomato, dhaniya -> cilantro/coriander, chawal -> rice, doodh -> milk, cheeni -> sugar, elaichi -> cardamom, namak -> salt, laal mirch -> red chili, gobi -> cauliflower, aloo -> potato, dahi -> yogurt",
+    "haldi -> turmeric, pyaaz -> onion, zeera/jeera -> cumin, lehsun -> garlic, adrak -> ginger, tamatar -> tomato, dhaniya -> cilantro/coriander, chawal -> rice, doodh -> milk, cheeni -> sugar, elaichi -> cardamom, namak -> salt, laal mirch -> red chili, gobi -> cauliflower, aloo -> potato, dahi -> yogurt, bhindi -> okra",
   );
 });
 

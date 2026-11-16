@@ -13,6 +13,7 @@
 - Update the hosted privacy page from `docs/launch/legal-and-privacy.md` (HeyCatch + family cookbooks) before submitting a 1.6 build.
 - Create and test a reviewer account with a known email/password.
 - Run `ci_scripts/check_secrets.sh`.
+- Run the recording test set and confirm every case passes: `deno run --allow-env --allow-read --allow-net scripts/recipe-eval.ts --manifest <private manifest>`. No build goes to review on a failing case.
 - Run unit/UI tests on a macOS/Xcode environment.
 
 ## Archive and validation

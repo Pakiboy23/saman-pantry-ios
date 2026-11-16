@@ -28,6 +28,7 @@ export const DESI_INGREDIENTS: readonly DesiIngredient[] = [
   { heard: ["gobi"], english: "cauliflower" },
   { heard: ["aloo"], english: "potato" },
   { heard: ["dahi"], english: "yogurt" },
+  { heard: ["bhindi"], english: "okra" },
 ];
 
 /** Rule 3 map as it appears in the prompts: "haldi -> turmeric, ...". */
