@@ -14,14 +14,24 @@ export type RevenueCatEvent = {
   environment?: string;
 };
 
+function uuidIDs(ids: Array<string | undefined>): string[] {
+  return ids.filter((id): id is string => !!id && uuidPattern.test(id)).map((id) => id.toLowerCase());
+}
+
+/** Production webhooks only. Missing or SANDBOX must not write user_accounts.is_pro. */
+export function isProductionEvent(event: RevenueCatEvent): boolean {
+  return event.environment === "PRODUCTION";
+}
+
 export function candidateUserIDs(event: RevenueCatEvent): string[] {
   const ids = [
     event.app_user_id,
     event.original_app_user_id,
     ...(event.aliases ?? []),
     ...(event.transferred_to ?? []),
+    ...(event.transferred_from ?? []),
   ];
-  return [...new Set(ids.filter((id): id is string => !!id && uuidPattern.test(id)).map((id) => id.toLowerCase()))];
+  return [...new Set(uuidIDs(ids))];
 }
 
 /** null = this event says nothing about Pro; re-check with the REST API. */
@@ -34,6 +44,26 @@ export function proFromEvent(event: RevenueCatEvent, now = Date.now()): boolean 
     return event.expiration_at_ms == null || event.expiration_at_ms > now;
   }
   // CANCELLATION keeps access until EXPIRATION. TRANSFER, BILLING_ISSUE etc. re-check.
+  return null;
+}
+
+/**
+ * Pro cache for one candidate on this event. null means call RevenueCat.
+ * TRANSFER donors are revoked here so a failed lookup cannot leave them Pro.
+ */
+export function proStateFromEvent(
+  event: RevenueCatEvent,
+  userId: string,
+  now = Date.now(),
+): boolean | null {
+  const fromEvent = proFromEvent(event, now);
+  if (fromEvent != null) return fromEvent;
+  if ((event.type ?? "") !== "TRANSFER") return null;
+  const id = userId.toLowerCase();
+  const recipients = new Set(uuidIDs(event.transferred_to ?? []));
+  if (recipients.has(id)) return null;
+  const donors = new Set(uuidIDs(event.transferred_from ?? []));
+  if (donors.has(id)) return false;
   return null;
 }
 
