@@ -40,3 +40,16 @@ Deno.test("transcript user text wraps the transcript unchanged", () => {
     "Transcript:\n\nek pyaaz\n\nReturn the structured recipe as JSON.",
   );
 });
+
+Deno.test("both prompts keep alternatives as one ingredient", () => {
+  for (const prompt of [systemPrompt, pageSystemPrompt]) {
+    assert(prompt.includes('Alternatives for one ingredient ("lemon juice or vinegar", "oil or ghee") are ONE ingredient'));
+    assert(prompt.includes("Never list each option as its own ingredient."));
+    // Sits inside rule 3, before the next section.
+    const rule3 = prompt.indexOf("RULE 3 - MAP THE NAME FOR THE GROCERY LIST.");
+    const alt = prompt.indexOf("Alternatives for one ingredient");
+    const schema = prompt.indexOf("Return ONLY valid JSON");
+    assert(rule3 < alt && alt < schema);
+  }
+  assert(systemPrompt.indexOf("Alternatives for one ingredient") < systemPrompt.indexOf("RULE 4"));
+});

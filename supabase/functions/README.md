@@ -44,7 +44,7 @@ Provider code is in `transcribe.ts`. The desi vocabulary in `vocabulary.ts` feed
 
 ### Prompts and the recording test set
 
-Prompts live in `prompts.ts`. The speech prompt (`systemPrompt`, used for `{ transcript }` and audio) adds rules 4 to 6 for speech-recognition input: repair a misheard ingredient only when context supports it and say so in `notes`, never repair `original_phrase`, do not double ingredients for repeated phrases, and leave unrelated personal talk out of the recipe. The page prompt has no speech rules.
+Prompts live in `prompts.ts`. The speech prompt (`systemPrompt`, used for `{ transcript }` and audio) adds rules 4 to 6 for speech-recognition input: repair a misheard ingredient only when context supports it and say so in `notes`, never repair `original_phrase`, do not double ingredients for repeated phrases, and leave unrelated personal talk out of the recipe. The page prompt has no speech rules. Both prompts keep alternatives ("lemon juice or vinegar") as one ingredient so the shopping list does not get both.
 
 Any prompt change must pass the private recording test set before it merges:
 
@@ -99,8 +99,9 @@ python3 supabase/tests/recipe_extraction_quota_test.py
 
 ### Deploy
 
-Owner approves every deploy. Live is version 19 (2026-11-16): billing,
-URL extraction, and the audio route, matching `main` at #83. Migrations
+Owner approves every deploy. Live is version 20 (2026-11-16): billing,
+URL extraction, the audio route, and the speech prompt rules, matching
+`main` at #84. Migrations
 011, 012, and the family-books pair are applied in prod.
 
 ```sh

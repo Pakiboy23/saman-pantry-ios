@@ -24,6 +24,7 @@ For every ingredient, original_phrase holds the speaker's exact phrasing, code-s
 
 RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
 ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
+Alternatives for one ingredient ("lemon juice or vinegar", "oil or ghee") are ONE ingredient, listed once: ingredient is "lemon juice or vinegar". If the options have different amounts, amount and unit are null and original_phrase keeps both. Never list each option as its own ingredient.
 
 The transcript usually comes from speech recognition, so words can be misheard and phrases can repeat. Three more rules:
 
@@ -55,6 +56,7 @@ For every ingredient, original_phrase holds the source's exact phrasing, code-sw
 
 RULE 3 - MAP THE NAME FOR THE GROCERY LIST.
 ingredient is the English shopping term so it can go on a list (${ingredientMapForPrompt()}). original_phrase still keeps the original word.
+Alternatives for one ingredient ("lemon juice or vinegar", "oil or ghee") are ONE ingredient, listed once: ingredient is "lemon juice or vinegar". If the options have different amounts, amount and unit are null and original_phrase keeps both. Never list each option as its own ingredient.
 If a channel or author is given, use it as attribution. Otherwise attribution is null.
 If the source lists several recipes, return only the single main recipe (the first complete one with ingredients). If the source has no recipe with ingredients, return exactly {"error":"no_recipe"}.
 
