@@ -138,7 +138,10 @@ final class AppEnvironment {
 // MARK: - Environment key
 
 private struct AppEnvironmentKey: EnvironmentKey {
-    static let defaultValue = AppEnvironment()
+    // AppEnvironment.init is @MainActor, but EnvironmentKey.defaultValue is a
+    // nonisolated static. SwiftUI only resolves this default on the main actor
+    // (environment lookups happen during view updates), so construct it there.
+    static let defaultValue: AppEnvironment = MainActor.assumeIsolated { AppEnvironment() }
 }
 
 extension EnvironmentValues {
