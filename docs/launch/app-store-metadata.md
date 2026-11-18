@@ -58,7 +58,10 @@ free. Pantry items and shopping lists are unlimited on every plan.
 > accurate to whatever you actually ship. Pull-sync exists. Guest browse exists: pantry /
 > lists / recipes work without an account; sync and recipe extract still need a session.
 
-## What's New (version 1.6, draft — use when submitting 1.6)
+## What's New (version 1.7 — live in App Store Connect)
+`Voice recipes are more accurate. Recordings and audio files are now transcribed on our server, so long, mixed-language recipes come through in full. Plus new dark and tinted app icons.`
+
+## What's New (version 1.6, shipped)
 `Family cookbooks you invite people into, unlimited extracts on Samaan Pro, and a quieter first launch. Pantry and lists stay unlimited for everyone.`
 
 Prior 1.0 line, kept for history: `First release. Track your pantry, keep a shopping list, and capture family recipes exactly how they were said.`
@@ -71,7 +74,7 @@ now, Extract Recipe, community-book opt-in, family cookbooks, and Delete account
 AuthView has "Not now".
 
 DEMO ACCOUNT (needed for extract / sync / delete; pantry UI does not require it):
-  email: review@samanpantry.com   password: <set a real one>
+  email: apple.review@samanpantry.com   password: kept only in App Store Connect (App Review Information)
 This account is pre-confirmed; sign in directly, no email step needed.
 
 If you prefer to create a new account, note that sign-up sends a confirmation
@@ -108,12 +111,12 @@ Capture from a Mac Simulator (real PNGs only, no mockups):
 `./scripts/capture-app-store-screenshots.sh`.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
-- Data collected: Email, User ID, Audio Data (recipe recordings and chosen audio files, sent to ElevenLabs for transcription; not stored on our server, though ElevenLabs may keep request logs and transcripts under its standard terms), Other User Content (pantry, recipes, recipe transcripts, pasted recipe text or links, family cookbook names, chosen display names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). Invitee emails are not collected; invites are a code or link the user shares.
-- Linked to you: email, user id, audio data, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
-- Purpose: App Functionality for email, user id, audio data, and other user content. Analytics as well as App Functionality for user id. App Functionality for purchase history (Apple has no separate "Purchases" purpose; processing purchases counts as App Functionality). Analytics for product interaction and other usage data.
+- Data collected: Name (the display name a user may set for family cookbooks), Email, User ID, Audio Data (recipe recordings and chosen audio files, sent to ElevenLabs for transcription; not stored on our server, though ElevenLabs may keep request logs and transcripts under its standard terms), Other User Content (pantry, recipes, recipe transcripts, pasted recipe text or links, family cookbook names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). No crash data or other diagnostics are collected (PostHog error tracking, session replay and autocapture are off). Invitee emails are not collected; invites are a code or link the user shares.
+- Linked to you: name, email, user id, audio data, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
+- Purpose: App Functionality for name, email, user id, audio data, and other user content. Analytics as well as App Functionality for user id. App Functionality for purchase history (Apple has no separate "Purchases" purpose; processing purchases counts as App Functionality). Analytics for product interaction and other usage data.
 - Third parties receiving data: Supabase (backend, plus the anonymous events row), HeyCatch (product analytics via the PostHog iOS SDK: fixed screen and event names, an app-generated anonymous id before sign-in, and the Supabase user id after sign-in — no recipe text, transcripts, audio, names, or emails), ElevenLabs (speech to text for recordings and audio files; may keep request logs and transcripts on a standard plan), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
 
 ## Category & age
-- Primary: Food & Drink. Secondary: Productivity.
+- Primary: Food & Drink. Secondary: Lifestyle (matches the live listing).
 - Age rating: 4+.
 - Price: Free, with auto-renewable subscription (or non-consumable unlock — see Phase 4).
