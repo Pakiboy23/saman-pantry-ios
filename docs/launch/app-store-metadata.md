@@ -77,8 +77,12 @@ This account is pre-confirmed; sign in directly, no email step needed.
 If you prefer to create a new account, note that sign-up sends a confirmation
 email that must be clicked before sign-in. Use the demo account to avoid this.
 
-AI feature: "Capture a recipe" sends the pasted transcript or link to our
-Supabase Edge Function. The function may read a public recipe page, a YouTube
+AI feature: "Capture a recipe" sends a recording, an audio file, pasted text,
+or a link to our Supabase Edge Function. Audio is transcribed on the server by
+ElevenLabs. We do not store the audio on our server, and the app deletes its
+copy once the recipe comes back; ElevenLabs may keep request logs and
+transcripts under its standard terms. The microphone is used only while the user
+records a recipe. The function may read a public recipe page, a YouTube
 title/description/captions, or an Instagram caption, then sends that text to
 Anthropic unless the page already has a complete schema.org Recipe. No
 third-party tracking.
@@ -104,10 +108,10 @@ Capture from a Mac Simulator (real PNGs only, no mockups):
 `./scripts/capture-app-store-screenshots.sh`.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
-- Data collected: Email, User ID, Other User Content (pantry, recipes, pasted recipe text or links, family cookbook names, chosen display names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). Invitee emails are not collected; invites are a code or link the user shares.
-- Linked to you: email, user id, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
-- Purpose: App Functionality for email, user id, and other user content. Analytics as well as App Functionality for user id. Purchases and App Functionality for purchase history. Analytics for product interaction and other usage data.
-- Third parties receiving data: Supabase (backend, plus the anonymous events row), HeyCatch (product analytics via the PostHog iOS SDK: fixed screen and event names, an app-generated anonymous id before sign-in, and the Supabase user id after sign-in — no recipe text, transcripts, audio, names, or emails), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
+- Data collected: Email, User ID, Audio Data (recipe recordings and chosen audio files, sent to ElevenLabs for transcription; not stored on our server, though ElevenLabs may keep request logs and transcripts under its standard terms), Other User Content (pantry, recipes, recipe transcripts, pasted recipe text or links, family cookbook names, chosen display names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). Invitee emails are not collected; invites are a code or link the user shares.
+- Linked to you: email, user id, audio data, other user content, purchase history, product interaction, and other usage data. Signed-in HeyCatch events use the Supabase user id as the distinct id. The anonymous Supabase `events` row is still not tied to the account; the label is linked because the HeyCatch copy is. None of it is used for tracking.
+- Purpose: App Functionality for email, user id, audio data, and other user content. Analytics as well as App Functionality for user id. Purchases and App Functionality for purchase history. Analytics for product interaction and other usage data.
+- Third parties receiving data: Supabase (backend, plus the anonymous events row), HeyCatch (product analytics via the PostHog iOS SDK: fixed screen and event names, an app-generated anonymous id before sign-in, and the Supabase user id after sign-in — no recipe text, transcripts, audio, names, or emails), ElevenLabs (speech to text for recordings and audio files; may keep request logs and transcripts on a standard plan), Anthropic (recipe structuring, when the text is not already a schema.org Recipe), Google (YouTube video id only, and only if `YOUTUBE_API_KEY` is set), RevenueCat (purchases). The iOS share sheet sends the recipe to whatever destination the user picks.
 
 ## Category & age
 - Primary: Food & Drink. Secondary: Productivity.

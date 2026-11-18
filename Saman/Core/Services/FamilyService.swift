@@ -4,7 +4,8 @@ import Supabase
 /// Private family books (migration 20261024000000_family_books).
 /// Only members can read a family. Members see a snapshot of each recipe:
 /// title, attribution, steps, ingredient phrases and a source link.
-/// The spoken transcript never leaves the cook's own book.
+/// Snapshots never include the recording or the spoken transcript
+/// (`raw_transcript`); those stay with the cook's own recipe.
 struct Family: Identifiable, Hashable, Decodable, Sendable {
     let id: UUID
     let name: String

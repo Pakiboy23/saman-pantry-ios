@@ -29,8 +29,8 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
   cookbook: a display name you choose (or the part of your email before @ if you leave it
   blank), the family name, notes you add, and snapshots of recipes you add to that family
   (title, steps, ingredient phrases, and a source link when the recipe came from a URL).
-  We do not collect invitee emails; you share a code or link yourself. Recordings and the
-  original transcript stay in your own book. Product analytics: fixed screen
+  We do not collect invitee emails; you share a code or link yourself. Family snapshots
+  never include the original transcript. Product analytics: fixed screen
   names and fixed event names (for example `recipe_saved`). Before sign-in those events
   use an app-generated anonymous id. After sign-in, that anonymous id is tied to the
   internal user ID. Guests are not identified. If the app opens with no session, it drops
@@ -45,6 +45,12 @@ Must accurately describe **actual** data behavior (App Privacy label must match 
     app-generated anonymous id; after sign-in that id is the Supabase user id.
     The SDK also attaches app and device context (app version, OS, device model class such
     as iPhone, locale, timezone). No recipe text, transcripts, audio, names, or emails.
+  - **Recordings and audio files** — when you record a recipe or choose an audio file, the
+    app uploads the audio to our server, which sends it to **ElevenLabs** to turn speech into
+    text. We do not store the audio on our server; the app deletes its copy once a recipe
+    comes back. ElevenLabs may keep request logs and transcripts under its standard terms
+    (zero retention is enterprise-only). The transcript is saved with your recipe. Speech
+    is no longer transcribed on your iPhone.
   - **Anthropic** — receives the recipe text you choose to capture, to structure it
     into ingredients. That text is a transcript, or the page / video description / captions
     fetched from a link you paste. A page that already has a complete schema.org Recipe is
