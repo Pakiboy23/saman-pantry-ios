@@ -1,10 +1,18 @@
 # Server transcription for recorded recipes
 
-Status: approved direction, not built. Owner: Haaris. Written 2026-11-16.
+Status: **shipped on `main`**. Owner: Haaris. Written 2026-11-16 as the build
+plan; keep the contracts and decisions below.
 
-This spec replaces on-device speech recognition with server-side transcription
-for recorded and imported audio. It is written so a coding agent can build it
-in four small PRs. Read `THESIS.md` and `MEMORY.md` first. Where this spec and
+| PR | What | Landed |
+|---|---|---|
+| A | `extract-recipe` multipart `audio` + ElevenLabs Scribe v2 | #83, live in extract-recipe v19+ (v21 as of 2026-11-16) |
+| B | Speech prompt rules 4–6 + `scripts/recipe-eval.ts` | #84 / #85 |
+| C | iOS records AAC to a file and uploads it; Apple recognizer gone | #86 |
+| D | Consent, PrivacyInfo audio, store-listing drafts | #92 / #93 |
+
+Do not treat remaining sections as unbuilt work. Remaining owner items are
+in section 9 (plus deploying `revenuecat-sync` #94 and the hosted privacy
+page). Read `THESIS.md` and `MEMORY.md` first. Where this spec and
 `THESIS.md` disagree, stop and ask.
 
 ## 1. Why

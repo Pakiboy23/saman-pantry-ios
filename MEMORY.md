@@ -1,19 +1,23 @@
 # Project Memory
-Last updated: 2026-11-16 | Branch: claude/sweet-cray-r4t7zf
+Last updated: 2026-11-20 | Branch: main
 Memory health: 8/10
 
 ## Project Overview
 Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Legal entity: Saman Technologies LLC dba Samaan Technologies. Bundle `com.samanpantry.Saman` and `samanpantry.com` stay single-a. Paid tier: Samaan Pro. THESIS.md wins product arguments.
 
 ## Where We Left Off
-- **App Store:** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 2026-10-05 (`788fafd`: recording, audio-file intake, public family recipe book). Do not claim 1.5 or 1.6 is live without App Store Connect.
-- **main:** marketing **1.6**. Train: billing + onboarding (#66), 1.5 bump (#67), community-book URL opt-in (#68), HeyCatch (#69/#71), Samaan copy (#70), RevenueCat `logIn` (#76), private family cookbooks (#74), family `saveCopy` stays out of Community (#79). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` (108) in the pbxproj is not the App Store Connect build number.
-- **Server (verified 2026-11-16 via the Supabase connector):** `extract-recipe` **version 21** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. Migrations through `011`, `012`, and both family-books migrations are applied. Also live: `delete-account` v11, `revenuecat-sync` v8, `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. Secret names are not visible to the connector; confirm in the dashboard.
-- **Server transcription (spec `docs/server-transcription-spec.md`, #82):** PR A (#83) merged and live in v19. Haaris set the ElevenLabs secret in the dashboard (exact name unverified; code reads `ELEVENLABS_API_KEY` or `elevenlabs_api_key`). PR B (#84, prompt rules 4-6 + `scripts/recipe-eval.ts`) merged and live in v20. Haaris chose to test in the app instead of running the recording set first. App test on the okra recording: okra fixed (beans kept in original_phrase), no invented onion count, but cumin lost (Apple heard "0") and "lemon juice or vinegar" split into two items. The alternatives rule is the follow-up PR. Shipping 1.3 still transcribes on device. PRs C (iOS upload) and D (copy/privacy) follow.
-- **Next immediate step:** PR C (iOS record-to-file + upload) in review: CI compile, then Haaris runs SamanTests and tries the TestFlight build on the okra recording. PR D (copy/privacy) before any App Store submit. Nothing goes to App Review without Haaris's explicit OK.
+- **App Store:** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 2026-10-05 (`788fafd`: recording, audio-file intake, public family recipe book). Do not claim 1.5, 1.6, or 1.7 is live without App Store Connect.
+- **main:** marketing **1.7** (#87). Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), `revenuecat-sync` on v1 subscribers (#94). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` in the pbxproj is not the App Store Connect build number.
+- **Server (verified 2026-11-16 via the Supabase connector; #94 not confirmed deployed):** `extract-recipe` **version 21** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. Migrations through `011`, `012`, and both family-books migrations are applied. Also live: `delete-account` v11, `revenuecat-sync` v8 (pre-#94 v2 path), `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. **Live `revenuecat-sync` v8 is not #94.** Repo code uses `REVENUECAT_SECRET_API_KEY` and `/v1/subscribers`. Secret names are not visible to the connector; confirm in the dashboard.
+- **Server transcription (spec `docs/server-transcription-spec.md`):** PRs A–D are on `main`. PR A (#83) live in v19+. PR B (#84) + alternatives (#85) live in v21. PR C (#86) records AAC to a file and uploads it; Apple recognizer gone. PR D (#92/#93) is consent v2, PrivacyInfo audio, and store-listing drafts. Shipping 1.3 still transcribes on device. A 1.7 App Store build is not live.
+- **Next immediate step:** owner deploys repo `revenuecat-sync` (#94) if live is still v8, decides on webhook #78 vs live v9, updates hosted privacy, then with Haaris's OK picks a 1.7 TestFlight for App Review. Nothing goes to App Review without Haaris's explicit OK.
 - **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
+- 2026-11-20 Docs: skill/MEMORY/runbooks match 1.7, PRs C/D shipped, `revenuecat-sync` v1 key (#94). Live sync still unverified as v8.
+- 2026-11-18 `revenuecat-sync` uses v1 `REVENUECAT_SECRET_API_KEY` and `/subscribers` (#94).
+- 2026-11-18 Privacy manifest matches the live App Privacy label (#93); PR D disclosures (#92).
+- 2026-11-16 Server transcription PR C (#86): record to file, upload, Apple recognizer gone.
 - 2026-11-16 Server transcription PR A (#83) merged and deployed as `extract-recipe` v19 with Haaris's OK. Spec merged (#82).
 - 2026-11-16 Sandbox webhook filter + TRANSFER donor revoke on `main` (#78). Live webhook differs, see Server above.
 - 2026-11-06 Docs: skill and MEMORY match 1.6 including #71/#74/#76/#79. Runbooks: `docs/billing-and-extract-quota.md`, `docs/analytics.md`, `docs/family-cookbooks.md`. Prior docs PRs #72 and #80 never merged.
@@ -52,17 +56,18 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [x] 011, 012, family-books migrations applied in prod (verified 2026-11-16)
 - [x] `extract-recipe` deployed (v19, 2026-11-16)
 - [ ] Owner, confirm don't assume: `REVENUECAT_SECRET_API_KEY` set (else Pro is metered as free)
+- [ ] Deploy repo `revenuecat-sync` (#94) if live is still v8
 - [ ] Decide: deploy repo `revenuecat-webhook` (#78, TRANSFER donor revoke) over the hand-deployed v9
 - [ ] Delete `asr-bakeoff` from prod if the bake-off is done
-- [ ] Owner: family-books go-steps (SQL pair, `REVENUECAT_SECRET_KEY`, webhook auth, AASA)
-- [ ] Update hosted `samanpantry.com/privacy` for HeyCatch and family cookbooks before the 1.6 submit
-- [ ] With Haaris's OK: attach a 1.6 TestFlight build and submit
+- [ ] Owner: family-books remaining go-steps (AASA, webhook auth, App Privacy for 1.7)
+- [ ] Update hosted `samanpantry.com/privacy` for HeyCatch, family cookbooks, and server transcription before the 1.7 submit
+- [ ] With Haaris's OK: attach a 1.7 TestFlight build and submit
 - [x] #78 on `main`: ignore sandbox RevenueCat webhooks; revoke TRANSFER donors (not the live variant)
 - [x] Server transcription PR A (#83) merged and live
 - [x] Server transcription PR B (#84) merged, live in v20
 - [x] Prompt follow-up: alternatives ("X or Y") stay one ingredient (#85, live in v21)
-- [ ] Server transcription PR C (iOS record-to-file + upload): built, compile-checked by CI only; run SamanTests locally before review
-- [ ] Server transcription PR D (copy/privacy) must ship in the same release as C. Owner decisions open in spec section 9
+- [x] Server transcription PR C (iOS record-to-file + upload) (#86)
+- [x] Server transcription PR D (copy/privacy, PrivacyInfo audio) (#92/#93). Owner decisions in spec section 9 still open.
 - [x] #79: family `saveCopy` stays out of the public community book
 - [ ] Owner, confirm don't assume: old Anthropic key revoked
 - [ ] Owner, confirm don't assume: pre-confirmed App Review demo account still works
@@ -85,7 +90,8 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 | 2026-10-21 | HeyCatch + anonymous Supabase events; bind after session | Product analytics without recipe text or personal properties; no guest identify | HeyCatch, AnalyticsService, privacy docs |
 | 2026-10-12 | URL recipes opt into the community book | Transcripts stay auto-public; link extracts stay private until the owner adds them | Recipe.shareInFamilyBook, 012, recipe-book harness |
 | 2026-10-12 | Split free extract quota; Pro is unlimited extracts; pantry/lists unlimited | New accounts get 5 lifetime; pre-2026-10-12 keep 5/day. 402 opens paywall. 503 is retry. | FreeLimits, extract-recipe, 011, OnboardingView |
-| 2026-10-04 | Transcribe on device; extract on the server (superseded 2026-11-16 once PR C ships) | Audio stays on the phone; extraction needs the model and the quota | RecipeAudioTranscriber, extract-recipe |
+| 2026-11-18 | `revenuecat-sync` uses v1 `REVENUECAT_SECRET_API_KEY` | The v2 secret was never set; extract-recipe already had the v1 key | revenuecat-sync |
+| 2026-10-04 | Transcribe on device; extract on the server (superseded 2026-11-16, PR C #86) | Audio stays on the phone; extraction needs the model and the quota | RecipeAudioTranscriber (removed), extract-recipe |
 | 2026-09-18 | Delete June launch reports; truth-up skill/MEMORY/THESIS | Stale launch copy would send the next agent to undo #20/#21 | launch docs, skill |
 | 2026-09-17 | Delete ReorderView + Pages thesis binaries | Unreachable tab; live loop is item detail → list → mark bought. `.pages` copies were ~777KB each next to THESIS.md | ReorderView, LowStockBanner |
 | 2026-09-15 | Guest browse; legal links without login | App Review 5.1.1(v) + 3.1.2(c). Auth only for sync / extract / delete | RootView, AuthView, Settings, paywall |
@@ -105,7 +111,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [x] Live legal URLs, guest browse (#20), Reorder UI deleted (#21)
 - [x] 1.0 through 1.3 on the App Store; Samaan Pro since 1.2
 - [x] Billing split + onboarding + community-book URL opt-in + HeyCatch + family cookbooks on `main` (1.6)
-- [ ] Prod 011/012 + extract-recipe deploy; family-books go-steps; then 1.6 App Review after Haaris's OK
+- [ ] Remaining family-books go-steps + hosted privacy; then 1.7 App Review after Haaris's OK
 - [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
 ## Strategic decisions (do not reopen)
@@ -123,6 +129,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - Xcode Cloud's single `Default` workflow archives and uploads a TestFlight build on every branch push. Use `[ci skip]` for docs-only pushes.
 - Hosted privacy page may still omit HeyCatch and family cookbook fields. Repo copy is in `docs/launch/legal-and-privacy.md`.
 - Live `revenuecat-webhook` v9 is not the repo file and does not revoke TRANSFER donors.
+- Live `revenuecat-sync` v8 (checked 2026-11-16) is not #94. Repo uses `REVENUECAT_SECRET_API_KEY`.
 - `asr-bakeoff` is live in prod and not in the repo.
 
 ## Key Files

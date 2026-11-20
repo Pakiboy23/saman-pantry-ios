@@ -8,8 +8,8 @@ Live source of truth:
 - [`docs/family-cookbooks.md`](../family-cookbooks.md) — private families. Account deletion hands off ownership via `handoff_families_on_user_delete`.
 - [`supabase/functions/extract-recipe/`](../../supabase/functions/extract-recipe/) — user JWT, quota via `recipe_extraction_events` + `user_accounts` (not `recipe_usage`). Accepts a transcript or an http(s) link (YouTube, recipe page, best-effort Instagram). Client uses `Config.recipeExtractionEndpoint`.
 - [`supabase/functions/delete-account/`](../../supabase/functions/delete-account/) — user JWT + service role. Client uses `Config.deleteAccountEndpoint`. No RevenueCat customer delete in-repo; sign-out runs `Purchases.logOut` when the session was identified.
-- [`supabase/functions/revenuecat-webhook/`](../../supabase/functions/revenuecat-webhook/) and [`revenuecat-sync/`](../../supabase/functions/revenuecat-sync/) — write `user_accounts.is_pro`. Different secrets (v1 `REVENUECAT_SECRET_API_KEY` vs v2 `REVENUECAT_SECRET_KEY`).
+- [`supabase/functions/revenuecat-webhook/`](../../supabase/functions/revenuecat-webhook/) and [`revenuecat-sync/`](../../supabase/functions/revenuecat-sync/) — write `user_accounts.is_pro`. Both look up subscribers with v1 `REVENUECAT_SECRET_API_KEY`. The webhook also needs `REVENUECAT_WEBHOOK_AUTH`. Do not restore the unused v2 `REVENUECAT_SECRET_KEY` path (#94).
 - [`supabase/functions/README.md`](../../supabase/functions/README.md) — secrets and deploy commands.
 - [`supabase/migrations/011_billing_grandfathered_and_quota.sql`](../../supabase/migrations/011_billing_grandfathered_and_quota.sql) — current reserve RPC. 004/009 are the older event table.
 
-Owner still must apply pending migrations (011, 012, family-books) in prod and deploy the functions. Keep those blockers in `MEMORY.md` only.
+011, 012, and both family-books migrations were applied in prod (verified 2026-11-16). Remaining owner deploys: repo `revenuecat-sync` (#94) if live is still v8, and repo `revenuecat-webhook` (#78) over the hand-deployed v9. Keep those blockers in `MEMORY.md` only.
