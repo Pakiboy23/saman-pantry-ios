@@ -1,64 +1,90 @@
-# App Store Connect Metadata — draft copy
+# App Store Connect metadata, paste-ready (version 1.7)
 
-Positioning: a practical desi-kitchen pantry tool with a signature recipe-keepsake feature.
-Stays inside what the build does. No claims of grocery automation, food-safety, nutrition,
-"recognizes products," or meal planning. Lead with cultural specificity, not "AI."
+Pulled from [`copy.md`](./copy.md), the copy source of truth. Change that file
+first. Character counts are checked against Apple's limits.
 
-> Decide the thesis-drift question (Phase 5) first. This copy assumes **pantry-first with
-> recipe capture as the differentiator** (recommended). If you go recipe-first, swap the
-> emphasis in the subtitle/description but keep the same honesty guardrails.
+Positioning: recipe first. The pantry and lists are the kitchen around the recipe.
+No claims of grocery delivery, price comparison, nutrition, meal planning,
+on-device or live transcription, or a lifetime plan.
 
 ---
 
-## App name (30 char max)
-`Samaan: Desi Pantry & Recipes`  (29)
-
-Alt if "Samaan" alone is the listing name: `Samaan` + subtitle below.
-
-## Subtitle (30 char max)
-`Your kitchen, sorted` (20)
-Alt: `Pantry, lists & family recipes` (30)
-
-## Promotional text (170 char max — editable without review)
-`Know what's in the cabinet, keep a running shopping list, and capture the recipes you actually cook — in the words they were said. Made for desi kitchens.` (152)
-
-## Keywords (100 char max, comma-separated, no spaces)
-`pantry,grocery,kitchen,inventory,shopping list,desi,south asian,recipe,masala,halal,staples,reorder` (99)
-
-> Don't repeat words already in the name/subtitle (Apple indexes those). Drop "recipe" here
-> if it's in the name. Consider locale variants: `atta,dal,ghee,patel brothers` test well for
-> the niche but watch the 100-char budget.
-
-## Description
+## App name (30 max)
 ```
-Samaan is a pantry app built for how desi kitchens actually run.
+Samaan Pantry: Family Recipes
+```
+29. Live. Keep it.
 
-Know what you have. Track your staples — atta, daal, ghee, masalas, chai — and
-see at a glance what's running low before you're standing at the store guessing.
+## Subtitle (30 max)
+```
+Desi recipes from voice notes
+```
+29.
 
-Keep one running list. Add what you're low on, check it off as you shop, and let
-your pantry stay up to date. No spreadsheet, no clutter.
+## Promotional text (170 max, no review needed)
+```
+Record a family recipe while they talk, in mixed Urdu, Hindi, Punjabi, and English. Andaza stays andaza. Then start a private cookbook for the whole family.
+```
+156.
 
-Capture the recipes you actually cook. Paste a recipe the way it was told to you —
-code-switched, "andaza se," a fistful of this — and Samaan turns it into a clean
-ingredient list you can add to your shopping in one tap. It never invents a number
-your mother didn't say.
+## Keywords (100 max)
+```
+urdu,hindi,punjabi,pakistani,indian,cookbook,recorder,transcribe,nani,shopping list,grocery
+```
+91. Leaves out words already in the name and subtitle (samaan, pantry, family,
+recipes, desi, voice, notes), since Apple indexes those.
 
-Made for the diaspora kitchen, not a generic grocery app.
+## Description (4000 max)
+```
+Your family's recipes live in voice notes and memory. Samaan Pantry turns a recording into a recipe you keep, in the words they said. Andaza stays andaza.
 
-Samaan is free to use. New accounts get 5 recipe extractions. Samaan Pro
-(optional) unlocks unlimited voice extractions so every rescued recipe stays
-in your cookbook, and lets you start a family cookbook. Joining a family is
-free. Pantry items and shopping lists are unlimited on every plan.
+Made for desi kitchens.
 
-— Your data is yours. Delete your account and everything in it any time, in the app.
+HIT RECORD WHILE THEY TALK
+• Record at the stove or over the phone, for up to ten minutes. Or choose a voice note or audio file you already have.
+• Code-switched is fine. Mixed Urdu, Hindi, Punjabi, and English come through.
+• Samaan Pantry pulls out the ingredients and steps, from aloo keema to gajar halwa.
+
+ANDAZA STAYS ANDAZA
+• Vague amounts stay vague. No number gets guessed.
+• The words they said stay with the recipe, so you can check what was meant.
+
+PASTE A LINK OR THE WORDS
+• Paste a YouTube video, a recipe site, or an Instagram caption.
+• Or type or paste the recipe the way they say it.
+
+ONE FAMILY, ONE COOKBOOK
+• Start a private family cookbook with Samaan Pro and invite people with a link or a code. Joining is free.
+• Members can read the recipes, add their own, leave notes, and keep a copy.
+• The Community book holds recipes other cooks have shared. A recipe you make from a recording or pasted words is added there for signed-in cooks to read. Deleting the recipe takes it down. Recipes from links stay private unless you add them.
+
+SEE WHAT'S LOW BEFORE YOU SHOP
+• Track your staples and scan a barcode to add one.
+• Send what is missing to a shopping list. Check an item off and the pantry updates.
+• Everything syncs across your devices when you sign in.
+
+FREE
+• 5 recipe extractions for life. No card, no trial clock.
+• Join family cookbooks and read the Community book.
+• Unlimited pantry and shopping lists.
+• Look around as a guest before you make an account.
+
+SAMAAN PRO
+• Unlimited recipe extractions.
+• Start family cookbooks.
+• $7.99 a month or $59.99 a year. Restore Purchases is in Settings.
+
+PRIVACY
+Recordings go through our server to ElevenLabs to be turned into text. Recipe text goes to Anthropic to pull out the ingredients and steps. We don't keep the audio on our server, and we don't sell your data. Delete your account and everything in it from Settings.
+
+WHO BUILDS IT
+Samaan Pantry is built by Syed Shariff, a solo developer who wanted to save the recipes that are one phone call away from being lost. Questions or ideas: haaris@samaan.tech.
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://www.samanpantry.com/privacy
 ```
 
-> The last two lines pre-empt reviewer questions about subscription + deletion. Keep them
-> accurate to whatever you actually ship. Pull-sync exists. Guest browse exists: pantry /
-> lists / recipes work without an account; sync and recipe extract still need a session.
-
-## What's New (version 1.7 — live in App Store Connect)
+## What's New (version 1.7, live)
 `Voice recipes are more accurate. Recordings and audio files are now transcribed on our server, so long, mixed-language recipes come through in full. Plus new dark and tinted app icons.`
 
 ## What's New (version 1.6, shipped)
@@ -97,18 +123,25 @@ Privacy Policy, Terms, and Support are in Settings → LEGAL, on AuthView,
 and on the paywall.
 ```
 
-## Screenshot shot-list (show real use, not empty UI)
-1. Pantry with desi staples + low-stock dots (haldi low, atta out) — the daily value.
-2. Recipe capture review screen showing "haldi, andaza se" preserved next to "turmeric."
-3. Shopping list mid-checkout, a couple items checked off.
-4. Home dashboard: running low + active list together.
-5. (Optional) Paywall framed around unlimited voice extractions and starting a family cookbook, not 30 pantry items or "support development."
+## Screenshots (6.9-inch, 1290 x 2796, dark)
 
-Caption each with the benefit ("See what's low before you shop", "The exact words, kept").
+Six dark frames built from real 1.7 screen recordings, no mockups. Headlines come
+from the five features in `copy.md`. Upload in this order:
 
-Capture from a Mac Simulator (real PNGs only, no mockups):
-[`app-store-screenshots.md`](./app-store-screenshots.md) and
-`./scripts/capture-app-store-screenshots.sh`.
+1. **Your family's recipes live in voice notes and memory.** Recipes, Yours shelf, each recipe with who it came from.
+2. **Hit record while they talk.** Capture screen: Record a recipe, Choose a recording, paste a link, paste the words.
+3. **Andaza stays andaza.** Review screen: each ingredient with the words that were said under it.
+4. **The recipe, in their words.** The saved recipe: ingredients, steps, and notes.
+5. **One family, one cookbook.** A family cookbook with its recipes.
+6. **See what's low before you shop.** Home: Running low under the shopping lists.
+
+The 1.6 set showed a live transcript and "Stop & save" while recording. 1.7 has
+neither, so replace all six.
+
+The PNGs are not in this repo. They show a real family recipe and its
+transcribed phrases, so they were sent to Haaris directly. The source frames are
+the 17 November 2026 screen recording. The only edits are cropping out the
+status bar and the AssistiveTouch button, plus one scroll-gap join on frame 6.
 
 ## App Privacy label answers (must match PrivacyInfo.xcprivacy + real egress)
 - Data collected: Name (the display name a user may set for family cookbooks), Email, User ID, Audio Data (recipe recordings and chosen audio files, sent to ElevenLabs for transcription; not stored on our server, though ElevenLabs may keep request logs and transcripts under its standard terms), Other User Content (pantry, recipes, recipe transcripts, pasted recipe text or links, family cookbook names, member notes, recipe snapshots shared into a family), Purchase History, Product Interaction (fixed screen names, fixed event names, anonymous install id, app version), Other Usage Data (app and device context the PostHog iOS SDK attaches: app version, OS, device model class, locale, timezone). No crash data or other diagnostics are collected (PostHog error tracking, session replay and autocapture are off). Invitee emails are not collected; invites are a code or link the user shares.
