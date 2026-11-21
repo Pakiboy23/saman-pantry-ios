@@ -94,18 +94,22 @@ out would drop the purchase until Restore.
 
 `revenuecat-sync` (user JWT, verify_jwt **on**) POSTs after a successful
 `logIn` and when customer info shows active Pro — at most once per user
-per process. It writes `user_accounts.is_pro` from RevenueCat v2 using
-**`REVENUECAT_SECRET_KEY`** (not the v1 key). Entitlement lookup id is
-`entlec857d8f70` ("Saman Pro"). Project `proje8d554d5`.
+per process. It writes `user_accounts.is_pro` from RevenueCat **v1**
+`/subscribers/{app_user_id}` using **`REVENUECAT_SECRET_API_KEY`**, the
+same secret extract-recipe uses. Entitlement identifier is `Saman Pro`
+(not the v2 entitlement id). Project `proje8d554d5`.
 
 `revenuecat-webhook` (verify_jwt **false**) is the server-side path.
 Authorization: `Bearer` matching `REVENUECAT_WEBHOOK_AUTH`. It updates
 the same `is_pro` / `pro_updated_at` columns. Fallback subscriber lookup
-uses **`REVENUECAT_SECRET_API_KEY`** (v1). A test event with no matching
+also uses **`REVENUECAT_SECRET_API_KEY`**. A test event with no matching
 row returns 200 `{ matched: 0 }` so RevenueCat does not retry.
 
-Those two secret names are different on purpose. Mix them up and sync
-500s (`not_configured`) while extract-recipe still verifies Pro.
+[#94](https://github.com/Pakiboy23/saman-pantry-ios/pull/94) dropped the
+v2 `REVENUECAT_SECRET_KEY` path because that key was never set. Do not
+restore it. A leftover dashboard secret of that name is unused by repo
+code. Live `revenuecat-sync` was still v8 (the v2 path) when last checked
+on 2026-11-16; deploying the repo file is what picks up #94.
 
 On `main` ([#78](https://github.com/Pakiboy23/saman-pantry-ios/pull/78)) the
 webhook skips non-PRODUCTION events and revokes TRANSFER donors. The live
@@ -157,8 +161,9 @@ stay reachable.
 3. `supabase functions deploy extract-recipe` (owner). Set
    `ELEVENLABS_API_KEY` first if the audio route should work; without it,
    multipart requests return 500 and JSON requests are unaffected.
-4. For family create to trust `is_pro`: set `REVENUECAT_SECRET_KEY`, deploy
-   `revenuecat-sync`, then the webhook steps in
+4. For family create to trust `is_pro`: confirm `REVENUECAT_SECRET_API_KEY`
+   is set, deploy `revenuecat-sync` (the #94 v1 subscribers path), then the
+   webhook steps in
    [`family-books-go-steps.md`](./family-books-go-steps.md).
 
 Deploying extract-recipe before 011 makes every extract 500. Leaving the

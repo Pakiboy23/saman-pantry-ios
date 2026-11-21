@@ -1,6 +1,9 @@
-# Family cookbooks (1.6): go-steps
+# Family cookbooks: go-steps
 
-Nothing here is applied, deployed, or configured yet. Each step needs Haaris's go.
+SQL pair applied in prod (verified 2026-11-16). Remaining owner work: deploy
+repo `revenuecat-sync` (#94) if live is still v8, replace the hand-deployed
+webhook v9 with the repo file (#78), Associated Domains / AASA, App Privacy
+for 1.7, hosted privacy page.
 
 Architecture and iOS usage (shelves, RPCs, invite URLs, snapshot rules):
 [`family-cookbooks.md`](./family-cookbooks.md). Billing / RevenueCat identity:
@@ -23,20 +26,25 @@ Two files, applied in order:
    Both files are plain SQL now, with no `\set` or `\echo`. The security file passes if it finishes
    with no error, and it rolls back either way. Check the security and performance advisors: the
    `is_family_member` and `is_family_owner` warnings and the four performance items should be gone.
-2. Production: `supabase db push --project-ref mcknboqvblbonmaebmjg`, or apply the two files in order
-   in the SQL editor. Only these files. 010 is not applied on prod and is not part of this step.
+2. Production: already applied (verified 2026-11-16). Re-run only if a new
+   project is stood up: `supabase db push --project-ref mcknboqvblbonmaebmjg`,
+   or apply the two files in order in the SQL editor. Only these files. 010 is
+   not applied on prod and is not part of this step.
 
 ## 2. RevenueCat webhook and sync
 1. `supabase secrets set REVENUECAT_WEBHOOK_AUTH=<long random string> --project-ref mcknboqvblbonmaebmjg`
    (`REVENUECAT_SECRET_API_KEY` is the v1 key used by extract-recipe and this webhook's fallback lookup. Set it if it is not already set.)
-2. `supabase secrets set REVENUECAT_SECRET_KEY=<revenuecat-v2-secret> --project-ref mcknboqvblbonmaebmjg`
-   then `supabase functions deploy revenuecat-sync --project-ref mcknboqvblbonmaebmjg`
-   (JWT on. iOS calls this after `Purchases.logIn`. Different secret name from the v1 key.)
+2. `supabase functions deploy revenuecat-sync --project-ref mcknboqvblbonmaebmjg`
+   (JWT on. iOS calls this after `Purchases.logIn`. Uses `REVENUECAT_SECRET_API_KEY`
+   and the v1 subscribers endpoint, same as extract-recipe. Do not set
+   `REVENUECAT_SECRET_KEY`; that v2 path was removed in #94.)
 3. `supabase functions deploy revenuecat-webhook --no-verify-jwt --project-ref mcknboqvblbonmaebmjg`
 4. RevenueCat > project Saman (proje8d554d5) > Integrations > Webhooks > Add:
    URL `https://mcknboqvblbonmaebmjg.supabase.co/functions/v1/revenuecat-webhook`,
    Authorization header = the same webhook secret, all events, production + sandbox.
-   On `main` the function does not ignore sandbox events (draft #78 would).
+   On `main` (#78) the function ignores non-PRODUCTION events and revokes TRANSFER
+   donors. Live v9 (checked 2026-11-16) is a hand-deployed variant that skips
+   sandbox but not TRANSFER. Deploying the repo file replaces it.
 5. Send a test event; it should return 200 with `matched: 0`.
 6. Backfill current Pro users once (set `user_accounts.is_pro` from RevenueCat customers),
    or have each Pro user reopen the app after a renewal event so `revenuecat-sync` runs. Grandfathered users can already create families.
@@ -50,4 +58,4 @@ Two files, applied in order:
 ## 4. App Privacy (App Store Connect)
 Families store a display name the user chooses (or, if blank, the part of the email before @), family names, notes and recipe snapshots
 linked to the user. No contacts or invitee emails are collected; invites are a code or link shared by the user.
-Review "User Content: Other User Content" (linked to user, app functionality) before submitting 1.6.
+Review "User Content: Other User Content" and "Audio Data" (linked to user, app functionality) before submitting 1.7. Repo PrivacyInfo already declares audio (#93).
