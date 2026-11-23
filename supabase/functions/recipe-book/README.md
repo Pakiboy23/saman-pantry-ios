@@ -3,7 +3,7 @@
 This harness is the **public community book** (`recipe_book_cards`). Private
 invite-only cookbooks are a different surface: [`docs/family-cookbooks.md`](../../../docs/family-cookbooks.md).
 
-`008_recipe_book.sql` is the original community-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. The owner applies both; do not apply them from agents.
+`008_recipe_book.sql` is the original community-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. `20261123000000_community_opt_in.sql` makes every recipe opt-in, keeps the cards that were already public, and labels cards with `family_label_for()`. The owner applies these; do not apply them from agents. All three are applied in production (community opt-in on 23 Nov 2026).
 
 `recipe_book.ts` mirrors the publish rules so Linux CI can run the A / Sally cases without an iOS simulator or production Supabase:
 
@@ -11,7 +11,7 @@ invite-only cookbooks are a different surface: [`docs/family-cookbooks.md`](../.
 deno test --allow-read supabase/functions/recipe-book/recipe_book_test.ts
 ```
 
-Reading the book does not write to `recipe_extraction_events`. URL extracts stay private unless `share_in_family_book` is true. A shared link card may include `source_url`. Transcript cards never expose `raw_transcript`.
+Reading the book does not write to `recipe_extraction_events`. Every recipe stays private unless `share_in_family_book` is true. A shared link card may include `source_url`. Transcript cards never expose `raw_transcript`.
 
 ## Database authorization regression
 
@@ -39,3 +39,19 @@ For installations that already applied `008`, the owner must apply
 `010_recipe_book_card_ownership.sql` to install the hardened trigger function,
 then `012_recipe_book_url_opt_in.sql` for the link opt-in. Do not run either
 against production from an agent.
+
+## Community opt-in regression
+
+`community_opt_in.sql` needs the family-books schema, so it runs on the database
+`family_books_setup.sql` prepares (003, 008, 010, 011, 012, both family-books
+migrations, then the setup file again for grants):
+
+```bash
+psql -X -v ON_ERROR_STOP=1 "$TEST_DATABASE_URL" -f supabase/tests/community_opt_in.sql
+```
+
+It applies the opt-in migration inside a transaction and rolls it back. It checks
+that existing cards and notes survive, new recordings save private, share and
+unshare work, display-name labels, and cross-owner ID collisions.
+`recipe_book_security.sql` is the pre-opt-in suite: its "transcripts publish on
+their own" section fails once the opt-in migration is applied, by design.

@@ -172,17 +172,15 @@ struct RecipesView: View {
                         .buttonStyle(.plain)
                     }
                     .contextMenu {
-                        if recipe.sourceKindValue == .url {
-                            Button {
-                                requestFamilyBookChange(for: recipe)
-                            } label: {
-                                Label(
-                                    recipe.shareInFamilyBook
-                                        ? FamilyBookShareCopy.removeAction
-                                        : FamilyBookShareCopy.addAction,
-                                    systemImage: recipe.shareInFamilyBook ? "book.closed" : "book"
-                                )
-                            }
+                        Button {
+                            requestFamilyBookChange(for: recipe)
+                        } label: {
+                            Label(
+                                recipe.shareInFamilyBook
+                                    ? FamilyBookShareCopy.removeAction
+                                    : FamilyBookShareCopy.addAction,
+                                systemImage: recipe.shareInFamilyBook ? "book.closed" : "book"
+                            )
                         }
                         Button(role: .destructive) { recipePrompt = .delete(recipe) } label: {
                             Label("Delete", systemImage: "trash")
@@ -197,7 +195,6 @@ struct RecipesView: View {
     }
 
     private func requestFamilyBookChange(for recipe: Recipe) {
-        guard recipe.sourceKindValue == .url else { return }
         guard appEnv.auth.isSignedIn else {
             familyBookAuth.remember(recipe.id)
             showFamilyBookAuth = true
@@ -256,8 +253,8 @@ private enum RecipePrompt: Identifiable {
         switch self {
         case .delete:
             return nil
-        case .addToFamilyBook:
-            return FamilyBookShareCopy.addMessage
+        case .addToFamilyBook(let recipe):
+            return FamilyBookShareCopy.addMessage(for: recipe.sourceKindValue)
         case .removeFromFamilyBook:
             return FamilyBookShareCopy.removeMessage
         }

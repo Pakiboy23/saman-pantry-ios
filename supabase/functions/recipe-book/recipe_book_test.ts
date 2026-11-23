@@ -39,7 +39,7 @@ function transcriptRecipe(overrides: Partial<RecipeRow> & { id: string }): Recip
     extracted_json: overrides.extracted_json ?? JSON.stringify(extracted),
     attribution: overrides.attribution ?? "Mom",
     source_kind: overrides.source_kind ?? "transcript",
-    share_in_family_book: overrides.share_in_family_book ?? false,
+    share_in_family_book: overrides.share_in_family_book ?? true,
     created_at: overrides.created_at ?? "2026-10-04T12:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-10-04T12:00:00.000Z",
   };
@@ -52,7 +52,31 @@ function makeStore(): LocalRecipeBookStore {
   return store;
 }
 
-Deno.test("1. A's transcript save with andaza and haldi shows on Sally's book with no share tap; words stay as written", () => {
+Deno.test("0. A's recording saves private; Sally sees nothing until A shares it", () => {
+  const store = makeStore();
+  store.upsertRecipe(transcriptRecipe({ id: "card-1", share_in_family_book: false }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 0);
+  assertEquals(store.ownerRecipes(A).length, 1);
+
+  store.upsertRecipe(transcriptRecipe({ id: "card-1", share_in_family_book: true }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 1);
+
+  store.upsertRecipe(transcriptRecipe({ id: "card-1", share_in_family_book: false }));
+  assertEquals(store.bookForSignedInUser(SALLY).length, 0);
+  assertEquals(store.ownerRecipes(A)[0]?.title, "Chicken Karahi");
+});
+
+Deno.test("0b. The card shows A's display name when set, else the email before @", () => {
+  const store = makeStore();
+  store.upsertRecipe(transcriptRecipe({ id: "card-1" }));
+  assertEquals(store.cardForSignedInUser("card-1", SALLY)?.added_by_label, "cousin.a");
+
+  store.displayNames.set(A, "Ayesha");
+  store.upsertRecipe(transcriptRecipe({ id: "card-1" }));
+  assertEquals(store.cardForSignedInUser("card-1", SALLY)?.added_by_label, "Ayesha");
+});
+
+Deno.test("1. A's shared transcript with andaza and haldi shows on Sally's book; words stay as written", () => {
   const store = makeStore();
   store.upsertRecipe(transcriptRecipe({ id: "card-1" }));
 
@@ -62,7 +86,6 @@ Deno.test("1. A's transcript save with andaza and haldi shows on Sally's book wi
   assertEquals(sallyBook[0].ingredient_phrases.includes("haldi andaza se"), true);
   assertEquals(sallyBook[0].attribution, "Mom");
   assertEquals(sallyBook[0].added_by_label, "cousin.a");
-  // No share tap required: publish happened on save.
   assertEquals(store.cards.has("card-1"), true);
 });
 
@@ -71,6 +94,7 @@ Deno.test("2. A's url extract does not show for Sally; A still sees it", () => {
   store.upsertRecipe(transcriptRecipe({
     id: "url-1",
     source_kind: "url",
+    share_in_family_book: false,
     raw_transcript: "https://www.youtube.com/watch?v=example",
     title: "YouTube Karahi",
   }));
@@ -173,11 +197,10 @@ Deno.test("2e. A link with non-array ingredients still publishes", () => {
   }
 });
 
-Deno.test("2d. Clearing the flag on a transcript does not remove it from Sally's book", () => {
+Deno.test("2d. A shared transcript card has no source link and none of the spoken words", () => {
   const store = makeStore();
   store.upsertRecipe(transcriptRecipe({
     id: "card-1",
-    share_in_family_book: false,
     raw_transcript: "Private words from ammi",
   }));
   const card = store.cardForSignedInUser("card-1", SALLY);
@@ -232,6 +255,8 @@ Deno.test("6. A second transcript with the same title is a second card", () => {
   store.upsertRecipe(transcriptRecipe({
     id: "card-2",
     created_at: "2026-10-04T13:00:00.000Z",
+    // Community orders by when the cook shared it.
+    updated_at: "2026-10-04T13:00:00.000Z",
     raw_transcript: "Different telling, still Chicken Karahi with andaza",
   }));
 

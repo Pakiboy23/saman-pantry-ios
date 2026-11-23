@@ -391,9 +391,9 @@ extension FamilyRecipe {
 
     /// A recipe the member owns. It syncs like any other row and survives leaving.
     ///
-    /// Always `.url` with the village-book flag off. A family snapshot is
-    /// member-only; `.transcript` would auto-publish title, steps, and phrases
-    /// to `recipe_book_cards` the next time the copy uploads.
+    /// Always `.url` with the Community flag off. A family snapshot is
+    /// member-only and must never reach `recipe_book_cards`, even on a server
+    /// that still runs the pre-opt-in trigger where `.transcript` auto-published.
     func ownedCopy() -> Recipe {
         Recipe(
             title: title,
