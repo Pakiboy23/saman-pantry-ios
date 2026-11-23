@@ -1,8 +1,8 @@
-/** Pure publish rules for the public family recipe book.
- *  Mirrors supabase/migrations/012_recipe_book_url_opt_in.sql so Linux CI can
- *  exercise the A / Sally cases without an iOS simulator or production Supabase.
- *  Transcript saves publish on their own. URL extracts stay private unless
- *  share_in_family_book is set. raw_transcript never becomes a card field.
+/** Pure publish rules for the public Community book.
+ *  Mirrors supabase/migrations/20261123000000_community_opt_in.sql so Linux CI
+ *  can exercise the A / Sally cases without an iOS simulator or production Supabase.
+ *  Every recipe stays private until share_in_family_book is set, whatever its
+ *  source. raw_transcript never becomes a card field.
  */
 
 export type SourceKind = "transcript" | "url";
@@ -31,7 +31,7 @@ export type RecipeRow = {
   extracted_json: string | null;
   attribution: string | null;
   source_kind: SourceKind;
-  /** Owner opt-in. Ignored for transcripts. URL extracts stay private when false. */
+  /** Owner opt-in to Community. False keeps the recipe private, for every source. */
   share_in_family_book: boolean;
   created_at: string;
   updated_at: string;
@@ -72,7 +72,6 @@ export function shouldPublishToBook(
 ): boolean {
   switch (sourceKind) {
     case "transcript":
-      return true;
     case "url":
       return shareInFamilyBook;
     default: {
@@ -143,9 +142,15 @@ export function publicCardFields(card: RecipeBookCard): Record<string, unknown> 
   };
 }
 
-export function labelFromEmail(email: string | null | undefined): string {
+/** Mirrors family_label_for(): display name, then the email before @, then 'A cook'. */
+export function cardLabel(
+  displayName: string | null | undefined,
+  email: string | null | undefined,
+): string {
+  const name = (displayName ?? "").trim();
+  if (name) return name;
   const local = (email ?? "").split("@")[0]?.trim() ?? "";
-  return local || "A cook in the village";
+  return local || "A cook";
 }
 
 export class LocalRecipeBookStore {
@@ -155,6 +160,7 @@ export class LocalRecipeBookStore {
   lists = new Map<string, ShoppingList>();
   extractionEvents: { user_id: string; created_at: string }[] = [];
   emails = new Map<string, string>();
+  displayNames = new Map<string, string>();
 
   readonly extractPerDay = 5;
 
@@ -181,13 +187,12 @@ export class LocalRecipeBookStore {
     }
     const card = cardFromRecipe(
       recipe,
-      labelFromEmail(this.emails.get(recipe.user_id)),
+      cardLabel(this.displayNames.get(recipe.user_id), this.emails.get(recipe.user_id)),
     );
     if (!card) return;
     const existing = this.cards.get(recipe.id);
-    // A link joins the book when the owner opts in, then keeps that place.
-    const createdAt = existing?.created_at ??
-      (recipe.source_kind === "url" ? recipe.updated_at : recipe.created_at);
+    // A recipe joins the book when the owner shares it, then keeps that place.
+    const createdAt = existing?.created_at ?? recipe.updated_at;
     this.cards.set(card.id, { ...card, created_at: createdAt });
   }
 

@@ -4,9 +4,12 @@ import Testing
 
 @MainActor
 struct RecipeBookTests {
-    @Test func transcriptSourcePublishesAndUrlDoesNot() {
-        #expect(RecipeSourceKind.transcript.publishesToFamilyBook)
-        #expect(!RecipeSourceKind.url.publishesToFamilyBook)
+    @Test func newRecipesStartPrivateForEverySource() {
+        for kind in RecipeSourceKind.allCases {
+            let recipe = Recipe(title: "Karahi", rawTranscript: "words", sourceKind: kind)
+            #expect(!recipe.shareInFamilyBook)
+            #expect(!recipe.isInFamilyBook)
+        }
     }
 
     @Test func transcriptRecipeKeepsAndazaPhraseInExtractedJSON() throws {
@@ -34,7 +37,7 @@ struct RecipeBookTests {
             sourceKind: .transcript
         )
         #expect(recipe.sourceKindValue == .transcript)
-        #expect(recipe.sourceKindValue.publishesToFamilyBook)
+        #expect(!recipe.isInFamilyBook)
         #expect(json.contains("haldi andaza se"))
         let decoded = try JSONDecoder().decode(ExtractedRecipe.self, from: Data(json.utf8))
         #expect(decoded.ingredients.first?.originalPhrase == "haldi andaza se")
@@ -49,7 +52,6 @@ struct RecipeBookTests {
             sourceKind: .url
         )
         #expect(recipe.sourceKindValue == .url)
-        #expect(!recipe.sourceKindValue.publishesToFamilyBook)
         #expect(!recipe.isInFamilyBook)
         #expect(recipe.myBookStatusLabel == "link")
     }
@@ -65,7 +67,7 @@ struct RecipeBookTests {
         #expect(recipe.shareInFamilyBook)
         #expect(recipe.isInFamilyBook)
         #expect(recipe.isDirty)
-        #expect(recipe.myBookStatusLabel == "link · in the family book")
+        #expect(recipe.myBookStatusLabel == "link · in Community")
 
         recipe.setFamilyBookSharing(false)
         #expect(!recipe.shareInFamilyBook)
@@ -73,19 +75,26 @@ struct RecipeBookTests {
         #expect(recipe.myBookStatusLabel == "link")
     }
 
-    @Test func transcriptStaysInTheFamilyBookWhenTheFlagIsCleared() {
+    @Test func spokenRecipeIsPrivateUntilSharedAndCanLeaveAgain() {
         let recipe = Recipe(
             title: "Chicken Karahi",
             rawTranscript: "Beta listen, put in haldi andaza se",
             attribution: "Ammi",
             sourceKind: .transcript
         )
-        recipe.shareInFamilyBook = false
+        recipe.isDirty = false
+        #expect(!recipe.isInFamilyBook)
+        #expect(recipe.myBookStatusLabel == "private")
+
+        recipe.setFamilyBookSharing(true)
+        #expect(recipe.shareInFamilyBook)
         #expect(recipe.isInFamilyBook)
-        #expect(recipe.myBookStatusLabel == "in the family book")
+        #expect(recipe.isDirty)
+        #expect(recipe.myBookStatusLabel == "in Community")
+
         recipe.setFamilyBookSharing(false)
-        #expect(!recipe.shareInFamilyBook)
-        #expect(recipe.isInFamilyBook)
+        #expect(!recipe.isInFamilyBook)
+        #expect(recipe.myBookStatusLabel == "private")
     }
 
     @Test func failedFamilyBookUploadRestoresThePreviousFlag() {
@@ -110,7 +119,7 @@ struct RecipeBookTests {
         #expect(recipe.shareInFamilyBook)
         #expect(!recipe.isDirty)
         #expect(recipe.updatedAt == snapshot.updatedAt)
-        #expect(recipe.myBookStatusLabel == "link · in the family book")
+        #expect(recipe.myBookStatusLabel == "link · in Community")
     }
 
     @Test func acceptedFamilyBookUploadKeepsTheNewFlag() {
@@ -127,7 +136,7 @@ struct RecipeBookTests {
             updatedAt: recipe.updatedAt,
             toggleUpdatedAt: toggleUpdatedAt
         ))
-        #expect(recipe.myBookStatusLabel == "link · in the family book")
+        #expect(recipe.myBookStatusLabel == "link · in Community")
     }
 
     @Test func canceledSignInDropsTheFamilyBookTapAndSuccessKeepsIt() {
@@ -147,8 +156,13 @@ struct RecipeBookTests {
             #expect(!line.contains("—"))
             #expect(line.first?.isUppercase == true)
         }
-        #expect(FamilyBookShareCopy.addAction == "Add to family book")
-        #expect(FamilyBookShareCopy.removeAction == "Remove from family book")
+        #expect(FamilyBookShareCopy.addAction == "Share to Community")
+        #expect(FamilyBookShareCopy.removeAction == "Remove from Community")
+        #expect(FamilyBookShareCopy.addMessage(for: .url).contains("source link"))
+        #expect(!FamilyBookShareCopy.addMessage(for: .transcript).contains("source link"))
+        for kind in RecipeSourceKind.allCases {
+            #expect(FamilyBookShareCopy.addMessage(for: kind).contains("display name"))
+        }
     }
 
     @Test func linkCardOpensOnlyHttpSource() {
@@ -243,12 +257,30 @@ struct RecipeBookTests {
         #expect(migration.contains("share_in_family_book boolean not null default false"))
         #expect(migration.contains("source_url"))
         #expect(migration.contains("add column if not exists"))
-        #expect(migration.contains("new.source_kind = 'transcript'"))
         #expect(migration.contains("new.share_in_family_book"))
         #expect(migration.contains("jsonb_typeof(card_ingredients) <> 'array'"))
         #expect(migration.contains("auth.uid() = user_id"))
         #expect(migration.contains("raw_transcript"))
         #expect(migration.contains("^https?://"))
+        let lowered = migration.lowercased()
+        #expect(!lowered.contains("drop table"))
+        #expect(!lowered.contains("delete from public.recipes"))
+        #expect(!lowered.contains("truncate"))
+    }
+
+    @Test func communityOptInMigrationPublishesOnlyOnTheFlag() throws {
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let migration = try String(
+            contentsOf: repoRoot.appendingPathComponent("supabase/migrations/20261123000000_community_opt_in.sql"),
+            encoding: .utf8
+        )
+        #expect(migration.contains("and new.share_in_family_book"))
+        #expect(!migration.contains("new.source_kind = 'transcript'\n    or"))
+        #expect(migration.contains("public.family_label_for(new.user_id)"))
+        #expect(!migration.contains("split_part"))
+        #expect(migration.contains("update public.recipe_book_cards set added_by_label = lbl"))
         let lowered = migration.lowercased()
         #expect(!lowered.contains("drop table"))
         #expect(!lowered.contains("delete from public.recipes"))

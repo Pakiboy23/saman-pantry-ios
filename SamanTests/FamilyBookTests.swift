@@ -68,7 +68,6 @@ struct FamilyBookTests {
         )
         let copy = recipe.ownedCopy()
         #expect(copy.sourceKindValue == .url)
-        #expect(!copy.sourceKindValue.publishesToFamilyBook)
         #expect(!copy.shareInFamilyBook)
         #expect(!copy.isInFamilyBook)
         #expect(copy.rawTranscript.isEmpty)

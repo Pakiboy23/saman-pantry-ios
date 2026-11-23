@@ -18,9 +18,9 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 ## Current state (20 Nov 2026, verified against `main`)
 
-**App Store.** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 5 Oct 2026 (`788fafd`: recording, audio-file intake, public family recipe book). Earlier: 1.0 (89), 1.1 (106), 1.2 (119). Do not claim 1.5, 1.6, or 1.7 is live unless App Store Connect says so.
+**App Store.** **Samaan Pantry 1.7 is live** (Haaris, 23 Nov 2026). Build number not recorded here. Earlier: 1.3 (133, 5 Oct 2026), 1.2 (119), 1.1 (106), 1.0 (89). Do not claim a later version is live unless App Store Connect says so.
 
-**main is 1.7.** `MARKETING_VERSION = 1.7` (#87). Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), and `revenuecat-sync` on the v1 subscribers endpoint (#94). Build numbers come from Xcode Cloud, not the repo. `CURRENT_PROJECT_VERSION` in the pbxproj is **not** the App Store Connect build number.
+**main is 1.7.** `MARKETING_VERSION = 1.7` (#87). Branch `community-opt-in` bumps to 1.8 for the Community opt-in build. Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), and `revenuecat-sync` on the v1 subscribers endpoint (#94). Build numbers come from Xcode Cloud, not the repo. `CURRENT_PROJECT_VERSION` in the pbxproj is **not** the App Store Connect build number.
 
 **Xcode Cloud archives every branch.** The single `Default` workflow archives (App Store eligible) on any branch push, and each run uploads a TestFlight build. Put `[ci skip]` in the latest commit message for docs-only pushes. App Review submission is still a manual App Store Connect step; never submit without Haaris's explicit OK.
 
@@ -35,12 +35,12 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Onboarding.** First launch shows `OnboardingView` until `samaan.hasCompletedOnboarding`. Then the tab shell. Guest browse still ships: unsigned launch reaches Home / Pantry / Lists / Recipes on local SwiftData. Sign-in is asked for only on Sync now, Extract Recipe, community-book opt-in, family cookbooks, and Delete account. `-UITesting` skips onboarding. Do not restore a login wall.
 
 **Recipe capture.** Four intakes: record, choose an audio file, paste a link (YouTube, Instagram, recipe sites), or paste text.
-- **Shipping 1.3** still transcribes on device with Apple's recognizer. It mangles desi words ("bhindi" -> "beans", "zeera" -> "0").
+- **1.3 and earlier** transcribed on device with Apple's recognizer, which mangled desi words ("bhindi" -> "beans", "zeera" -> "0"). Live 1.7 uploads the recording instead.
 - **On `main` (1.7 / PR C #86)** the app records mono AAC to a temp file (`RecipeAudioRecorder`, 10-minute cap, timer + level meter, no live text) and uploads it to `extract-recipe` (`RecipeExtractionService.extract(recording:)`), which transcribes with ElevenLabs. Picked files are re-encoded to AAC unless already AAC/MP3 under the cap. The file is kept until a recipe comes back so a failed upload can be retried, then deleted. The speech permission and `Speech` framework are gone. Consent key is `samaan.consent.recipeProcessing.v2` (everyone is asked again). In-app copy and PrivacyInfo audio landed with PR D (#92/#93).
 - **Server transcription** (`docs/server-transcription-spec.md`, shipped). PR A (#83, live in v19+) added a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters.
 - **Prompts live in `prompts.ts`.** Any change must pass `scripts/recipe-eval.ts` against Haaris's private recording set before it merges. The script refuses paths inside the repo. Never commit recordings, real transcripts, or manifests.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota is the table above (`011_billing_grandfathered_and_quota.sql`).
-- Transcript saves publish a public card to the **community** book. URL extracts stay private unless the owner opts that recipe in (`share_in_family_book` / `012_recipe_book_url_opt_in.sql`). A shared link card shows the source link and attribution.
+- **Community is opt-in for every recipe** once `20261123000000_community_opt_in.sql` is applied (branch `community-opt-in`, Nov 2026): a recipe gets a public card only when the owner sets `share_in_family_book` ("Share to Community"). Cards are labeled with `family_label_for()` (display name, then email prefix). Before that migration, transcript saves auto-publish (012) and only URL extracts need the opt-in. A shared link card shows the source link and attribution.
 
 **Private family cookbooks** (#74). Recipes tab **Families** shelf. Pro or grandfathered to create; join is free. Invite: `https://www.samanpantry.com/join/<token>` or an 8-character code. Snapshots never include `raw_transcript`. Architecture: `docs/family-cookbooks.md`. Owner remaining steps: `docs/family-books-go-steps.md`. Family SQL is applied in prod (verified 2026-11-16). Live webhook is still the hand-deployed v9, not the #78 repo file.
 
@@ -69,7 +69,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 - Anon key in `Config.swift` is expected (RLS). Service role is not.
 - Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary.
-- Do not claim the recipe extraction happens on the phone. Shipping 1.3 transcribes on the phone; 1.7 / `main` uploads the recording. Do not say "audio never leaves the phone" for a 1.7 build.
+- Do not claim the recipe extraction happens on the phone. Live 1.7 and `main` upload the recording for server transcription. Do not say "audio never leaves the phone" for a 1.7 build.
 - PR C (#86) and PR D (#92/#93) are both on `main`. Never submit a 1.7 build that has C without D.
 - Audio route: never log audio bytes or transcript text, never store audio, never commit recordings or real transcripts. Size/type checks run before the quota; the slot runs before the paid STT call.
 - Do not say Pro leaves extract capped, or that free users are limited to 30 pantry items / extra lists. Those 1.2 claims are dead.

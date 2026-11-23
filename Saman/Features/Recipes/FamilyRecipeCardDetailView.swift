@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Read-only family book card. Shows title, steps, original phrases,
+/// Read-only Community card. Shows title, steps, original phrases,
 /// attribution, and who added it. A shared link can also open its source.
 /// Never shows raw_transcript.
 /// Readers may add a note or push ingredients onto their own list.
@@ -62,19 +62,21 @@ struct FamilyRecipeCardDetailView: View {
                     Button(role: .destructive) { showRemoveConfirm = true } label: {
                         Image(systemName: "trash")
                     }
-                    .accessibilityLabel("Remove from family book")
+                    .accessibilityLabel(FamilyBookShareCopy.removeAction)
                 }
             }
         }
         .confirmationDialog(
-            "Remove \(card.title) from the family book?",
+            "Remove \(card.title) from Community?",
             isPresented: $showRemoveConfirm,
             titleVisibility: .visible
         ) {
             Button("Remove", role: .destructive) { removeOwnCard() }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This deletes your saved recipe too. Other people will no longer see the card.")
+            Text(ownRecipe == nil
+                ? "This recipe isn't on this phone, so removing the card deletes the saved recipe too."
+                : FamilyBookShareCopy.removeMessage)
         }
         .task { await loadNotes() }
         .overlay(alignment: .top) {
@@ -285,14 +287,29 @@ struct FamilyRecipeCardDetailView: View {
         }
     }
 
-    /// Owner remove deletes the underlying recipe (and the card via cascade).
-    private func removeOwnCard() {
+    private var ownRecipe: Recipe? {
         let cardId = card.id
         let descriptor = FetchDescriptor<Recipe>(
             predicate: #Predicate { $0.id == cardId }
         )
-        if let recipe = try? context.fetch(descriptor).first {
-            appEnv.deleteRecord(recipe, table: "recipes", id: recipe.id)
+        return try? context.fetch(descriptor).first
+    }
+
+    /// Owner remove unshares the recipe and keeps it. Only a card whose recipe
+    /// is not on this device falls back to deleting the server row.
+    private func removeOwnCard() {
+        if let recipe = ownRecipe {
+            Task {
+                do {
+                    try await FamilyBookShareCommit.send(
+                        false, recipe: recipe, context: context, sync: appEnv.syncManager
+                    )
+                    dismiss()
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+            return
         } else {
             // Recipe may not be on this device. Tombstone the server row so the
             // card trigger can drop it for everyone.

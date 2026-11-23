@@ -38,16 +38,14 @@ struct RecipeDetailView: View {
                     }
                     .buttonStyle(SamaanSecondaryButtonStyle())
                     .accessibilityIdentifier("recipe.addToFamily")
-                    if recipe.sourceKindValue == .url {
-                        Button(recipe.shareInFamilyBook
-                            ? FamilyBookShareCopy.removeAction
-                            : FamilyBookShareCopy.addAction
-                        ) {
-                            requestFamilyBookChange()
-                        }
-                        .buttonStyle(SamaanSecondaryButtonStyle())
-                        .accessibilityIdentifier("recipe.familyBook")
+                    Button(recipe.shareInFamilyBook
+                        ? FamilyBookShareCopy.removeAction
+                        : FamilyBookShareCopy.addAction
+                    ) {
+                        requestFamilyBookChange()
                     }
+                    .buttonStyle(SamaanSecondaryButtonStyle())
+                    .accessibilityIdentifier("recipe.familyBook")
                 }
                 .padding(.top, 28)
                 .padding(.bottom, 48)
@@ -120,7 +118,7 @@ struct RecipeDetailView: View {
             }
             Button("Cancel", role: .cancel) { detailPrompt = nil }
         } message: { prompt in
-            if let message = prompt.message {
+            if let message = prompt.message(sourceKind: recipe.sourceKindValue) {
                 Text(message)
             }
         }
@@ -173,11 +171,9 @@ struct RecipeDetailView: View {
                     .foregroundStyle(Color.inkKohlSoft)
             }
 
-            if recipe.sourceKindValue == .url {
-                Text(recipe.myBookStatusLabel)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.inkKohlSoft)
-            }
+            Text(recipe.myBookStatusLabel)
+                .font(.system(size: 13))
+                .foregroundStyle(Color.inkKohlSoft)
 
             Rectangle()
                 .frame(height: 1)
@@ -346,7 +342,6 @@ struct RecipeDetailView: View {
     }
 
     private func requestFamilyBookChange() {
-        guard recipe.sourceKindValue == .url else { return }
         guard appEnv.auth.isSignedIn else {
             familyBookAuth.remember(recipe.id)
             appEnv.requireAccount()
@@ -411,12 +406,12 @@ private enum DetailPrompt: Identifiable {
         }
     }
 
-    var message: String? {
+    func message(sourceKind: RecipeSourceKind) -> String? {
         switch self {
         case .delete:
             return nil
         case .addToFamilyBook:
-            return FamilyBookShareCopy.addMessage
+            return FamilyBookShareCopy.addMessage(for: sourceKind)
         case .removeFromFamilyBook:
             return FamilyBookShareCopy.removeMessage
         }

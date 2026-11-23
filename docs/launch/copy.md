@@ -72,21 +72,23 @@ or section title. The subhead is the line under it.
 - Invite by link or code. Invites last 7 days.
 - Members can read recipes, add their own, leave notes, and save a copy. All free.
 - If the owner's Samaan Pro lapses, the family keeps working.
-- **The Community book is public to signed-in users.** A recipe made from a
-  recording or pasted words is added there when it saves: its title, who it is
-  from, the ingredients, and the steps. The card's "added by" label is the part
-  of the owner's email address before the @ (migration 012). Deleting the recipe
-  takes the card down.
-  A recipe from a link stays private unless its owner adds it.
+- **The Community book is public to signed-in users, and opt-in.** Every recipe
+  starts private, however it was captured. The owner taps "Share to Community"
+  to add one: its title, who it is from, the ingredients, and the steps (plus the
+  source link for a link recipe). The recording and transcript never go on the
+  card. "Remove from Community" takes the card down and keeps the recipe.
+  The card's "added by" label is the owner's display name, or the part of their
+  email address before the @ if they haven't set one
+  (migration 20261123000000_community_opt_in).
 
 Approved wording for the Community book:
 
-> The Community book holds recipes other cooks have shared. A recipe you make
-> from a recording or pasted words is added there for signed-in cooks to read.
-> Deleting the recipe takes it down. Recipes from links stay private unless you
-> add them.
+> The Community book holds recipes other cooks have chosen to share. Your
+> recipes stay private until you share one, and you can take it back out any
+> time.
 
-Do not call a captured recipe private. Only family cookbooks are private.
+Captured recipes are private by default. Only say so for a build that has the
+Share to Community toggle and a server with the opt-in migration applied.
 
 ## Pricing
 
@@ -133,18 +135,17 @@ lifetime plan, "coming soon" family cookbooks, Android.
 > code.
 >
 > Free to start, 5 recipes for life. Samaan Pro is $7.99 a month or $59.99 a year.
-> One heads-up before you try it: recipes from a recording are added to a
-> Community book other signed-in cooks can read.
 >
 > I'd love to hear which recipe you'd save first.
 
 ## Open items for Haaris
 
-1. Community publishing is on by default for recordings, it labels each card
-   with the owner's email address before the @, and the only way to take one
-   down is to delete it. That sits badly next to "private family
-   cookbook" and next to a launch video of a parent's recipe. An opt-in toggle
-   before Product Hunt would remove the heads-up from every surface.
+1. Community is now opt-in in the repo (branch `community-opt-in`): every
+   recipe starts private, "Share to Community" and "Remove from Community"
+   work for every recipe, and cards use the display name. Still to do before
+   the new wording above is true: apply
+   `20261123000000_community_opt_in.sql` in production alongside a build that
+   has the toggle, and make sure that build is the one live for Product Hunt.
 2. App strings that drift from this file: the paywall's "save 38%", the Home
    card's "Paste a transcript to extract ingredients", and "family book" for
    what the tab calls Community.

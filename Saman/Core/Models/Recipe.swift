@@ -4,27 +4,34 @@ import SwiftData
 enum RecipeSourceKind: String, Codable, CaseIterable {
     case transcript
     case url
-
-    /// True when a save publishes with no extra step. URL extracts stay private
-    /// until the owner sets `Recipe.shareInFamilyBook`.
-    var publishesToFamilyBook: Bool { self == .transcript }
 }
 
+/// Copy for the public Community book. Every recipe starts private; the owner shares it.
 enum FamilyBookShareCopy {
-    static let addAction = "Add to family book"
-    static let removeAction = "Remove from family book"
-    static let addTitle = "Add to the family book?"
-    static let removeTitle = "Remove from the family book?"
-    static let addMessage = "Signed-in cooks will be able to read this recipe and open its source link. It stays in your book either way."
+    static let addAction = "Share to Community"
+    static let removeAction = "Remove from Community"
+    static let addTitle = "Share to Community?"
+    static let removeTitle = "Remove from Community?"
+    static let linkAddMessage = "Signed-in cooks will be able to read this recipe and open its source link. The card shows your display name, or the start of your email if you haven't set one. It stays in your book either way."
+    static let spokenAddMessage = "Signed-in cooks will be able to read the steps and ingredients. Your recording and transcript stay off the card. The card shows your display name, or the start of your email if you haven't set one."
     static let removeMessage = "This recipe stays in your book. Other people will no longer see the card."
-    static let uploadFailedTitle = "Couldn't update the family book"
+    static let uploadFailedTitle = "Couldn't update Community"
     static let uploadFailedMessage = "Check your connection and try again."
-    static let signInRequired = "Sign in to change the family book."
+    static let signInRequired = "Sign in to share to Community."
+
+    static func addMessage(for kind: RecipeSourceKind) -> String {
+        switch kind {
+        case .transcript:
+            return spokenAddMessage
+        case .url:
+            return linkAddMessage
+        }
+    }
 
     static var all: [String] {
         [
-            addAction, removeAction, addTitle, removeTitle, addMessage, removeMessage,
-            uploadFailedTitle, uploadFailedMessage, signInRequired,
+            addAction, removeAction, addTitle, removeTitle, linkAddMessage, spokenAddMessage,
+            removeMessage, uploadFailedTitle, uploadFailedMessage, signInRequired,
         ]
     }
 }
@@ -94,7 +101,6 @@ enum FamilyBookShareCommit {
         context: ModelContext,
         sync: SyncManager
     ) async throws {
-        guard recipe.sourceKindValue == .url else { return }
         if ScreenshotLaunchConfiguration.current.shouldSeedDemoKitchen {
             recipe.setFamilyBookSharing(share)
             try? context.save()
@@ -121,9 +127,9 @@ final class Recipe {
     var rawTranscript: String
     var extractedJSON: String?
     var attribution: String?
-    /// `transcript` or `url`. Transcript saves become public family-book cards.
+    /// `transcript` (recorded, audio file, or pasted text) or `url`.
     var sourceKind: String = RecipeSourceKind.transcript.rawValue
-    /// Owner opt-in for a link recipe. Transcripts publish either way.
+    /// Owner opt-in to the public Community book. Every recipe starts private.
     var shareInFamilyBook: Bool = false
     var isDirty: Bool
     var createdAt: Date
@@ -155,29 +161,20 @@ final class Recipe {
         set { sourceKind = newValue.rawValue }
     }
 
-    /// Whether this recipe has a family-book card. Link recipes stay out until the owner opts in.
-    var isInFamilyBook: Bool {
-        switch sourceKindValue {
-        case .transcript:
-            return true
-        case .url:
-            return shareInFamilyBook
-        }
-    }
+    /// Whether this recipe has a Community card. Nothing is public until the owner shares it.
+    var isInFamilyBook: Bool { shareInFamilyBook }
 
-    /// My Book shelf line. A private link stays "link". A shared link says both.
+    /// My Book shelf line. Says "in Community" only for a recipe the owner shared.
     var myBookStatusLabel: String {
         switch sourceKindValue {
         case .transcript:
-            return "in the family book"
+            return shareInFamilyBook ? "in Community" : "private"
         case .url:
-            return shareInFamilyBook ? "link · in the family book" : "link"
+            return shareInFamilyBook ? "link · in Community" : "link"
         }
     }
 
-    /// Link recipes only. Transcripts keep publishing, so this does not clear them.
     func setFamilyBookSharing(_ share: Bool) {
-        guard sourceKindValue == .url else { return }
         shareInFamilyBook = share
         markDirty()
     }

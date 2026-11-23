@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Signed-in readers browse the family book, newest first.
-/// Transcripts publish on save. A link shows up only after that cook adds it.
+/// Signed-in readers browse the public Community book, newest first.
+/// A recipe shows up only after its cook shares it.
 struct FamilyRecipeBookView: View {
     @Environment(\.appEnv) private var appEnv
     @State private var cards: [FamilyRecipeBookCard] = []
@@ -44,7 +44,7 @@ struct FamilyRecipeBookView: View {
     private var signInPrompt: some View {
         VStack(spacing: 16) {
             Spacer()
-            Text("Family recipe book")
+            Text("Community")
                 .font(.cormorant(size: 28))
                 .foregroundStyle(Color.inkKohl)
             Text("Sign in to read recipes other cooks have shared.")
@@ -62,10 +62,10 @@ struct FamilyRecipeBookView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer()
-            Text("No family recipes yet")
+            Text("No shared recipes yet")
                 .font(.cormorant(size: 28))
                 .foregroundStyle(Color.inkKohl)
-            Text("When someone saves a spoken or written recipe, it shows up here. A link recipe shows up only if that cook adds it.")
+            Text("Recipes show up here when a cook shares one to Community. Yours stay private until you do.")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.inkKohlSoft)
                 .multilineTextAlignment(.center)

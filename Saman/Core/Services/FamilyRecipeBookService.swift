@@ -1,8 +1,8 @@
 import Foundation
 import Supabase
 
-/// Public family recipe book. Transcript recipes publish on save.
-/// Link recipes appear only after the owner opts in. Reading does not consume extract quota.
+/// Public Community book. A recipe appears only after its owner shares it.
+/// Reading does not consume extract quota.
 struct FamilyRecipeBookCard: Identifiable, Hashable, Decodable, Sendable {
     let id: UUID
     let ownerId: UUID
@@ -93,9 +93,9 @@ enum FamilyRecipeBookError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "Sign in to open the family recipe book."
+            return "Sign in to open Community."
         case .loadFailed:
-            return "Couldn't load the family recipe book. Check your connection and try again."
+            return "Couldn't load Community. Check your connection and try again."
         case .noteFailed:
             return "Couldn't save that note. Try again."
         }
