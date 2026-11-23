@@ -1,18 +1,20 @@
 // revenuecat-sync: sets user_accounts.is_pro for the signed-in caller
 // from RevenueCat's live entitlement state. Deploy with verify_jwt on.
-// Secrets: REVENUECAT_SECRET_KEY (v2, read-only customer info).
+// Secret: REVENUECAT_SECRET_API_KEY (same key and v1 endpoint extract-recipe uses).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const RC_PROJECT_ID = "proje8d554d5";
-const RC_ENTITLEMENT_ID = "entlec857d8f70"; // "Saman Pro"
+const RC_ENTITLEMENT = "Saman Pro"; // v1 keys entitlements by identifier
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const rcKey = Deno.env.get("REVENUECAT_SECRET_KEY");
-  if (!rcKey) return Response.json({ error: "not_configured" }, { status: 500 });
+  const rcKey = Deno.env.get("REVENUECAT_SECRET_API_KEY");
+  if (!rcKey) {
+    console.error("not_configured: REVENUECAT_SECRET_API_KEY is missing");
+    return Response.json({ error: "not_configured" }, { status: 500 });
+  }
 
   const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
@@ -21,8 +23,8 @@ Deno.serve(async (req) => {
   const userId = userData.user.id.toLowerCase();
 
   const rcRes = await fetch(
-    `https://api.revenuecat.com/v2/projects/${RC_PROJECT_ID}/customers/${encodeURIComponent(userId)}/active_entitlements`,
-    { headers: { Authorization: `Bearer ${rcKey}` } },
+    `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`,
+    { headers: { Authorization: `Bearer ${rcKey}`, "Content-Type": "application/json" } },
   );
   let isPro = false;
   if (rcRes.status === 404) {
@@ -31,10 +33,11 @@ Deno.serve(async (req) => {
     console.error("revenuecat_error", rcRes.status);
     return Response.json({ error: "revenuecat_unavailable" }, { status: 502 });
   } else {
-    const body = await rcRes.json();
-    const items: Array<{ entitlement_id: string; expires_at: number | null }> = body.items ?? [];
-    const now = Date.now();
-    isPro = items.some((e) => e.entitlement_id === RC_ENTITLEMENT_ID && (e.expires_at == null || e.expires_at > now));
+    const body = await rcRes.json() as {
+      subscriber?: { entitlements?: Record<string, { expires_date?: string | null }> };
+    };
+    const ent = body.subscriber?.entitlements?.[RC_ENTITLEMENT];
+    isPro = !!ent && (ent.expires_date == null || Date.parse(ent.expires_date) > Date.now());
   }
 
   const { error: updErr } = await admin

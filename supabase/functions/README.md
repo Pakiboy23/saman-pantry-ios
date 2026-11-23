@@ -156,13 +156,18 @@ supabase functions deploy revenuecat-webhook --no-verify-jwt
 
 iOS POSTs this with the user JWT after `Purchases.logIn` and when customer
 info shows active Pro (`PurchaseService.requestRevenueCatSync`). Deploy with
-**verify_jwt on**. Writes `user_accounts.is_pro` from RevenueCat v2 using
-**`REVENUECAT_SECRET_KEY`** (not the v1 API key). Project `proje8d554d5`,
-entitlement id `entlec857d8f70` ("Saman Pro").
+**verify_jwt on**. Writes `user_accounts.is_pro` from RevenueCat v1
+`GET /subscribers/{id}` using **`REVENUECAT_SECRET_API_KEY`** (same secret
+and entitlement identifier `Saman Pro` as extract-recipe). Project
+`proje8d554d5`. The v2 `REVENUECAT_SECRET_KEY` path was removed in #94
+because that secret was never set.
 
 ```sh
-supabase secrets set REVENUECAT_SECRET_KEY=<revenuecat-v2-secret>
+# Same v1 key extract-recipe already needs. Do not set REVENUECAT_SECRET_KEY.
+supabase secrets set REVENUECAT_SECRET_API_KEY=<revenuecat-secret-api-key>
 supabase functions deploy revenuecat-sync
 ```
 
 401 invalid JWT, 502 RevenueCat down, 500 secret missing or update failed.
+Live was v8 (v2 path) when last checked 2026-11-16; deploy the repo file
+to pick up #94.
