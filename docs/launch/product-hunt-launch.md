@@ -1,21 +1,22 @@
 # Product Hunt launch copy (draft)
 
-Draft for owner approval. Matches the 1.6 build that is live today. Lines marked
-**1.7** only become true once 1.7 (server transcription) is approved and live.
+Draft for owner approval. Positioning: **recipe capture first, pantry second.**
+Launch on 1.7 (server transcription). On 1.6 the on-device recognizer turns
+"bhindi" into "beans", which undercuts a recipe-first pitch.
 
 ## Name (40 max)
 Samaan Pantry
 
 ## Tagline (60 max), pick one
-1. `A pantry app for desi kitchens, and the recipes behind them`
-2. `Atta, daal, masalas, and the recipes nobody wrote down`
-3. `Know what's low in your desi kitchen. Keep the recipes.`
+1. `Record your family's recipes the way they were told`
+2. `Turn a voice note from Ammi into a recipe you can cook`
+3. `Save desi recipes as they were said, andaza and all`
 
 ## Description (260 max)
-Samaan Pantry tracks the staples a desi kitchen runs on: atta, daal, ghee, masalas. See what's low, keep one shopping list, mark it bought, and the pantry updates. Record a recipe the way it was told to you and get a clean ingredient list. Andaza stays andaza.
+Record a recipe the way it was told to you, half Urdu, half English, "andaza se," and Samaan turns it into ingredients and steps. It never invents a number nobody said. Share it to a private family cookbook, then add what you're missing to your list.
 
 ## Topics (3)
-iOS · Food & Drink · Productivity
+iOS · Food & Drink · Artificial Intelligence
 
 ## Pricing
 Free, with an optional subscription (Samaan Pro: $7.99/month or $59.99/year).
@@ -28,33 +29,33 @@ Free, with an optional subscription (Samaan Pro: $7.99/month or $59.99/year).
 
 Salaam, I'm <name>, and I built Samaan Pantry.
 
-<One or two lines, in your words: the moment you ran out of atta on a Friday, or the recipe you almost lost.>
+<One or two lines, in your words: the recipe you almost lost, or the voice note you still haven't written down.>
 
-Every pantry app I tried treated haldi like paper towels. Desi kitchens run on a short list of staples that turn over on a rhythm, and when one runs out, dinner stops. So Samaan does one loop well:
+Recipes in our families aren't written down. They're told: on the phone, in the kitchen, half Urdu and half English. "Thora sa namak." "Andaza se." "Until it looks right." Generic recipe apps want exact grams. Speech-to-text turns bhindi into beans.
 
-**See what's low → add it to the list → shop → mark it bought → the pantry updates.**
+Samaan is built for how desi recipes are actually passed on:
 
-Then there's the part I care about most. Recipes in our families aren't written down. They're told: half Urdu, half English, "thora sa namak," "andaza se." Samaan lets you record or paste a recipe the way it was said and turns it into an ingredient list you can add to your shopping in one tap. It never invents a number your mother didn't say.
+- **Record it, upload a voice note, paste a link, or paste text.** Samaan pulls out the ingredients and steps.
+- **It keeps the original words.** "Haldi, andaza se" stays next to "turmeric." It never invents a measurement nobody said.
+- **Private family cookbooks.** Invite people with a link or code. Joining is free.
+- **A public community recipe book**, free to read.
+- **Then cook it.** Add the ingredients you're missing to your shopping list in one tap, and the pantry keeps track of what you have.
 
-You can also:
-- Read a public community recipe book, free
-- Start a private family cookbook and invite people with a link (joining is free)
-- Use the pantry and lists without an account
+**Pricing:** free to use, with 5 recipe extractions on a new account. Samaan Pro unlocks unlimited extractions and lets you start a family cookbook. The pantry and lists are unlimited on every plan.
 
-**Pricing:** free to use, with 5 recipe extractions on a new account. Samaan Pro unlocks unlimited extractions and lets you start a family cookbook. Pantry items and lists are unlimited on every plan.
+What it isn't: a meal planner or a place to browse a million recipes. It's for the ones your family already makes.
 
-What it isn't: a meal planner, a recipe discovery app, or grocery delivery. It's a quiet tool you open twice a week.
+Which recipe in your family is still only in someone's head?
 
-I'd love to hear which staple you always run out of, and what Samaan gets wrong about your kitchen.
-
-**1.7 line, add only once live:** Recordings are now transcribed on our server, so words like bhindi and zeera come through instead of turning into "beans" and "0."
+## Privacy line (keep it true)
+Recordings go to our server and to ElevenLabs for transcription. We don't store the audio; ElevenLabs may keep logs and transcripts under its standard terms. Don't say "audio never leaves your phone."
 
 ## Gallery (still missing)
 Product Hunt needs at least 2 images; 1270×760 recommended. Suggested order:
-1. Hero: the pantry with desi staples and low-stock dots, tagline on top.
-2. Recipe capture review: "haldi, andaza se" kept next to "turmeric."
-3. Shopping list mid-shop, a couple of items checked off.
-4. Family cookbook shelf.
-5. Optional: 30 to 60 second video of record → ingredients → add to list.
+1. Hero: recording a recipe (timer + level meter), tagline on top.
+2. The result: ingredients with "haldi, andaza se" kept next to "turmeric."
+3. A family cookbook shelf.
+4. "Add missing to list" → the shopping list.
+5. Optional: 30 to 60 second video of record → recipe → add to list.
 
 Capture real screens from the Simulator (`./scripts/capture-app-store-screenshots.sh`), then frame them. No mockups of features that are not shipped.
