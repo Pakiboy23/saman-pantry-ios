@@ -3,7 +3,7 @@
 This harness is the **public community book** (`recipe_book_cards`). Private
 invite-only cookbooks are a different surface: [`docs/family-cookbooks.md`](../../../docs/family-cookbooks.md).
 
-`008_recipe_book.sql` is the original community-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. `20261123000000_community_opt_in.sql` makes every recipe opt-in, keeps the cards that were already public, and labels cards with `family_label_for()`. The owner applies these; do not apply them from agents.
+`008_recipe_book.sql` is the original community-book migration. `012_recipe_book_url_opt_in.sql` lets an owner opt a URL recipe in. `20261123000000_community_opt_in.sql` makes every recipe opt-in, keeps the cards that were already public, and labels cards with `family_label_for()`. The owner applies these; do not apply them from agents. All three are applied in production (community opt-in on 23 Nov 2026).
 
 `recipe_book.ts` mirrors the publish rules so Linux CI can run the A / Sally cases without an iOS simulator or production Supabase:
 
