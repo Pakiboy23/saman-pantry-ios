@@ -89,7 +89,7 @@ Approved wording for the Community book:
 
 Captured recipes are private by default. The server side is live (migration
 applied 23 Nov 2026). Only use this wording publicly once 1.8, the build with
-the Share to Community toggle, is released. 1.7 still labels its recordings
+the Share to Community toggle, is released (1.8 build 218 is in App Review). 1.7 still labels its recordings
 "in the family book" even though they now stay private.
 
 ## Pricing
@@ -144,9 +144,9 @@ lifetime plan, "coming soon" family cookbooks, Android.
 
 1. Community is opt-in (PR #98, 1.8). `20261123000000_community_opt_in.sql`
    was applied in production on 23 Nov 2026: the 6 existing cards stayed up,
-   and new recipes from any app version now save private. 1.8 (218) is in
-   TestFlight. Still to do: release 1.8 and make sure it is the version live
-   for Product Hunt. Until then, 1.7 shows new recordings as "in the family
+   and new recipes from any app version now save private. #98 is merged and
+   1.8 (218) was submitted to App Review on 23 Nov 2026. Still to do: release
+   1.8 once approved and make sure it is the version live for Product Hunt. Until then, 1.7 shows new recordings as "in the family
    book" and has no way to share them.
 2. App strings that drift from this file: the paywall's "save 38%", the Home
    card's "Paste a transcript to extract ingredients", and "family book" for
