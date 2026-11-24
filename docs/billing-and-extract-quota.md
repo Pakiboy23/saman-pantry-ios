@@ -108,8 +108,8 @@ row returns 200 `{ matched: 0 }` so RevenueCat does not retry.
 [#94](https://github.com/Pakiboy23/saman-pantry-ios/pull/94) dropped the
 v2 `REVENUECAT_SECRET_KEY` path because that key was never set. Do not
 restore it. A leftover dashboard secret of that name is unused by repo
-code. Live `revenuecat-sync` was still v8 (the v2 path) when last checked
-on 2026-11-16; deploying the repo file is what picks up #94.
+code. Live `revenuecat-sync` v11 runs #94 and matches the repo file line
+for line (checked 2026-11-24).
 
 On `main` ([#78](https://github.com/Pakiboy23/saman-pantry-ios/pull/78)) the
 webhook skips non-PRODUCTION events and revokes TRANSFER donors. The live

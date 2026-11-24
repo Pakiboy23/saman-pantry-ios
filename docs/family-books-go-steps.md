@@ -1,9 +1,9 @@
 # Family cookbooks: go-steps
 
-SQL pair applied in prod (verified 2026-11-16). Remaining owner work: deploy
-repo `revenuecat-sync` (#94) if live is still v8, replace the hand-deployed
-webhook v9 with the repo file (#78), Associated Domains / AASA, App Privacy
-for 1.7, hosted privacy page.
+SQL pair applied in prod (verified 2026-11-16). `revenuecat-sync` #94 is live
+(v11, verified 2026-11-24), and the hosted privacy page covers family
+cookbooks (updated 2026-11-21). Remaining owner work: replace the hand-deployed
+webhook with the repo file (#78), Associated Domains / AASA.
 
 Architecture and iOS usage (shelves, RPCs, invite URLs, snapshot rules):
 [`family-cookbooks.md`](./family-cookbooks.md). Billing / RevenueCat identity:
@@ -43,8 +43,9 @@ Two files, applied in order:
    URL `https://mcknboqvblbonmaebmjg.supabase.co/functions/v1/revenuecat-webhook`,
    Authorization header = the same webhook secret, all events, production + sandbox.
    On `main` (#78) the function ignores non-PRODUCTION events and revokes TRANSFER
-   donors. Live v9 (checked 2026-11-16) is a hand-deployed variant that skips
-   sandbox but not TRANSFER. Deploying the repo file replaces it.
+   donors. The live function (checked 2026-11-24) is a hand-deployed variant
+   that skips sandbox but does not revoke on TRANSFER. Deploying the repo file
+   replaces it.
 5. Send a test event; it should return 200 with `matched: 0`.
 6. Backfill current Pro users once (set `user_accounts.is_pro` from RevenueCat customers),
    or have each Pro user reopen the app after a renewal event so `revenuecat-sync` runs. Grandfathered users can already create families.

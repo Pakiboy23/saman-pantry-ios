@@ -12,4 +12,4 @@ Live source of truth:
 - [`supabase/functions/README.md`](../../supabase/functions/README.md) — secrets and deploy commands.
 - [`supabase/migrations/011_billing_grandfathered_and_quota.sql`](../../supabase/migrations/011_billing_grandfathered_and_quota.sql) — current reserve RPC. 004/009 are the older event table.
 
-011, 012, and both family-books migrations were applied in prod (verified 2026-11-16). Remaining owner deploys: repo `revenuecat-sync` (#94) if live is still v8, and repo `revenuecat-webhook` (#78) over the hand-deployed v9. Keep those blockers in `MEMORY.md` only.
+011, 012, and both family-books migrations were applied in prod (verified 2026-11-16). `revenuecat-sync` #94 is live (v11, verified 2026-11-24). Remaining owner deploy: repo `revenuecat-webhook` (#78) over the hand-deployed variant. Keep that blocker in `MEMORY.md` only.
