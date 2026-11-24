@@ -1,67 +1,55 @@
 # Project Memory
-Last updated: 2026-11-20 | Branch: main
-Memory health: 8/10
+Last updated: 2026-11-24 | Branch: main
+Memory health: 9/10
 
 ## Project Overview
 Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Legal entity: Saman Technologies LLC dba Samaan Technologies. Bundle `com.samanpantry.Saman` and `samanpantry.com` stay single-a. Paid tier: Samaan Pro. THESIS.md wins product arguments.
 
 ## Where We Left Off
-- **App Store:** Last verified live is **Samaan Pantry 1.3 (build 133)**, released 2026-10-05 (`788fafd`: recording, audio-file intake, public family recipe book). Do not claim 1.5, 1.6, or 1.7 is live without App Store Connect.
-- **main:** marketing **1.7** (#87). Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), `revenuecat-sync` on v1 subscribers (#94). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` in the pbxproj is not the App Store Connect build number.
-- **Server (verified 2026-11-16 via the Supabase connector; #94 not confirmed deployed):** `extract-recipe` **version 21** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. Migrations through `011`, `012`, and both family-books migrations are applied. Also live: `delete-account` v11, `revenuecat-sync` v8 (pre-#94 v2 path), `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. **Live `revenuecat-sync` v8 is not #94.** Repo code uses `REVENUECAT_SECRET_API_KEY` and `/v1/subscribers`. Secret names are not visible to the connector; confirm in the dashboard.
-- **Server transcription (spec `docs/server-transcription-spec.md`):** PRs A–D are on `main`. PR A (#83) live in v19+. PR B (#84) + alternatives (#85) live in v21. PR C (#86) records AAC to a file and uploads it; Apple recognizer gone. PR D (#92/#93) is consent v2, PrivacyInfo audio, and store-listing drafts. Shipping 1.3 still transcribes on device. A 1.7 App Store build is not live.
-- **Next immediate step:** owner deploys repo `revenuecat-sync` (#94) if live is still v8, decides on webhook #78 vs live v9, updates hosted privacy, then with Haaris's OK picks a 1.7 TestFlight for App Review. Nothing goes to App Review without Haaris's explicit OK.
-- **Open question:** owner-console items below are unconfirmed; ask, don't assume.
+- **App Store:** **Samaan Pantry 1.7 is live**, released 2026-11-23 (build number not recorded here). Prior releases: 1.3 (133, 2026-10-05), 1.2 (119), 1.1 (106), 1.0 (89). **1.8 (218) was submitted to App Review on 2026-11-23** (Community opt-in, #98) and is not approved yet. Do not claim a later version is live without App Store Connect.
+- **main:** marketing **1.8** (#98). 1.8 adds Community opt-in per recipe (#98) and the docs true-up (#99). 1.7 content: server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), `revenuecat-sync` on v1 subscribers (#94). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` (108 in the pbxproj) is not the App Store Connect build number.
+- **Server (verified 2026-11-16 via the Supabase connector; #94 not confirmed deployed):** `extract-recipe` **version 21** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. Migrations through `011`, `012`, both family-books migrations, and `20261123000000_community_opt_in` (applied 2026-11-23, verified via the connector) are applied. Also live: `delete-account` v11, `revenuecat-sync` v8 (pre-#94 v2 path), `revenuecat-webhook` v9, and `asr-bakeoff` v4 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. **Live `revenuecat-sync` v8 is not #94.** Repo code uses `REVENUECAT_SECRET_API_KEY` and `/v1/subscribers`. Secret names are not visible to the connector; confirm in the dashboard.
+- **Server transcription (spec `docs/server-transcription-spec.md`):** PRs A–D are on `main`. PR A (#83) live in v19+. PR B (#84) + alternatives (#85) live in v21. PR C (#86) records AAC to a file and uploads it; Apple recognizer gone. PR D (#92/#93) is consent v2, PrivacyInfo audio, and store-listing drafts. Live 1.7 uploads the recording for server transcription. Never say audio stays on the phone for a 1.7 build.
+- **Next immediate step:** 1.8 (218) is in App Review. When it clears, release it before the Product Hunt launch (Haaris's call). In parallel, owner deploys repo `revenuecat-sync` (#94) if live is still v8, decides webhook #78 vs live v9, and confirms the hosted privacy page covers HeyCatch, family cookbooks, and server transcription. Nothing is submitted or released without Haaris's explicit OK.
+- **Open question:** owner-console items below are unconfirmed; ask, don't assume. Two launch PRs are open as drafts: #97 (Product Hunt copy) and #100 (App Store creative + PH launch video).
 
 ## Completed
+- 2026-11-24 PR #100 opened (draft): App Store creative, 3 screenshots, Product Hunt launch video, render scripts under `marketing/`.
+- 2026-11-23 **1.7 released on the App Store.** **1.8 (218) submitted to App Review** the same day. Community is opt-in for every recipe (#98, migration `20261123000000_community_opt_in`, applied in prod). Marketing 1.8. Docs true-up (#99). PH copy draft (#97, open).
 - 2026-11-20 Docs: skill/MEMORY/runbooks match 1.7, PRs C/D shipped, `revenuecat-sync` v1 key (#94). Live sync still unverified as v8.
-- 2026-11-18 `revenuecat-sync` uses v1 `REVENUECAT_SECRET_API_KEY` and `/subscribers` (#94).
-- 2026-11-18 Privacy manifest matches the live App Privacy label (#93); PR D disclosures (#92).
-- 2026-11-16 Server transcription PR C (#86): record to file, upload, Apple recognizer gone.
-- 2026-11-16 Server transcription PR A (#83) merged and deployed as `extract-recipe` v19 with Haaris's OK. Spec merged (#82).
-- 2026-11-16 Sandbox webhook filter + TRANSFER donor revoke on `main` (#78). Live webhook differs, see Server above.
+- 2026-11-18 `revenuecat-sync` uses v1 `REVENUECAT_SECRET_API_KEY` and `/subscribers` (#94). Privacy manifest matches the live App Privacy label (#93); PR D disclosures (#92).
+- 2026-11-16 Server transcription PR C (#86): record to file, upload, Apple recognizer gone. PR A (#83) deployed as `extract-recipe` v19 with Haaris's OK; spec merged (#82). Sandbox webhook filter + TRANSFER donor revoke on `main` (#78) — the live webhook differs, see Server above.
 - 2026-11-06 Docs: skill and MEMORY match 1.6 including #71/#74/#76/#79. Runbooks: `docs/billing-and-extract-quota.md`, `docs/analytics.md`, `docs/family-cookbooks.md`. Prior docs PRs #72 and #80 never merged.
 - 2026-11-01 Family `saveCopy` stays a private `.url` recipe and does not auto-publish to Community (#79).
-- 2026-10-24 Family cookbooks for 1.6 (#74): private families, invites, snapshots, RevenueCat webhook/sync in-repo. Go-steps in `docs/family-books-go-steps.md`.
 - 2026-10-26 Identify RevenueCat with the Supabase user id (#76).
-- 2026-10-21 HeyCatch bind only for signed-in users (#71). HeyCatch product analytics (#69). Marketing 1.6.
-- 2026-10-15 Samaan copy / gender-neutral demo strings (#70).
+- 2026-10-24 Family cookbooks for 1.6 (#74): private families, invites, snapshots, RevenueCat webhook/sync in-repo. Go-steps in `docs/family-books-go-steps.md`.
+- 2026-10-21 HeyCatch bind only for signed-in users (#71). HeyCatch product analytics (#69). Marketing 1.6. Samaan copy / gender-neutral demo strings (#70, 10-15).
 - 2026-10-12 Family book opt-in for link recipes (#68, migration 012). Billing free-tier + Pro paywall + first-launch onboarding (#66, migration 011). Marketing 1.5 (#67).
 - 2026-10-08 Docs: skill and MEMORY match 1.3 live / 1.3.1 on main (since superseded). extract-recipe v9. Parser hardening (#61), #63 meta/caption scan on main (not deployed).
 - 2026-10-07 Voice capture keeps the full transcript; link-shaped miss errors fixed (#60). Stale auth sessions no longer restore signed-out accounts (#59).
 - 2026-10-06 Atomic 5/day extraction quota (#58). Cross-owner recipe book card mutations blocked (#57). JSON-LD instruction budget (#54). Int-conversion crash fix (#56). Both 009 migrations applied.
 - 2026-10-05 1.3 (133) released. Recording keeps the full transcript across pauses (#49); marketing 1.3.1 (#50).
 - 2026-10-04 On-device transcription of a recording or audio file into the recipe extract (#46). Public family recipe book for transcript saves (#44).
-- 2026-09-26 Recipe link extraction (#39), shipped in 1.2 (119) alongside Samaan Pro. Migrations 003 through 006 applied. 1.2 prices were Monthly $4.99 / Yearly $39.99 / Lifetime $79.99 — **not** the current fixture.
+- 2026-09-26 Recipe link extraction (#39), shipped in 1.2 (119) alongside Samaan Pro. Migrations 003-006 applied. 1.2 prices were Monthly $4.99 / Yearly $39.99 / Lifetime $79.99 — **not** the current fixture.
 - 2026-09-25 Anonymous usage events and one-time Anthropic consent (#36), shipped in 1.1 (106).
-- 2026-09-18 Deleted June `LAUNCH_REVIEW.md` / `APP_STORE_READINESS_REPORT.md`, duplicate `docs/launch/PrivacyInfo.xcprivacy`, and replaced the obsolete Edge Function spec with a pointer at `supabase/functions/`. Trued up skill, MEMORY, THESIS, and screenshot copy for guest browse + mark-bought restock.
-- 2026-09-17 Deleted unreachable `ReorderView` / `ReorderItemRow` / private `RestockSheet`, trimmed the unwired LowStockBanner chevron, and dropped the two root `*.pages` thesis binaries (#21).
-- 2026-09-15 Guest browse + in-binary Privacy/Terms/Support (Auth, Settings LEGAL, paywall inset). Unsigned launch reaches the tab shell. Auth only for sync, extract, delete account. Build 65 (#20).
-- 2026-09-19 Monetization honesty (1.2-era): named the then-real gates (30 pantry items, extra list). **Superseded 2026-10-12** — pantry/lists are unlimited; 402 is a Pro upsell; Pro lifts extract when RevenueCat verifies.
-- 2026-09-05 extract-recipe requires the user JWT and a quota table. Client sends the access token.
-- 2026-09-05 Password recovery completes in-app: URL scheme, `onOpenURL`, `redirectTo`, `.passwordRecovery` is not a sign-out.
-- 2026-09-05 Deleted unreachable `PantryListView` / `AddPantryView`.
-- 2026-08-29 `samanpantry.com/privacy` and `/support` verified live: both return 200. Apex 307s to `www`, which is fine for App Review and for `Config.privacyPolicyURL` / `Config.supportURL`. Legal URLs are no longer a blocker.
-- 2026-08-29 Deleted dead scaffolding: `ItemRepository` (never injected, and its bare `context.delete` was a copy-paste trap) and `PricesView` (orphaned stub, already cut from the tab bar).
-- 2026-08-23 Pull-sync + tombstones. Upload dirty, then pull. Local dirty wins. Missing server row deletes clean local.
-- 2026-08-23 Recipe `updatedAt` + `recipes` table migration. Recipe deletes now tombstone.
-- 2026-08-23 Password reset on AuthView. Friendly auth errors.
-- 2026-08-23 Item detail copy is "Flag as low below" — no notification lie.
-- 2026-08-23 PrivacyInfo in the synchronized Saman/ group. Device family iPhone only.
-- 2026-08-23 samaan-pantry-expert skill on main via #5.
-- 2026-04-20 #2 Reorder writeback (tab later deleted; restock is mark-bought).
-- 2026-04-19 THESIS.md + foundation.
+- 2026-09-15..19 Guest browse + in-binary legal links, build 65 (#20). ReorderView / RestockSheet / `*.pages` deleted (#21). June launch reports deleted, docs trued up. 1.2-era monetization copy superseded 2026-10-12 (pantry and lists are unlimited).
+- 2026-08-23..09-05 Foundation: pull-sync + tombstones (local dirty wins), recipe `updatedAt` + tombstones, extract-recipe JWT + quota, in-app password recovery, iPhone-only, PrivacyInfo in the synchronized group, "Flag as low below" copy, `PantryListView` / `AddPantryView` / `ItemRepository` / `PricesView` deleted, live legal URLs, expert skill on main (#5).
+- 2026-04 THESIS.md + foundation (#2 restock writeback; the Reorder tab was deleted later, restock is mark-bought).
 
 ## Active Work
 - [x] 011, 012, family-books migrations applied in prod (verified 2026-11-16)
+- [x] `20261123000000_community_opt_in` applied in prod (verified 2026-11-23)
+- [x] Community opt-in toggle per recipe on `main`, ships in 1.8 (#98)
 - [x] `extract-recipe` deployed (v19, 2026-11-16)
 - [ ] Owner, confirm don't assume: `REVENUECAT_SECRET_API_KEY` set (else Pro is metered as free)
 - [ ] Deploy repo `revenuecat-sync` (#94) if live is still v8
 - [ ] Decide: deploy repo `revenuecat-webhook` (#78, TRANSFER donor revoke) over the hand-deployed v9
 - [ ] Delete `asr-bakeoff` from prod if the bake-off is done
 - [ ] Owner: family-books remaining go-steps (AASA, webhook auth, App Privacy for 1.7)
-- [ ] Update hosted `samanpantry.com/privacy` for HeyCatch, family cookbooks, and server transcription before the 1.7 submit
-- [ ] With Haaris's OK: attach a 1.7 TestFlight build and submit
+- [ ] Confirm hosted `samanpantry.com/privacy` covers HeyCatch, family cookbooks, and server transcription (1.7 is live; not verified here)
+- [x] 1.8 (218) submitted to App Review (2026-11-23)
+- [ ] Release 1.8 once App Review approves, before the Product Hunt launch (Haaris's call)
+- [ ] Land the launch assets: #97 (PH copy) and #100 (creative + video) are open drafts
 - [x] #78 on `main`: ignore sandbox RevenueCat webhooks; revoke TRANSFER donors (not the live variant)
 - [x] Server transcription PR A (#83) merged and live
 - [x] Server transcription PR B (#84) merged, live in v20
@@ -83,6 +71,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-11-23 | Community sharing is opt-in per recipe | Transcript saves were auto-publishing a public card. The owner now sets "Share to Community"; the 6 cards that already existed were kept by backfilling the flag | Recipe.shareInFamilyBook, 20261123000000_community_opt_in, Recipes UI |
 | 2026-11-16 | Prompt changes gate on `scripts/recipe-eval.ts` against a private recording set | The repo is public; recordings and transcripts never enter it. The script tests the checkout's prompt before deploy | prompts.ts, release checklist |
 | 2026-11-16 | Move recording transcription to the server (ElevenLabs Scribe v2), engine as a server setting | Apple on-device mangles desi words and duplicates partials; Scribe v2 got bhindi/zeera right on a real recording | extract-recipe, RecipeAudioTranscriber (removed in PR C), privacy copy (PR D) |
 | 2026-10-24 | Private family cookbooks; Pro/grandfathered to create; join free | Recipe sharing among invited members is not household mode | FamilyService, family_* tables, paywall `.createFamily` |
@@ -111,7 +100,9 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [x] Live legal URLs, guest browse (#20), Reorder UI deleted (#21)
 - [x] 1.0 through 1.3 on the App Store; Samaan Pro since 1.2
 - [x] Billing split + onboarding + community-book URL opt-in + HeyCatch + family cookbooks on `main` (1.6)
-- [ ] Remaining family-books go-steps + hosted privacy; then 1.7 App Review after Haaris's OK
+- [x] 1.7 live on the App Store (2026-11-23)
+- [ ] Release 1.8 (in App Review: Community opt-in) before the Product Hunt launch, after Haaris's OK
+- [ ] Remaining family-books go-steps + hosted privacy confirmation
 - [ ] Household mode only after 500 WAU + 30% asking + sync stable
 
 ## Strategic decisions (do not reopen)
@@ -131,6 +122,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - Live `revenuecat-webhook` v9 is not the repo file and does not revoke TRANSFER donors.
 - Live `revenuecat-sync` v8 (checked 2026-11-16) is not #94. Repo uses `REVENUECAT_SECRET_API_KEY`.
 - `asr-bakeoff` is live in prod and not in the repo.
+- Live 1.7 cannot share a spoken recipe to Community and still labels them "in the family book". The opt-in toggle ships in 1.8.
 
 ## Key Files
 | File | Purpose |
@@ -152,3 +144,5 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 | supabase/migrations/011_billing_grandfathered_and_quota.sql | `user_accounts`, reserve RPC, `my_extraction_quota_status` |
 | supabase/migrations/012_recipe_book_url_opt_in.sql | `share_in_family_book` for link recipes |
 | supabase/migrations/20261024000000_family_books.sql | Private families |
+| supabase/migrations/20261123000000_community_opt_in.sql | Per-recipe Community opt-in, `family_label_for()` |
+| marketing/ | App Store creative, screenshots, PH launch video + render scripts (#100, draft) |
