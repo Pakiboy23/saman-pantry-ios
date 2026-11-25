@@ -49,7 +49,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 **Analytics.** Dual sink: anonymous Supabase `events` row + HeyCatch (PostHog iOS SDK). `HeyCatch.bind` identifies only a signed-in Supabase user id (#71). No recipe text or personal content as properties. Details: `docs/analytics.md`. Tests / previews / screenshots never start HeyCatch.
 
 **Supabase (verified 24 Nov 2026 through the Supabase connector; re-check before claiming).**
-- The project is ACTIVE_HEALTHY on the **free plan**. It paused once (INACTIVE on 9 Nov 2026) and has no dashboard backups. Moving to Pro is Haaris's call.
+- The project is ACTIVE_HEALTHY. The org moved to the **Pro plan** on 25 Nov 2026 (verified via connector), so the free-plan pause (it went INACTIVE on 9 Nov 2026) no longer applies. Leaked password protection is still off; Pro allows turning it on in Auth settings.
 - `extract-recipe` **version 23** is live and byte-identical to `main` at #85: billing, URL extraction, the audio route, speech prompt rules 4-6, and alternatives as one ingredient. v20 (#84) and v19 (#83) are rollbacks.
 - All migrations on `main` are applied, including 011, 012, and both family-books migrations. `20261123000000_community_opt_in` (PR #98) is also applied (23 Nov 2026).
 - Also live (checked 2026-11-24): `delete-account` v13, `revenuecat-sync` v11 (#94), `revenuecat-webhook` v11 (hand-deployed, see below), `asr-bakeoff` v6 (not in the repo).
@@ -100,7 +100,7 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 - Pre-confirmed App Review demo account exists and still signs in.
 - `samaan://auth-callback` is in Supabase Auth → URL Configuration → Redirect URLs.
 - Production secrets `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_WEBHOOK_AUTH`, and the ElevenLabs key name. (Migrations and function versions can be checked with the Supabase connector. `REVENUECAT_SECRET_KEY` is unused after #94.)
-- Which ElevenLabs account and plan production's key uses. On 2026-11-24 the ElevenLabs account connected to Claude was on the free tier (5,310 of 10,000 credits used, no extension). If production uses it, recordings fail once credits run out.
+- Which ElevenLabs account production's key uses. The account connected to Claude moved from free to the Creator plan on 25 Nov 2026 (verified via the API: 125,690 credits a month). Watch credits during launch week.
 - Auth email. Sign-up sends a confirmation email, and Extract Recipe needs an account. Confirm the custom SMTP provider and its daily cap, and the email limit under Supabase Auth → Rate Limits.
 
 ## Do not
@@ -115,7 +115,7 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 
 ## Next repo work (order)
 
-1. Owner, before the Product Hunt launch (6 Dec 2026): confirm the ElevenLabs plan behind production's key, confirm auth email SMTP and rate limits, and decide on Supabase Pro.
+1. Owner, before the Product Hunt launch (6 Dec 2026): confirm auth email SMTP and rate limits, and turn on leaked password protection. Supabase Pro and ElevenLabs Creator are done (25 Nov 2026).
 2. Owner: decide whether to replace the hand-deployed webhook with the repo version (#78, TRANSFER donor revoke).
 3. Next app build: fix the copy drift listed in `docs/launch/copy.md` ("save 38%", the Home card's "Paste a transcript to extract ingredients").
 4. Haaris: settle positioning. THESIS.md says pantry first; every public surface says recipe first.

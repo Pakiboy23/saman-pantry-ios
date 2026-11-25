@@ -9,12 +9,13 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - **App Store:** **Samaan Pantry 1.8 is live**, released 2026-11-24 (Community opt-in, #98; build 218). Verified with Apple's public lookup in US, GB, CA, IN, PK, AE, AU, and SG. 1.7 went live 2026-11-23. 1 rating (US) as of 2026-11-24.
 - **Product Hunt:** launch 1329488 submitted 2026-11-24, scheduled for Sunday 2026-12-06 00:00 Pacific. Copy and status in `docs/launch/copy.md`.
 - **main:** marketing **1.8** (#98). Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), `revenuecat-sync` on v1 subscribers (#94), Community opt-in (#98). Xcode Cloud supplies build numbers; `CURRENT_PROJECT_VERSION` in the pbxproj is not the App Store Connect build number.
-- **Server (verified 2026-11-24 via the Supabase connector):** project ACTIVE_HEALTHY on the **free plan**. `extract-recipe` **version 23** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. All migrations on `main` are applied, including `20261123000000_community_opt_in`. Also live: `delete-account` v13, `revenuecat-sync` v11 (#94, matches the repo file line for line), `revenuecat-webhook` v11, and `asr-bakeoff` v6 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. Secret names are not visible to the connector; confirm in the dashboard.
+- **Server (verified 2026-11-24 via the Supabase connector):** project ACTIVE_HEALTHY. Org on the **Pro plan** since 2026-11-25 (verified). `extract-recipe` **version 23** is live and byte-identical to `main` at #85 (billing, URL extraction, audio route, speech prompt rules 4-6, alternatives stay one ingredient). v20 = #84 and v19 = #83 are rollbacks. All migrations on `main` are applied, including `20261123000000_community_opt_in`. Also live: `delete-account` v13, `revenuecat-sync` v11 (#94, matches the repo file line for line), `revenuecat-webhook` v11, and `asr-bakeoff` v6 (not in the repo; leftover from the engine bake-off). **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file:** it ignores sandbox events but ignores `TRANSFER` (no donor revoke), unlike #78 on `main`. Secret names are not visible to the connector; confirm in the dashboard.
 - **Server transcription (spec `docs/server-transcription-spec.md`):** PRs A–D are on `main` and shipped from 1.7. PR A (#83) live in v19+. PR B (#84) + alternatives (#85) live in v21 and later. PR C (#86) records AAC to a file and uploads it; Apple recognizer gone. PR D (#92/#93) is consent v2, PrivacyInfo audio, and store-listing drafts. 1.3 and earlier transcribed on device.
-- **Next immediate step:** before the Product Hunt launch, the owner confirms which ElevenLabs account and plan production's key uses (the account connected to Claude was free tier, 5,310 of 10,000 credits used, on 2026-11-24), confirms auth email SMTP and rate limits, and decides on Supabase Pro. Webhook #78 vs the live variant is still open. Nothing goes to App Review without Haaris's explicit OK.
+- **Next immediate step:** before the Product Hunt launch, the owner confirms auth email SMTP and rate limits and turns on leaked password protection. Supabase is on Pro and ElevenLabs on Creator (both 2026-11-25, verified). Webhook #78 vs the live variant is still open. Nothing goes to App Review without Haaris's explicit OK.
 - **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
+- 2026-11-25 Supabase org moved to Pro; ElevenLabs moved from free to Creator (both verified via API).
 - 2026-11-24 1.8 live on the App Store. Product Hunt launch submitted for 2026-12-06; maker comment pricing line now says "5 recipe extractions, no card". Docs: skill/MEMORY/copy/runbooks match 1.8 live, `revenuecat-sync` #94 deployed (v11), hosted privacy page verified (updated 2026-11-21).
 - 2026-11-23 Community opt-in for every recipe (#98); migration `20261123000000_community_opt_in` applied. 1.7 live; 1.8 (218) submitted to App Review.
 - 2026-11-20 Docs: skill/MEMORY/runbooks match 1.7, PRs C/D shipped, `revenuecat-sync` v1 key (#94). Live sync still unverified as v8.
@@ -60,7 +61,8 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - [x] `extract-recipe` deployed (v19, 2026-11-16)
 - [ ] Owner, confirm don't assume: `REVENUECAT_SECRET_API_KEY` set (else Pro is metered as free)
 - [x] `revenuecat-sync` #94 deployed (v11, verified 2026-11-24)
-- [ ] Owner, before the 2026-12-06 Product Hunt launch: ElevenLabs plan behind production's key; auth email SMTP and rate limits; Supabase Pro decision
+- [x] Supabase org on Pro; ElevenLabs on Creator (2026-11-25, verified)
+- [ ] Owner, before the 2026-12-06 Product Hunt launch: auth email SMTP and rate limits; turn on leaked password protection
 - [x] Product Hunt launch submitted, scheduled 2026-12-06 00:00 Pacific
 - [ ] Decide: deploy repo `revenuecat-webhook` (#78, TRANSFER donor revoke) over the hand-deployed variant
 - [ ] Delete `asr-bakeoff` from prod if the bake-off is done
@@ -135,7 +137,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - Xcode Cloud's single `Default` workflow archives and uploads a TestFlight build on every branch push. Use `[ci skip]` for docs-only pushes.
 - Live `revenuecat-webhook` is a hand-deployed variant, not the repo file, and does not revoke TRANSFER donors.
 - `asr-bakeoff` is live in prod and not in the repo.
-- Supabase project is on the free plan: it paused once (2026-11-09) and has no dashboard backups. Leaked password protection is off (security advisor).
+- Leaked password protection is off (security advisor). The org is on Pro now, so it can be turned on in Auth settings.
 - App strings drift from `docs/launch/copy.md`: paywall "save 38%" (the math is 37.4%) and the Home card's "Paste a transcript to extract ingredients".
 - Positioning: THESIS.md and the strategic decisions above say pantry first; the App Store, site, and Product Hunt lead recipe first. Needs Haaris's decision.
 
