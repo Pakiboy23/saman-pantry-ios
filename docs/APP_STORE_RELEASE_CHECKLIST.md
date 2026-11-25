@@ -5,12 +5,12 @@
 - Confirm `Config.recipeExtractionEndpoint` points at the production Supabase Edge Function.
 - Apply `011_billing_grandfathered_and_quota.sql` **before** deploying `extract-recipe`, or every extract 500s. Apply `012_recipe_book_url_opt_in.sql` or URL community-book opt-in is a no-op on the server. See `docs/billing-and-extract-quota.md`.
 - Deploy `supabase/functions/extract-recipe` and set `ANTHROPIC_API_KEY` as a Supabase secret. Optional: `YOUTUBE_API_KEY` (YouTube Data API v3). Without it, YouTube links use the public watch page. Set `REVENUECAT_SECRET_API_KEY` or Pro subscribers stay on the free-tier meter.
-- Family cookbooks: follow `docs/family-books-go-steps.md` (SQL pair already applied; remaining: `revenuecat-webhook` #78, `revenuecat-sync` #94 with `REVENUECAT_SECRET_API_KEY`, Associated Domains / AASA). Architecture: `docs/family-cookbooks.md`.
+- Family cookbooks: follow `docs/family-books-go-steps.md` (SQL pair already applied and `revenuecat-sync` #94 deployed; remaining: `revenuecat-webhook` #78, Associated Domains / AASA). Architecture: `docs/family-cookbooks.md`.
 - Apply `supabase/migrations/007_recipe_shared_event.sql` or `recipe_shared` inserts are rejected by the events check constraint.
 - Rotate/revoke any Anthropic key that was previously committed or shared.
 - Confirm Supabase migrations in `supabase/migrations` have been applied to production.
 - Verify RevenueCat app, offering, package, entitlement (`Saman Pro`), and product IDs against App Store Connect. Fixture prices in-repo are $7.99 / $59.99; live cards use the offering. After sign-in the SDK `logIn`s with the lowercased Supabase user id.
-- Update the hosted privacy page from `docs/launch/legal-and-privacy.md` (HeyCatch, family cookbooks, server transcription) before submitting a 1.7 build.
+- Keep the hosted privacy page in step with `docs/launch/legal-and-privacy.md`. It was last updated 21 Nov 2026 (HeyCatch, family cookbooks, server transcription).
 - Create and test a reviewer account with a known email/password.
 - Run `ci_scripts/check_secrets.sh`.
 - Run the recording test set and confirm every case passes: `deno run --allow-env --allow-read --allow-net scripts/recipe-eval.ts --manifest <private manifest>`. No build goes to review on a failing case.

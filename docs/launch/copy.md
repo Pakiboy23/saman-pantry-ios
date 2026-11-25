@@ -1,11 +1,12 @@
-# Samaan Pantry copy: source of truth (version 1.7)
+# Samaan Pantry copy: source of truth (version 1.8)
 
 Every public surface pulls from this file: the App Store listing and screenshots,
 samanpantry.com, the Pantry section of samaan.tech, and the Product Hunt page,
 gallery, and video. When the app changes, change this file first, then the
 surfaces.
 
-Checked against `main` at c1a6da2 on 21 November 2026.
+Checked against `main` at bfc1db0 on 24 November 2026. 1.8 is live on the App
+Store (released 24 Nov 2026).
 
 ## Names
 
@@ -88,9 +89,9 @@ Approved wording for the Community book:
 > time.
 
 Captured recipes are private by default. The server side is live (migration
-applied 23 Nov 2026). Only use this wording publicly once 1.8, the build with
-the Share to Community toggle, is released (1.8 build 218 is in App Review). 1.7 still labels its recordings
-"in the family book" even though they now stay private.
+applied 23 Nov 2026), and 1.8, the build with the Share to Community toggle,
+went live on 24 Nov 2026. This wording is cleared for public use. Anyone still
+on 1.7 sees recordings labeled "in the family book" until they update.
 
 ## Pricing
 
@@ -118,11 +119,17 @@ lifetime plan, "coming soon" family cookbooks, Android.
 
 ## Product Hunt
 
+- **Status:** submitted 24 Nov 2026. Scheduled for Sunday 6 Dec 2026 at 00:00
+  Pacific (launch 1329488, producthunt.com/posts/samaan-pantry). Maker and
+  hunter: haarisshariff (shows as Syed Shariff). Edits to a scheduled launch can
+  be public, so get Haaris's OK before changing it.
 - **Name:** Samaan Pantry
 - **Tagline (54 of 60):** Turn family voice notes into recipes you can cook from
-- **Description (234 of 260):** Your family's recipes live in voice notes and memory. Record someone at the stove or on the phone, in mixed Urdu, Hindi, Punjabi, and English. Samaan Pantry turns it into ingredients and steps, and andaza stays andaza. Free on iPhone.
-- **Gallery:** V2-Problem, V2-Record, V2-Andaza, V2-Family, V2-Pantry (dark, 1270x760).
-- **Video:** 26-second 1.7 cut. YouTube link, unlisted or public.
+- **Description (234 of 500):** Your family's recipes live in voice notes and memory. Record someone at the stove or on the phone, in mixed Urdu, Hindi, Punjabi, and English. Samaan Pantry turns it into ingredients and steps, and andaza stays andaza. Free on iPhone.
+- **Link:** samaanpantry.com (redirects to www.samanpantry.com). Extra links: samaan.tech and the App Store page.
+- **Topics:** Cooking, Food & Drink, iOS.
+- **Gallery:** V2-Problem, V2-Record, V2-Andaza, V2-Family, V2-Pantry (dark, 1270x760 designs uploaded at 2540x1520).
+- **Video:** 26-second 1.7 cut, youtu.be/TEcYWp2bi0o.
 - **Pricing tag:** Free options (in-app purchase).
 
 ### Maker comment
@@ -136,20 +143,24 @@ lifetime plan, "coming soon" family cookbooks, Android.
 > andaza. Then you can start a private family cookbook and invite people with a
 > code.
 >
-> Free to start, 5 recipes for life. Samaan Pro is $7.99 a month or $59.99 a year.
+> Free to start: 5 recipe extractions, no card. The pantry and shopping lists
+> stay free. Samaan Pro is $7.99 a month or $59.99 a year.
 >
 > I'd love to hear which recipe you'd save first.
 
 ## Open items for Haaris
 
-1. Community is opt-in (PR #98, 1.8). `20261123000000_community_opt_in.sql`
-   was applied in production on 23 Nov 2026: the 6 existing cards stayed up,
-   and new recipes from any app version now save private. #98 is merged and
-   1.8 (218) was submitted to App Review on 23 Nov 2026. Still to do: release
-   1.8 once approved and make sure it is the version live for Product Hunt. Until then, 1.7 shows new recordings as "in the family
-   book" and has no way to share them.
-2. App strings that drift from this file: the paywall's "save 38%", the Home
-   card's "Paste a transcript to extract ingredients", and "family book" for
-   what the tab calls Community.
-3. The App Store seller line shows Syed Shariff. The website says Haaris Shariff.
+1. Done: Community is opt-in (PR #98). The migration was applied on 23 Nov 2026
+   and 1.8 went live on 24 Nov 2026 (Apple's public lookup in US, GB, CA, IN,
+   PK, AE, AU, and SG), so Product Hunt visitors get the Share to Community build.
+2. App strings that drift from this file: the paywall's "save 38%" and the Home
+   card's "Paste a transcript to extract ingredients". Fix in the next build.
+   ("Family book" for Community is gone from the app strings in 1.8.)
+3. The App Store seller line and the Product Hunt maker both show Syed Shariff.
+   The website says Haaris Shariff. Pick one.
 4. THESIS.md says pantry first. Every public surface now says recipe first.
+5. Product Hunt video: it is the 1.7 cut. Check it doesn't show a recording
+   labeled "in the family book".
+6. Product Hunt gallery: Product Hunt suggests the first image show the app in
+   use rather than a text slide. V2-Problem is first. Consider leading with
+   V2-Record.

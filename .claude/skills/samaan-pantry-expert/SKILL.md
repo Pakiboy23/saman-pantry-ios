@@ -16,11 +16,13 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 - Legal entity: **Saman Technologies LLC dba Samaan Technologies**.
 - No em dashes in app-facing copy (App Store text, in-app strings, paywall).
 
-## Current state (20 Nov 2026, verified against `main`)
+## Current state (24 Nov 2026, verified against `main`)
 
-**App Store.** **Samaan Pantry 1.7 is live** (Haaris, 23 Nov 2026). Build number not recorded here. **1.8 (218) was submitted to App Review on 23 Nov 2026** (Community opt-in, #98). Earlier: 1.3 (133, 5 Oct 2026), 1.2 (119), 1.1 (106), 1.0 (89). Do not claim a later version is live unless App Store Connect says so.
+**App Store.** **Samaan Pantry 1.8 is live**, released 24 Nov 2026 (Community opt-in, #98; build 218 per the 23 Nov App Review submission). Confirmed with Apple's public lookup (`https://itunes.apple.com/lookup?id=6761982454&country=us`) in US, GB, CA, IN, PK, AE, AU, and SG. 1.7 went live 23 Nov 2026. Earlier: 1.3 (133, 5 Oct 2026), 1.2 (119), 1.1 (106), 1.0 (89). Do not claim a later version is live unless App Store Connect or that lookup says so.
 
-**main is 1.8.** `MARKETING_VERSION = 1.8` (#98, merged 23 Nov 2026). 1.8 (218), built from the #98 branch, is in App Review. Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), and `revenuecat-sync` on the v1 subscribers endpoint (#94). Build numbers come from Xcode Cloud, not the repo. `CURRENT_PROJECT_VERSION` in the pbxproj is **not** the App Store Connect build number.
+**Product Hunt.** Launch 1329488 "Samaan Pantry" was submitted on 24 Nov 2026 and is scheduled for Sunday 6 Dec 2026, 00:00 Pacific. Copy lives in `docs/launch/copy.md`. Edits to a scheduled launch can be public; get Haaris's OK first.
+
+**main is 1.8.** `MARKETING_VERSION = 1.8` (#98, merged 23 Nov 2026). 1.8 (218), built from the #98 branch, is the live App Store version. Train through 1.6 plus server transcription PRs A–D (#83/#84/#86/#92/#93), dark/tinted icons (#90), gallery review doc (#91), and `revenuecat-sync` on the v1 subscribers endpoint (#94). Build numbers come from Xcode Cloud, not the repo. `CURRENT_PROJECT_VERSION` in the pbxproj is **not** the App Store Connect build number.
 
 **Xcode Cloud archives every branch.** The single `Default` workflow archives (App Store eligible) on any branch push, and each run uploads a TestFlight build. Put `[ci skip]` in the latest commit message for docs-only pushes. App Review submission is still a manual App Store Connect step; never submit without Haaris's explicit OK.
 
@@ -30,7 +32,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 - Free plan: 5 extracts (grandfathered accounts created before 2026-10-12 UTC keep 5/day; newer free accounts get 5 lifetime) + unlimited pantry and lists + community-book read. Pro is **unlimited extracts** and can **start a family cookbook**. Joining a family is free.
 - 402 `quota_exceeded` opens the Pro paywall. 503 `entitlement_unavailable` is retry, not an upsell.
 - Pro is uncapped in `extract-recipe` only when `REVENUECAT_SECRET_API_KEY` is set.
-- After sign-in, `Purchases.logIn` uses the lowercased Supabase user UUID. `revenuecat-sync` (JWT) and `revenuecat-webhook` (Bearer `REVENUECAT_WEBHOOK_AUTH`) both look up subscribers with v1 `REVENUECAT_SECRET_API_KEY` and write `user_accounts.is_pro`. #94 removed the unused v2 `REVENUECAT_SECRET_KEY` path. Live `revenuecat-sync` was still v8 (v2 path) on 2026-11-16; deploying the repo file is required.
+- After sign-in, `Purchases.logIn` uses the lowercased Supabase user UUID. `revenuecat-sync` (JWT) and `revenuecat-webhook` (Bearer `REVENUECAT_WEBHOOK_AUTH`) both look up subscribers with v1 `REVENUECAT_SECRET_API_KEY` and write `user_accounts.is_pro`. #94 removed the unused v2 `REVENUECAT_SECRET_KEY` path. Live `revenuecat-sync` v11 matches the #94 repo file line for line (checked 2026-11-24).
 
 **Onboarding.** First launch shows `OnboardingView` until `samaan.hasCompletedOnboarding`. Then the tab shell. Guest browse still ships: unsigned launch reaches Home / Pantry / Lists / Recipes on local SwiftData. Sign-in is asked for only on Sync now, Extract Recipe, community-book opt-in, family cookbooks, and Delete account. `-UITesting` skips onboarding. Do not restore a login wall.
 
@@ -40,22 +42,23 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 - **Server transcription** (`docs/server-transcription-spec.md`, shipped). PR A (#83, live in v19+) added a multipart `audio` route to `extract-recipe` (ElevenLabs Scribe v2 via `transcribe.ts`, key `ELEVENLABS_API_KEY` with lowercase fallback). It takes the quota slot before transcribing and releases it on transcription failure or a transcript under 20 characters.
 - **Prompts live in `prompts.ts`.** Any change must pass `scripts/recipe-eval.ts` against Haaris's private recording set before it merges. The script refuses paths inside the repo. Never commit recordings, real transcripts, or manifests.
 - **Extraction runs server-side** in the `extract-recipe` Edge Function (Anthropic) with the user JWT. Quota is the table above (`011_billing_grandfathered_and_quota.sql`).
-- **Community is opt-in for every recipe.** `20261123000000_community_opt_in.sql` is **applied in production** (23 Nov 2026, verified via connector): a recipe gets a public card only when the owner sets `share_in_family_book` ("Share to Community"). Cards are labeled with `family_label_for()` (display name, then email prefix), and `set_my_display_name` refreshes Community labels. The 6 cards that existed then were kept by backfilling the flag. The app toggle ships in 1.8 (#98, in App Review). Live 1.7 can't share spoken recipes and still labels them "in the family book". A shared link card shows the source link and attribution.
+- **Community is opt-in for every recipe.** `20261123000000_community_opt_in.sql` is **applied in production** (23 Nov 2026, verified via connector): a recipe gets a public card only when the owner sets `share_in_family_book` ("Share to Community"). Cards are labeled with `family_label_for()` (display name, then email prefix), and `set_my_display_name` refreshes Community labels. The 6 cards that existed then were kept by backfilling the flag. The app toggle shipped in 1.8 (#98, live 24 Nov 2026). 1.7 can't share spoken recipes and labels them "in the family book"; users who haven't updated still see that. A shared link card shows the source link and attribution.
 
-**Private family cookbooks** (#74). Recipes tab **Families** shelf. Pro or grandfathered to create; join is free. Invite: `https://www.samanpantry.com/join/<token>` or an 8-character code. Snapshots never include `raw_transcript`. Architecture: `docs/family-cookbooks.md`. Owner remaining steps: `docs/family-books-go-steps.md`. Family SQL is applied in prod (verified 2026-11-16). Live webhook is still the hand-deployed v9, not the #78 repo file.
+**Private family cookbooks** (#74). Recipes tab **Families** shelf. Pro or grandfathered to create; join is free. Invite: `https://www.samanpantry.com/join/<token>` or an 8-character code. Snapshots never include `raw_transcript`. Architecture: `docs/family-cookbooks.md`. Owner remaining steps: `docs/family-books-go-steps.md`. Family SQL is applied in prod (verified 2026-11-16). Live webhook is still a hand-deployed variant, not the #78 repo file (checked 2026-11-24).
 
 **Analytics.** Dual sink: anonymous Supabase `events` row + HeyCatch (PostHog iOS SDK). `HeyCatch.bind` identifies only a signed-in Supabase user id (#71). No recipe text or personal content as properties. Details: `docs/analytics.md`. Tests / previews / screenshots never start HeyCatch.
 
-**Supabase (verified 16 Nov 2026 through the Supabase connector; re-check before claiming).**
-- `extract-recipe` **version 21** is live and byte-identical to `main` at #85: billing, URL extraction, the audio route, speech prompt rules 4-6, and alternatives as one ingredient. v20 (#84) and v19 (#83) are rollbacks.
+**Supabase (verified 24 Nov 2026 through the Supabase connector; re-check before claiming).**
+- The project is ACTIVE_HEALTHY. The org moved to the **Pro plan** on 25 Nov 2026 (verified via connector), so the free-plan pause (it went INACTIVE on 9 Nov 2026) no longer applies. Leaked password protection is still off; Pro allows turning it on in Auth settings.
+- `extract-recipe` **version 23** is live and byte-identical to `main` at #85: billing, URL extraction, the audio route, speech prompt rules 4-6, and alternatives as one ingredient. v20 (#84) and v19 (#83) are rollbacks.
 - All migrations on `main` are applied, including 011, 012, and both family-books migrations. `20261123000000_community_opt_in` (PR #98) is also applied (23 Nov 2026).
-- Also live (checked 2026-11-16): `delete-account` v11, `revenuecat-sync` v8 (pre-#94 v2 path), `revenuecat-webhook` v9, `asr-bakeoff` v4 (not in the repo).
+- Also live (checked 2026-11-24): `delete-account` v13, `revenuecat-sync` v11 (#94), `revenuecat-webhook` v11 (hand-deployed, see below), `asr-bakeoff` v6 (not in the repo).
 - **Live `revenuecat-webhook` is a hand-deployed variant, not the repo file.** It ignores sandbox events but ignores `TRANSFER`, so it does not revoke donors the way #78 on `main` does.
-- **Live `revenuecat-sync` v8 is not #94.** Repo code uses `REVENUECAT_SECRET_API_KEY` and `/v1/subscribers`. Deploy the repo file to pick that up.
+- **Live `revenuecat-sync` v11 is #94:** `REVENUECAT_SECRET_API_KEY` and `/v1/subscribers`, matching the repo file line for line.
 - The connector cannot list secret names. Do not claim a secret is set; ask or have Haaris check.
 - Agents deploy or run production SQL only with Haaris's explicit OK for that deploy. The Supabase connector can deploy; verify the deployed files against `main` afterwards.
 
-**Legal URLs** `samanpantry.com/privacy` and `/support` are live and in the binary (Settings, Auth, paywall). Update the hosted privacy page from `docs/launch/legal-and-privacy.md` before shipping a 1.7 build (HeyCatch, family cookbooks, server transcription).
+**Legal URLs** `samanpantry.com/privacy` and `/support` are live and in the binary (Settings, Auth, paywall). The hosted privacy page was last updated 21 Nov 2026 and names ElevenLabs, Anthropic, HeyCatch, RevenueCat, and family cookbooks (checked 24 Nov 2026). Keep it in step with `docs/launch/legal-and-privacy.md`.
 
 ## Non-negotiables (from THESIS.md)
 
@@ -69,7 +72,7 @@ Not a meal planner, not a recipe discovery app, no household sharing (see the TH
 
 - Anon key in `Config.swift` is expected (RLS). Service role is not.
 - Recipe AI goes through `Config.recipeExtractionEndpoint` with the **user JWT**, never the anon key as Bearer, never Anthropic from the binary.
-- Do not claim the recipe extraction happens on the phone. Live 1.7 and `main` upload the recording for server transcription. Do not say "audio never leaves the phone" for a 1.7 build.
+- Do not claim the recipe extraction happens on the phone. Live 1.8 and `main` upload the recording for server transcription. Do not say "audio never leaves the phone" for any build from 1.7 on.
 - PR C (#86) and PR D (#92/#93) are both on `main`. Never submit a 1.7 build that has C without D.
 - Audio route: never log audio bytes or transcript text, never store audio, never commit recordings or real transcripts. Size/type checks run before the quota; the slot runs before the paid STT call.
 - Do not say Pro leaves extract capped, or that free users are limited to 30 pantry items / extra lists. Those 1.2 claims are dead.
@@ -97,6 +100,8 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 - Pre-confirmed App Review demo account exists and still signs in.
 - `samaan://auth-callback` is in Supabase Auth → URL Configuration → Redirect URLs.
 - Production secrets `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_WEBHOOK_AUTH`, and the ElevenLabs key name. (Migrations and function versions can be checked with the Supabase connector. `REVENUECAT_SECRET_KEY` is unused after #94.)
+- Which ElevenLabs account production's key uses. The account connected to Claude moved from free to the Creator plan on 25 Nov 2026 (verified via the API: 125,690 credits a month). Watch credits during launch week.
+- Auth email. Sign-up sends a confirmation email, and Extract Recipe needs an account. Confirm the custom SMTP provider and its daily cap, and the email limit under Supabase Auth → Rate Limits.
 
 ## Do not
 
@@ -110,10 +115,10 @@ These live outside the repo. Ask Haaris or check the console before stating eith
 
 ## Next repo work (order)
 
-1. Owner: deploy repo `revenuecat-sync` (#94) if live is still v8.
+1. Owner, before the Product Hunt launch (6 Dec 2026): confirm auth email SMTP and rate limits, and turn on leaked password protection. Supabase Pro and ElevenLabs Creator are done (25 Nov 2026).
 2. Owner: decide whether to replace the hand-deployed webhook with the repo version (#78, TRANSFER donor revoke).
-3. Confirm the hosted privacy page covers HeyCatch, family cookbooks, and server transcription (1.7 is live; not verified here).
-4. 1.8 (218) is in App Review. Once approved, release it before the Product Hunt launch (Haaris's call).
+3. Next app build: fix the copy drift listed in `docs/launch/copy.md` ("save 38%", the Home card's "Paste a transcript to extract ingredients").
+4. Haaris: settle positioning. THESIS.md says pantry first; every public surface says recipe first.
 5. Household mode only after the THESIS gates.
 
-#78 (sandbox webhook + TRANSFER donors) and #79 (family copies stay out of Community) are on `main`. #78 is not what the live webhook runs. #94 is on `main` and is not confirmed deployed.
+#78 (sandbox webhook + TRANSFER donors) and #79 (family copies stay out of Community) are on `main`. #78 is not what the live webhook runs. #94 is on `main` and deployed (`revenuecat-sync` v11).
