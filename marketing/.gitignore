@@ -1,0 +1,6 @@
+# Downloaded fonts (scripts/fetch-fonts.sh) and render scratch
+fonts/
+build/
+node_modules/
+# Raw screen recordings never go in git: they show personal files, family names and voice
+launch-video/footage/

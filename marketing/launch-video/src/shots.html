@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../fonts/fonts-local.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#F3EDE0;
+  background:radial-gradient(120% 140% at 30% 40%,#1E3A29 0%,#132119 50%,#0C1410 100%)}
+.shot{display:none;position:absolute;inset:0}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.serif{font-family:'Cormorant Garamond',Georgia,serif}
+.ur{font-family:'Noto Nastaliq Urdu',serif;color:#D7B86A}
+/* caption: identical geometry + timing to the real-footage shots */
+.cap{position:absolute;left:150px;top:50%;transform:translateY(-50%);width:760px}
+.k{font-size:22px;font-weight:600;letter-spacing:.24em;color:#8FB497;margin-bottom:22px}
+.h{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:86px;line-height:.98;letter-spacing:-.01em}
+.s{margin-top:26px;font-size:30px;line-height:1.35;color:#C8BFA8}
+/* phone: identical geometry to the real-footage shots */
+.phone{position:absolute;left:1220px;top:60px;width:470px;height:960px;border-radius:64px;background:#000;padding:14px;
+  box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 2px #2A332E}
+.screen{position:relative;width:100%;height:100%;border-radius:52px;background:#141917;overflow:hidden}
+.nav{position:absolute;left:0;right:0;top:0;height:120px;border-bottom:1px solid #222B26;display:flex;align-items:flex-end;justify-content:center;padding-bottom:22px}
+.nav .t{font-family:'Cormorant Garamond',serif;font-size:30px;color:#E8E0CF}
+.body{position:absolute;left:24px;right:24px;top:140px}
+.tbox{background:#1A211D;border:1px solid #29332D;border-radius:22px;padding:20px 22px}
+.tlabel{font-size:14px;font-weight:600;letter-spacing:.14em;color:#8A9187;margin-bottom:12px}
+.ttext{font-size:22px;line-height:1.45;color:#E8E0CF}
+.spin{display:flex;align-items:center;gap:12px;margin-top:22px;font-size:19px;color:#8FB497}
+.dot{width:10px;height:10px;border-radius:50%;background:#6FA57E}
+.rtitle{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:44px;line-height:1.05}
+.rfrom{margin-top:8px;font-size:19px;color:#7FAE8C;font-style:italic}
+.rsec{margin-top:26px;font-size:14px;letter-spacing:.16em;color:#9A9384;font-family:'IBM Plex Mono',monospace}
+.row{padding:16px 0;border-bottom:1px solid #232C27}
+.row .top{display:flex;justify-content:space-between;align-items:baseline}
+.row .name{font-size:23px;font-weight:600}
+.row .amt{font-family:'IBM Plex Mono',monospace;font-size:19px;color:#6FA57E}
+.row .orig{margin-top:5px;font-size:18px;font-style:italic;color:#C8BFA8}
+.row.vague{border:2px solid #6FA57E;border-radius:16px;padding:14px 16px;margin:8px -8px 0}
+.tag{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:100px;background:rgba(111,165,126,.16);color:#8FB497;font-size:14px;font-weight:600;letter-spacing:.06em}
+/* family book (mirrors the real Families screen) */
+.fhead{position:absolute;left:0;right:0;top:0;height:120px}
+.back{position:absolute;left:26px;top:62px;width:44px;height:44px;border-radius:50%;background:#1E2622;border:1px solid #2C3631;display:flex;align-items:center;justify-content:center;color:#E8E0CF;font-size:22px}
+.fname{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:46px;line-height:1}
+.btns{display:flex;gap:12px;margin-top:22px}
+.btn{flex:1;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600}
+.btn.g{background:#3F8A57;color:#F3EDE0}.btn.o{background:#1A211D;border:1px solid #29332D;color:#8FB497}
+.card{margin-top:12px;background:#1A211D;border:1px solid #29332D;border-radius:16px;padding:16px 18px}
+.card .n{font-size:21px;font-weight:600}.card .m{margin-top:4px;font-size:16px;color:#9A9384}
+.av{display:flex;margin-top:16px}
+.av div{width:40px;height:40px;border-radius:50%;border:3px solid #141917;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:#141917;margin-left:-10px}
+.av div:first-child{margin-left:0}
+.code{position:absolute;left:24px;right:24px;bottom:40px;background:#1F2C24;border:1.5px solid #6FA57E;border-radius:18px;padding:18px 20px}
+.code .l{font-size:13px;font-weight:600;letter-spacing:.14em;color:#8FB497}
+.code .c{margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:30px;letter-spacing:.12em}
+.code .x{margin-top:4px;font-size:15px;color:#9A9384}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+@keyframes fo{from{opacity:1}to{opacity:0}}
+@keyframes rin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(111,165,126,0)}50%{box-shadow:0 0 0 10px rgba(111,165,126,.2)}}
+@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+</style></head>
+<body>
+
+<!-- BRAND -->
+<div class="shot" id="brand"><div class="center">
+  <img src="../../../Saman/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" style="width:176px;height:176px;border-radius:40px;box-shadow:0 26px 64px rgba(0,0,0,.5);animation:pop .9s .1s both">
+  <div class="serif" style="font-weight:700;font-size:92px;margin-top:34px;animation:up .8s .45s both">Samaan Pantry</div>
+  <div class="serif" style="font-style:italic;font-size:42px;color:#C8BFA8;margin-top:14px;animation:up .8s .75s both">Family recipes, word for word.</div>
+</div></div>
+
+<!-- SAY IT -->
+<div class="shot" id="say">
+  <div class="cap"><div class="k" style="animation:up .6s .15s both">YOU JUST SAY IT</div>
+    <div class="h" style="animation:up .7s .3s both">However you<br>say it.</div>
+    <div class="s" style="animation:up .7s .5s both">Urdu, English, both at once.<br>Samaan writes it down.</div></div>
+  <div class="phone"><div class="screen"><div class="nav"><div class="t">Capture Recipe</div></div>
+    <div class="body"><div class="tbox"><div class="tlabel">WHAT YOU SAID</div><div class="ttext">
+      <span style="animation:fi .2s .45s both">“Theen packet</span>
+      <span style="animation:fi .2s .75s both">frozen bhindi,</span>
+      <span style="animation:fi .2s 1.05s both">saat aath</span>
+      <span style="animation:fi .2s 1.35s both">medium pyaaz,</span>
+      <span style="animation:fi .2s 1.65s both">ek chamach zeera,</span>
+      <span style="animation:fi .2s 1.95s both">do chhote chamach namak,</span>
+      <span style="animation:fi .2s 2.3s both">laal mirch</span>
+      <span style="animation:fi .2s 2.6s both">apne andaze se…”</span>
+    </div></div>
+    <div class="spin" style="animation:fi .3s 3.0s both"><div class="dot" style="animation:pulse .8s 3.0s infinite"></div> Writing the recipe…</div>
+  </div></div></div>
+</div>
+
+<!-- ANDAZA -->
+<div class="shot" id="andaza">
+  <div class="cap"><div class="k" style="animation:up .6s .15s both">NEVER INVENTS A NUMBER</div>
+    <div class="h" style="animation:up .7s .3s both">Andaza stays<br>andaza.</div>
+    <div class="s" style="animation:up .7s .5s both"><span class="ur" style="font-size:28px">اندازہ سے</span> &nbsp;is kept exactly<br>as it was said.</div></div>
+  <div class="phone"><div class="screen"><div class="nav"><div class="t">Review</div></div>
+    <div class="body">
+      <div class="rtitle" style="animation:up .5s .1s both">Bhindi with Onions</div>
+      <div class="rsec" style="animation:fi .4s .3s both">INGREDIENTS · 5</div>
+      <div class="row" style="animation:rin .45s .45s both"><div class="top"><div class="name">okra</div><div class="amt">3 packets</div></div><div class="orig">three packets of frozen bhindi</div></div>
+      <div class="row" style="animation:rin .45s .7s both"><div class="top"><div class="name">onion</div><div class="amt">7–8</div></div><div class="orig">seven, eight medium onions</div></div>
+      <div class="row" style="animation:rin .45s .95s both"><div class="top"><div class="name">cumin</div><div class="amt">1 tbsp</div></div><div class="orig">one tablespoon of zeera</div></div>
+      <div class="row" style="animation:rin .45s 1.2s both"><div class="top"><div class="name">salt</div><div class="amt">2 tsp</div></div><div class="orig">two teaspoon of salt</div></div>
+      <div class="row vague" style="animation:rin .45s 1.55s both, glow 1.2s 2.2s 2 both"><div class="top"><div class="name">red chili</div><div class="amt">—</div></div><div class="orig">laal mirch, apne andaze se</div><div class="tag">KEPT AS SAID · NO NUMBER GUESSED</div></div>
+    </div></div></div>
+</div>
+
+<!-- FAMILY COOKBOOK -->
+<div class="shot" id="family">
+  <div class="cap"><div class="k" style="animation:up .6s .15s both">FAMILY COOKBOOKS</div>
+    <div class="h" style="animation:up .7s .3s both">One book,<br>the whole family.</div>
+    <div class="s" style="animation:up .7s .5s both">Invite with a code. Everyone<br>cooks from the same recipes.</div></div>
+  <div class="phone"><div class="screen">
+    <div class="back">‹</div>
+    <div class="body" style="top:132px">
+      <div class="fname" style="animation:up .5s .1s both">Khan Family</div>
+      <div class="av" style="animation:fi .4s .3s both">
+        <div style="background:#6FA57E">S</div><div style="background:#C9A24B">B</div><div style="background:#D48C6C">Z</div><div style="background:#8FA6C9">A</div>
+      </div>
+      <div class="btns" style="animation:fi .4s .35s both"><div class="btn g">Invite</div><div class="btn o">Members</div></div>
+      <div class="card" style="animation:rin .45s .55s both"><div class="n">Bhindi with Onions</div><div class="m">added by Sana · today</div></div>
+      <div class="card" style="animation:rin .45s .8s both"><div class="n">Chicken Karahi</div><div class="m">added by Bilal</div></div>
+      <div class="card" style="animation:rin .45s 1.05s both"><div class="n">Gajar Halwa</div><div class="m">added by Zoya</div></div>
+      <div class="card" style="animation:rin .45s 1.3s both"><div class="n">Daal Chawal</div><div class="m">added by Ali</div></div>
+    </div>
+    <div class="code" style="animation:rise .55s 2.1s both"><div class="l">INVITE CODE</div><div class="c">K7M2QX9A</div><div class="x">Joining is free.</div></div>
+  </div></div>
+</div>
+
+<!-- END -->
+<div class="shot" id="end"><div class="center">
+  <img src="../../../Saman/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" style="width:150px;height:150px;border-radius:34px;box-shadow:0 22px 56px rgba(0,0,0,.5);animation:pop .9s .1s both">
+  <div class="serif" style="font-weight:700;font-size:80px;margin-top:28px;animation:up .8s .45s both">Samaan Pantry</div>
+  <div style="font-size:30px;color:#C8BFA8;margin-top:16px;animation:up .8s .75s both">Record it. Paste a link. Type it. Share it with family.</div>
+  <div style="margin-top:38px;padding:16px 32px;border:1.5px solid rgba(200,191,168,.45);border-radius:100px;font-size:28px;font-weight:600;animation:up .8s 1.05s both">Free on the App Store</div>
+</div></div>
+
+<script>
+const id=new URLSearchParams(location.search).get('shot');
+document.getElementById(id).style.display='block';
+</script>
+</body></html>
