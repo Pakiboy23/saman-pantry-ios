@@ -1,6 +1,6 @@
 # Project Memory
-Last updated: 2026-11-24 | Branch: main
-Memory health: 8/10
+Last updated: 2026-11-27 | Branch: main
+Memory health: 9/10
 
 ## Project Overview
 Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supabase `mcknboqvblbonmaebmjg` + RevenueCat. Legal entity: Saman Technologies LLC dba Samaan Technologies. Bundle `com.samanpantry.Saman` and `samanpantry.com` stay single-a. Paid tier: Samaan Pro. THESIS.md wins product arguments.
@@ -15,6 +15,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - **Open question:** owner-console items below are unconfirmed; ask, don't assume.
 
 ## Completed
+- 2026-11-27 Product Hunt brag video built with /brag: `brag-output/brag.mp4` (1920x1080, 26.2s, poster baked as frame 0). Six scenes from real screenshots, colorsets, fonts and in-app copy. Music is a placeholder, see Known issues.
 - 2026-11-25 Supabase org moved to Pro; ElevenLabs moved from free to Creator (both verified via API).
 - 2026-11-24 1.8 live on the App Store. Product Hunt launch submitted for 2026-12-06; maker comment pricing line now says "5 recipe extractions, no card". Docs: skill/MEMORY/copy/runbooks match 1.8 live, `revenuecat-sync` #94 deployed (v11), hosted privacy page verified (updated 2026-11-21).
 - 2026-11-23 Community opt-in for every recipe (#98); migration `20261123000000_community_opt_in` applied. 1.7 live; 1.8 (218) submitted to App Review.
@@ -31,34 +32,14 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - 2026-10-21 HeyCatch bind only for signed-in users (#71). HeyCatch product analytics (#69). Marketing 1.6.
 - 2026-10-15 Samaan copy / gender-neutral demo strings (#70).
 - 2026-10-12 Family book opt-in for link recipes (#68, migration 012). Billing free-tier + Pro paywall + first-launch onboarding (#66, migration 011). Marketing 1.5 (#67).
-- 2026-10-08 Docs: skill and MEMORY match 1.3 live / 1.3.1 on main (since superseded). extract-recipe v9. Parser hardening (#61), #63 meta/caption scan on main (not deployed).
-- 2026-10-07 Voice capture keeps the full transcript; link-shaped miss errors fixed (#60). Stale auth sessions no longer restore signed-out accounts (#59).
-- 2026-10-06 Atomic 5/day extraction quota (#58). Cross-owner recipe book card mutations blocked (#57). JSON-LD instruction budget (#54). Int-conversion crash fix (#56). Both 009 migrations applied.
-- 2026-10-05 1.3 (133) released. Recording keeps the full transcript across pauses (#49); marketing 1.3.1 (#50).
-- 2026-10-04 On-device transcription of a recording or audio file into the recipe extract (#46). Public family recipe book for transcript saves (#44).
-- 2026-09-26 Recipe link extraction (#39), shipped in 1.2 (119) alongside Samaan Pro. Migrations 003 through 006 applied. 1.2 prices were Monthly $4.99 / Yearly $39.99 / Lifetime $79.99 — **not** the current fixture.
-- 2026-09-25 Anonymous usage events and one-time Anthropic consent (#36), shipped in 1.1 (106).
-- 2026-09-18 Deleted June `LAUNCH_REVIEW.md` / `APP_STORE_READINESS_REPORT.md`, duplicate `docs/launch/PrivacyInfo.xcprivacy`, and replaced the obsolete Edge Function spec with a pointer at `supabase/functions/`. Trued up skill, MEMORY, THESIS, and screenshot copy for guest browse + mark-bought restock.
-- 2026-09-17 Deleted unreachable `ReorderView` / `ReorderItemRow` / private `RestockSheet`, trimmed the unwired LowStockBanner chevron, and dropped the two root `*.pages` thesis binaries (#21).
-- 2026-09-15 Guest browse + in-binary Privacy/Terms/Support (Auth, Settings LEGAL, paywall inset). Unsigned launch reaches the tab shell. Auth only for sync, extract, delete account. Build 65 (#20).
-- 2026-09-19 Monetization honesty (1.2-era): named the then-real gates (30 pantry items, extra list). **Superseded 2026-10-12** — pantry/lists are unlimited; 402 is a Pro upsell; Pro lifts extract when RevenueCat verifies.
-- 2026-09-05 extract-recipe requires the user JWT and a quota table. Client sends the access token.
-- 2026-09-05 Password recovery completes in-app: URL scheme, `onOpenURL`, `redirectTo`, `.passwordRecovery` is not a sign-out.
-- 2026-09-05 Deleted unreachable `PantryListView` / `AddPantryView`.
-- 2026-08-29 `samanpantry.com/privacy` and `/support` verified live: both return 200. Apex 307s to `www`, which is fine for App Review and for `Config.privacyPolicyURL` / `Config.supportURL`. Legal URLs are no longer a blocker.
-- 2026-08-29 Deleted dead scaffolding: `ItemRepository` (never injected, and its bare `context.delete` was a copy-paste trap) and `PricesView` (orphaned stub, already cut from the tab bar).
-- 2026-08-23 Pull-sync + tombstones. Upload dirty, then pull. Local dirty wins. Missing server row deletes clean local.
-- 2026-08-23 Recipe `updatedAt` + `recipes` table migration. Recipe deletes now tombstone.
-- 2026-08-23 Password reset on AuthView. Friendly auth errors.
-- 2026-08-23 Item detail copy is "Flag as low below" — no notification lie.
-- 2026-08-23 PrivacyInfo in the synchronized Saman/ group. Device family iPhone only.
-- 2026-08-23 samaan-pantry-expert skill on main via #5.
-- 2026-04-20 #2 Reorder writeback (tab later deleted; restock is mark-bought).
-- 2026-04-19 THESIS.md + foundation.
-
+- 2026-10-04..08 1.3 (133) released; full transcript across pauses (#49), marketing 1.3.1 (#50). On-device transcription of a recording or audio file (#46); public family recipe book for transcript saves (#44). Atomic 5/day quota (#58), cross-owner card mutations blocked (#57), JSON-LD budget (#54), Int-conversion crash (#56), both 009 migrations applied. Link-shaped miss errors (#60); stale auth sessions no longer restore signed-out accounts (#59). Parser hardening (#61); #63 meta/caption scan on main, not deployed.
+- 2026-09-25..26 Recipe link extraction (#39) shipped in 1.2 (119) with Samaan Pro; migrations 003-006 applied. Anonymous usage events + one-time Anthropic consent (#36) in 1.1 (106). 1.2 prices were Monthly $4.99 / Yearly $39.99 / Lifetime $79.99, **not** the current fixture.
+- 2026-09-15..19 Guest browse + in-binary legal links, build 65 (#20). ReorderView / RestockSheet / `*.pages` deleted (#21). June launch reports deleted, docs trued up. 1.2-era monetization copy superseded 2026-10-12 (pantry and lists are unlimited).
+- 2026-08-23..09-05 Foundation: pull-sync + tombstones (local dirty wins), recipe `updatedAt` + tombstones, extract-recipe JWT + quota, in-app password recovery, iPhone-only, PrivacyInfo in the synchronized group, "Flag as low below" copy, `PantryListView` / `AddPantryView` / `ItemRepository` / `PricesView` deleted, live legal URLs, expert skill on main (#5).
+- 2026-04 THESIS.md + foundation (#2 restock writeback; the Reorder tab was deleted later, restock is mark-bought).
 ## Active Work
-- [x] 011, 012, family-books migrations applied in prod (verified 2026-11-16)
-- [x] `extract-recipe` deployed (v19, 2026-11-16)
+- [ ] Product Hunt launch 2026-12-06 00:00 PT (launch 1329488)
+- [ ] Swap the brag video's placeholder music for a licensed culturally appropriate track, then re-render (see Known issues)
 - [ ] Owner, confirm don't assume: `REVENUECAT_SECRET_API_KEY` set (else Pro is metered as free)
 - [x] `revenuecat-sync` #94 deployed (v11, verified 2026-11-24)
 - [x] Supabase org on Pro; ElevenLabs on Creator (2026-11-25, verified)
@@ -90,6 +71,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 ## Key Decisions
 | Date | Decision | Reasoning | Affects |
 |------|----------|-----------|---------|
+| 2026-11-23 | Community sharing is opt-in per recipe | Transcript saves were auto-publishing a public card. The owner now sets "Share to Community"; the 6 cards that already existed were kept by backfilling the flag | Recipe.shareInFamilyBook, 20261123000000_community_opt_in, Recipes UI |
 | 2026-11-16 | Prompt changes gate on `scripts/recipe-eval.ts` against a private recording set | The repo is public; recordings and transcripts never enter it. The script tests the checkout's prompt before deploy | prompts.ts, release checklist |
 | 2026-11-16 | Move recording transcription to the server (ElevenLabs Scribe v2), engine as a server setting | Apple on-device mangles desi words and duplicates partials; Scribe v2 got bhindi/zeera right on a real recording | extract-recipe, RecipeAudioTranscriber (removed in PR C), privacy copy (PR D) |
 | 2026-10-24 | Private family cookbooks; Pro/grandfathered to create; join free | Recipe sharing among invited members is not household mode | FamilyService, family_* tables, paywall `.createFamily` |
@@ -137,6 +119,7 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 - Xcode Cloud's single `Default` workflow archives and uploads a TestFlight build on every branch push. Use `[ci skip]` for docs-only pushes.
 - Live `revenuecat-webhook` is a hand-deployed variant, not the repo file, and does not revoke TRANSFER donors.
 - `asr-bakeoff` is live in prod and not in the repo.
+- The brag video's music is a placeholder corporate bed from the bundled `/brag` library, tonally wrong for a culturally specific product. Swapping it needs a licensed track or the HeyGen CLI (not installed); timings are cue-derived so a re-cut is cheap.
 - Leaked password protection is off (security advisor). The org is on Pro now, so it can be turned on in Auth settings.
 - App strings drift from `docs/launch/copy.md`: paywall "save 38%" (the math is 37.4%) and the Home card's "Paste a transcript to extract ingredients".
 - Positioning: THESIS.md and the strategic decisions above say pantry first; the App Store, site, and Product Hunt lead recipe first. Needs Haaris's decision.
@@ -161,3 +144,6 @@ Samaan Pantry: iOS pantry app for one desi kitchen. SwiftUI + SwiftData + Supaba
 | supabase/migrations/011_billing_grandfathered_and_quota.sql | `user_accounts`, reserve RPC, `my_extraction_quota_status` |
 | supabase/migrations/012_recipe_book_url_opt_in.sql | `share_in_family_book` for link recipes |
 | supabase/migrations/20261024000000_family_books.sql | Private families |
+| supabase/migrations/20261123000000_community_opt_in.sql | Per-recipe Community opt-in, `family_label_for()` |
+| marketing/ | App Store creative, 3 screenshots, Product Hunt video + render scripts (#100) |
+| brag-output/ | /brag launch video: `brag.mp4`, poster, plan, brief, Hyperframes project. Untracked |
